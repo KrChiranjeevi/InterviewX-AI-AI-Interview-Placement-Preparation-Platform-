@@ -61,52 +61,6 @@ Our comprehensive suite of tools includes:
 
 ---
 
-## 📸 Screenshots
-
-<details>
-<summary><b>1. Dashboard</b></summary>
-<br>
-*(Add Dashboard Screenshot Here - e.g., `![Dashboard](./docs/dashboard.png)`)*
-</details>
-
-<details>
-<summary><b>2. Interview</b></summary>
-<br>
-*(Add Live AI Interview Screenshot Here)*
-</details>
-
-<details>
-<summary><b>3. Coding</b></summary>
-<br>
-*(Add Monaco Code Editor Screenshot Here)*
-</details>
-
-<details>
-<summary><b>4. Resume Analyzer</b></summary>
-<br>
-*(Add Resume Analyzer Screenshot Here)*
-</details>
-
-<details>
-<summary><b>5. Company Prep</b></summary>
-<br>
-*(Add Company Simulation Timeline Screenshot Here)*
-</details>
-
-<details>
-<summary><b>6. Reports</b></summary>
-<br>
-*(Add AI Evaluation Report Screenshot Here)*
-</details>
-
-<details>
-<summary><b>7. Roadmap</b></summary>
-<br>
-*(Add AI Career Roadmap Screenshot Here)*
-</details>
-
----
-
 ## 🛠️ Tech Stack
 
 ### Frontend
@@ -288,8 +242,8 @@ Distributed under the MIT License. See `LICENSE` for more information.
 ## 👤 Author
 
 - **GitHub:** [@KrChiranjeevi](https://github.com/KrChiranjeevi)
-- **LinkedIn:** [Chiranjeevi Kumar](https://www.linkedin.com/in/krchiranjeevi/) *(Placeholder)*
-- **Email:** contact@krchiranjeevi.com *(Placeholder)*
+- **LinkedIn:** [Chiranjeevi Kumar]([https://www.linkedin.com/in/krchiranjeevi/](https://www.linkedin.com/in/kumar-chiranjeevi-782b77297/)) *(Placeholder)*
+- **Email:** krchiranjeevi28@gmail.com *(Placeholder)*
 
 ---
 <p align="center">Made with ❤️ for aspiring engineers.</p>
