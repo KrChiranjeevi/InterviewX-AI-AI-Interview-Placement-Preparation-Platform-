@@ -242,7 +242,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 ## 👤 Author
 
 - **GitHub:** [@KrChiranjeevi](https://github.com/KrChiranjeevi)
-- **LinkedIn:** [Chiranjeevi Kumar]([https://www.linkedin.com/in/krchiranjeevi/](https://www.linkedin.com/in/kumar-chiranjeevi-782b77297/)) *(Placeholder)*
+- **LinkedIn:** [Chiranjeevi Kumar](https://www.linkedin.com/in/krchiranjeevi/](https://www.linkedin.com/in/kumar-chiranjeevi-782b77297/) *(Placeholder)*
 - **Email:** krchiranjeevi28@gmail.com *(Placeholder)*
 
 ---
