@@ -241,9 +241,9 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ## 👤 Author
 
-- **GitHub:** [@KrChiranjeevi](https://github.com/KrChiranjeevi)
-- **LinkedIn:** [Chiranjeevi Kumar](https://www.linkedin.com/in/krchiranjeevi/](https://www.linkedin.com/in/kumar-chiranjeevi-782b77297/) *(Placeholder)*
-- **Email:** krchiranjeevi28@gmail.com *(Placeholder)*
+- **GitHub:** (https://github.com/KrChiranjeevi)
+- **LinkedIn:** (https://www.linkedin.com/in/krchiranjeevi/](https://www.linkedin.com/in/kumar-chiranjeevi-782b77297/)
+- **Email:** krchiranjeevi28@gmail.com
 
 ---
 <p align="center">Made with ❤️ for aspiring engineers.</p>
