@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import ProtectedRoute from './routes/ProtectedRoute';
 import { Toaster } from 'react-hot-toast';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -34,6 +34,40 @@ const LoadingFallback = () => (
 );
 
 function App() {
+  useEffect(() => {
+    const applyTheme = () => {
+      try {
+        const userInfo = localStorage.getItem('userInfo');
+        if (userInfo) {
+          const user = JSON.parse(userInfo);
+          const themeMode = user?.settings?.appearance?.themeMode || user?.theme || 'dark';
+          let activeTheme = themeMode;
+          if (themeMode === 'system') {
+            activeTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          if (activeTheme === 'light') {
+            document.documentElement.classList.add('light');
+            document.documentElement.classList.remove('dark');
+          } else {
+            document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light');
+          }
+        }
+      } catch (err) {
+        console.error('Error applying theme:', err);
+      }
+    };
+
+    applyTheme();
+
+    window.addEventListener('storage', applyTheme);
+    window.addEventListener('theme-changed', applyTheme);
+    return () => {
+      window.removeEventListener('storage', applyTheme);
+      window.removeEventListener('theme-changed', applyTheme);
+    };
+  }, []);
+
   return (
     <ErrorBoundary>
       <Router>

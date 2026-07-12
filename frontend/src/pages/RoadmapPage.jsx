@@ -1,46 +1,64 @@
 import React, { useState, useEffect } from 'react';
-import { getRoadmap, generateRoadmap, toggleRoadmapTask } from '../services/api';
+import { getRoadmap, getSavedRoadmaps, generateRoadmap, toggleRoadmapTask, bookmarkRoadmap, getTopicDetail } from '../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/layout/Sidebar';
 import Navbar from '../components/layout/Navbar';
+import AIMentorWidget from '../components/roadmap/AIMentorWidget';
+import CompareModal from '../components/roadmap/CompareModal';
+import { 
+  FaSearch, FaBookmark, FaRegBookmark, FaDownload, FaBalanceScale, FaChevronDown, FaChevronUp, 
+  FaCheckCircle, FaRegCircle, FaFire, FaTrophy, FaBriefcase, FaCode, FaRobot, FaBook, 
+  FaPlayCircle, FaExternalLinkAlt, FaBuilding, FaMoneyBillWave, FaChartLine, FaClock, FaHistory, FaTimes
+} from 'react-icons/fa';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
 const RoadmapPage = () => {
   const [roadmap, setRoadmap] = useState(null);
+  const [savedRoadmaps, setSavedRoadmaps] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [generating, setGenerating] = useState(false);
-  const [targetRole, setTargetRole] = useState('');
-  const [showModal, setShowModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [expandedModules, setExpandedModules] = useState({});
+  const [expandedTopics, setExpandedTopics] = useState({});
+  const [showCompare, setShowCompare] = useState(false);
+  const [error, setError] = useState(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [loadingTopicDetail, setLoadingTopicDetail] = useState({});
 
   useEffect(() => {
-    fetchRoadmap();
+    fetchActiveRoadmap();
+    fetchSaved();
   }, []);
 
-  const fetchRoadmap = async () => {
+  const fetchActiveRoadmap = async () => {
     try {
       const { data } = await getRoadmap();
       setRoadmap(data);
-      setLoading(false);
     } catch (err) {
-      if (err.response && err.response.status === 404) {
-        setRoadmap(null);
-      } else {
-        setError('Failed to load roadmap.');
-      }
-      setLoading(false);
+      if (err.response?.status !== 404) setError('Failed to load roadmap.');
+    }
+    setLoading(false);
+  };
+
+  const fetchSaved = async () => {
+    try {
+      const { data } = await getSavedRoadmaps();
+      setSavedRoadmaps(data);
+    } catch (err) {
+      console.error('Failed to fetch saved roadmaps');
     }
   };
 
-  const handleGenerate = async (e) => {
+  const handleSearch = async (e) => {
     e.preventDefault();
-    if (!targetRole.trim()) return;
-    
-    setShowModal(false);
+    if (!searchQuery.trim()) return;
+    setShowHistory(false);
     setGenerating(true);
-    
+    setError(null);
     try {
-      const { data } = await generateRoadmap(targetRole);
+      const { data } = await generateRoadmap(searchQuery);
       setRoadmap(data);
+      setSearchQuery('');
     } catch (err) {
       setError('Failed to generate roadmap. Please try again.');
     } finally {
@@ -48,236 +66,473 @@ const RoadmapPage = () => {
     }
   };
 
-  const handleToggleTask = async (weekIndex, taskIndex) => {
-    try {
-      // Optimistic update
-      const updatedRoadmap = { ...roadmap };
-      updatedRoadmap.weeks[weekIndex].tasks[taskIndex].completed = !updatedRoadmap.weeks[weekIndex].tasks[taskIndex].completed;
-      
-      // Calculate new progress locally to update UI immediately
-      let totalTasks = 0;
-      let completedTasks = 0;
-      updatedRoadmap.weeks.forEach(week => {
-        week.tasks.forEach(task => {
-          totalTasks++;
-          if (task.completed) completedTasks++;
-        });
-      });
-      updatedRoadmap.progress = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
-      setRoadmap(updatedRoadmap);
+  const loadSavedRoadmap = (saved) => {
+    setRoadmap(saved);
+    setShowHistory(false);
+  };
 
-      // Backend update
-      await toggleRoadmapTask(roadmap._id, weekIndex, taskIndex);
+  const handleToggleBookmark = async () => {
+    if (!roadmap) return;
+    try {
+      await bookmarkRoadmap(roadmap._id);
+      setRoadmap({ ...roadmap, isSaved: !roadmap.isSaved });
+      fetchSaved();
     } catch (err) {
-      console.error('Failed to toggle task', err);
-      // Revert if error
-      fetchRoadmap();
+      console.error(err);
     }
   };
 
-  if (loading || generating) {
-    return (
-      <div className="flex h-screen bg-slate-950 items-center justify-center">
-        <div className="flex flex-col items-center">
-          <div className="w-16 h-16 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-6"></div>
-          <h2 className="text-2xl font-bold text-white animate-pulse">
-            {generating ? 'Crafting your personalized roadmap...' : 'Loading...'}
-          </h2>
-          {generating && <p className="text-slate-400 mt-2">Analyzing your past performance to find weak spots.</p>}
-        </div>
-      </div>
-    );
-  }
+  const handleExportPDF = () => {
+    window.print();
+  };
 
-  if (error) {
-    return (
-      <div className="flex h-screen bg-slate-950 items-center justify-center">
-        <div className="text-red-400 text-xl font-semibold bg-red-900/20 border border-red-500/20 p-8 rounded-xl shadow-md">{error}</div>
-      </div>
-    );
-  }
+  const toggleTask = async (moduleIndex, topicIndex, taskIndex, taskType) => {
+    try {
+      // Optimistic update logic (simplified for UI feedback)
+      const updated = { ...roadmap };
+      const mod = updated.modules[moduleIndex];
+      if (taskType === 'practiceProblems') {
+        mod.topics[topicIndex].practiceProblems[taskIndex].isCompleted = !mod.topics[topicIndex].practiceProblems[taskIndex].isCompleted;
+      } else if (taskType === 'projects') {
+        mod.projects[taskIndex].isCompleted = !mod.projects[taskIndex].isCompleted;
+      } else if (taskType === 'topic') {
+        mod.topics[topicIndex].isCompleted = !mod.topics[topicIndex].isCompleted;
+      }
+      setRoadmap(updated);
+      await toggleRoadmapTask(roadmap._id, moduleIndex, topicIndex, taskIndex, taskType);
+    } catch (err) {
+      console.error(err);
+      fetchActiveRoadmap();
+    }
+  };
+
+  const toggleModule = (index) => setExpandedModules(prev => ({ ...prev, [index]: !prev[index] }));
+  
+  const toggleTopic = async (modIdx, topIdx) => {
+    const key = `${modIdx}-${topIdx}`;
+    setExpandedTopics(prev => ({ ...prev, [key]: !prev[key] }));
+
+    const topic = roadmap.modules[modIdx].topics[topIdx];
+    if (!topic.explanation) {
+      setLoadingTopicDetail(prev => ({ ...prev, [key]: true }));
+      try {
+        const { data } = await getTopicDetail(roadmap._id, modIdx, topIdx);
+        setRoadmap(data);
+      } catch (err) {
+        console.error('Failed to load topic details:', err);
+      } finally {
+        setLoadingTopicDetail(prev => ({ ...prev, [key]: false }));
+      }
+    }
+  };
+
+  // Recharts Data Prep
+  const radarData = roadmap?.analytics ? [
+    { subject: 'Role', A: roadmap.analytics.roleReadiness || 0, fullMark: 100 },
+    { subject: 'Coding', A: roadmap.analytics.codingReadiness || 0, fullMark: 100 },
+    { subject: 'Interview', A: roadmap.analytics.interviewReadiness || 0, fullMark: 100 },
+    { subject: 'Resume', A: roadmap.analytics.resumeReadiness || 0, fullMark: 100 },
+    { subject: 'Communication', A: roadmap.analytics.communicationReadiness || 0, fullMark: 100 },
+  ] : [];
+
+  const barData = roadmap?.modules?.map((m, i) => {
+    const total = (m.topics?.length || 0) + (m.projects?.length || 0);
+    const completed = (m.topics?.filter(t => t.isCompleted)?.length || 0) + (m.projects?.filter(p => p.isCompleted)?.length || 0);
+    return { name: `M${i+1}`, completed, remaining: total - completed };
+  }) || [];
 
   return (
-    <div className="flex h-screen bg-slate-950 overflow-hidden">
-      <Sidebar />
-      <div className="flex-1 ml-64 flex flex-col h-screen overflow-hidden">
-        <Navbar subtitle="A personalized preparation plan designed dynamically based on your weaknesses." />
-        <main className="flex-1 overflow-y-auto p-8 no-scrollbar">
-          <div className="max-w-4xl mx-auto">
+    <div className="flex h-screen bg-slate-950 overflow-hidden print-friendly">
+      <div className="print:hidden"><Sidebar /></div>
+      <div className="flex-1 md:ml-64 flex flex-col h-screen overflow-hidden relative print:ml-0">
+        <div className="print:hidden"><Navbar subtitle="Industry-Level AI Career Coach" /></div>
+        
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 no-scrollbar pb-32 print:p-0 print:overflow-visible">
+          <div className="max-w-6xl mx-auto space-y-8">
             
-            <div className="mb-10 text-center md:text-left">
-              <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight flex flex-col md:flex-row items-center gap-3">
-                Your Personalized Learning Roadmap <span className="text-4xl">🚀</span>
-              </h1>
-            </div>
-
-            {!roadmap ? (
-              <div className="glass-card rounded-3xl shadow-xl p-10 md:p-16 text-center border border-slate-800 relative overflow-hidden">
-                <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl"></div>
-                <svg className="mx-auto h-24 w-24 text-indigo-400 mb-6 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                </svg>
-                <h3 className="text-3xl font-bold text-white relative z-10">No roadmap generated yet</h3>
-                <p className="mt-4 text-lg text-slate-400 max-w-md mx-auto relative z-10">Generate a custom roadmap to focus on the skills you need to land your dream job.</p>
-                <button
-                  onClick={() => setShowModal(true)}
-                  className="mt-8 relative z-10 inline-flex items-center px-8 py-4 border border-transparent text-lg font-bold rounded-full shadow-lg text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all transform hover:scale-105"
+            {/* Universal Search Bar */}
+            <div className="print:hidden relative z-40">
+              <form onSubmit={handleSearch} className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
+                  <FaSearch className="text-indigo-500 text-xl" />
+                </div>
+                <input
+                  type="text"
+                  className="block w-full bg-slate-900 border-2 border-slate-800 text-white rounded-full py-5 pl-14 pr-32 text-lg focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-xl placeholder-slate-500"
+                  placeholder="Search any roadmap... (e.g. Java, MERN, Amazon SDE, AI Engineer)"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setShowHistory(true)}
+                  disabled={generating}
+                />
+                <button 
+                  type="submit" 
+                  disabled={generating || !searchQuery.trim()}
+                  className="absolute inset-y-2 right-2 px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-full transition-colors disabled:opacity-50"
                 >
-                  Generate Roadmap Now
+                  {generating ? 'Generating...' : 'Generate'}
                 </button>
-              </div>
-            ) : (
-              <div className="space-y-10">
-                {/* Header Info */}
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-3xl p-8 border border-slate-800 flex flex-col md:flex-row justify-between items-center gap-6">
-                  <div className="flex flex-col space-y-4 w-full md:w-1/2">
-                    <div className="flex items-center space-x-3">
-                      <span className="p-2 bg-indigo-500/20 text-indigo-400 rounded-lg">
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                      </span>
-                      <div>
-                        <p className="text-sm font-medium text-slate-400 uppercase tracking-wide">Current Target</p>
-                        <p className="text-xl font-bold text-white">{roadmap.targetRole}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="w-full md:w-1/2 bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
-                    <div className="flex justify-between items-end mb-2">
-                      <p className="text-sm font-semibold text-slate-400 uppercase tracking-wide">Overall Progress</p>
-                      <p className="text-3xl font-black text-indigo-400">{roadmap.progress}%</p>
-                    </div>
-                    <div className="w-full bg-slate-800 rounded-full h-3 mb-1">
-                      <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-3 rounded-full transition-all duration-1000 ease-out" style={{ width: `${roadmap.progress}%` }}></div>
-                    </div>
-                  </div>
-                </motion.div>
+              </form>
 
-                {/* Timeline */}
-                <div className="relative pl-4 md:pl-0">
-                  <div className="hidden md:block absolute left-8 top-0 bottom-0 w-1 bg-slate-800 rounded-full"></div>
-                  
-                  <div className="space-y-8">
-                    {roadmap.weeks.map((week, weekIndex) => {
-                      const weekCompleted = week.tasks.every(t => t.completed);
-                      
-                      return (
-                        <motion.div 
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: weekIndex * 0.1 }}
-                          key={weekIndex} 
-                          className="relative md:pl-20"
-                        >
-                          {/* Timeline dot */}
-                          <div className={`hidden md:flex absolute left-6 w-5 h-5 rounded-full mt-6 -ml-0.5 border-4 border-slate-950 shadow ${weekCompleted ? 'bg-green-500' : 'bg-slate-700'}`}></div>
-                          
-                          <div className={`glass-card rounded-3xl shadow-sm border ${weekCompleted ? 'border-green-500/30' : 'border-slate-800'} p-6 transition-all hover:border-indigo-500/50`}>
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-                              <h3 className="text-2xl font-bold text-white">{week.title}</h3>
-                              {weekCompleted && (
-                                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-500/20 text-green-400">
-                                  <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                                  Completed
-                                </span>
-                              )}
+              {/* Suggestions / History Dropdown */}
+              <AnimatePresence>
+                {showHistory && !searchQuery && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                    className="absolute top-full left-0 right-0 mt-3 bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl p-6 overflow-hidden"
+                  >
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-white font-bold flex items-center gap-2"><FaHistory className="text-indigo-400" /> Saved & Recent Roadmaps</h3>
+                      <button onClick={() => setShowHistory(false)} className="text-slate-400 hover:text-white"><FaTimes /></button>
+                    </div>
+                    {savedRoadmaps.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {savedRoadmaps.map((s, i) => (
+                          <div key={i} onClick={() => loadSavedRoadmap(s)} className="p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 cursor-pointer flex items-center gap-3 transition-colors">
+                            <div className="w-10 h-10 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
+                              <FaBookmark />
                             </div>
-                            
-                            <div className="mb-6">
-                              <p className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Focus Topics</p>
-                              <div className="flex flex-wrap gap-2">
-                                {week.topics.map((topic, i) => (
-                                  <span key={i} className="px-3 py-1.5 bg-slate-800/80 border border-slate-700 text-slate-300 rounded-lg text-sm font-medium">
-                                    {topic}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-
-                            <div>
-                              <p className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Tasks</p>
-                              <ul className="space-y-3">
-                                {week.tasks.map((task, taskIndex) => (
-                                  <li key={taskIndex} className="flex items-start bg-slate-900/50 p-4 rounded-xl border border-slate-800 hover:border-indigo-500/30 transition-colors cursor-pointer" onClick={() => handleToggleTask(weekIndex, taskIndex)}>
-                                    <div className="flex-shrink-0 mt-0.5 relative flex items-center justify-center">
-                                      <input
-                                        type="checkbox"
-                                        className="peer h-5 w-5 rounded bg-slate-800 border-slate-600 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900 cursor-pointer appearance-none checked:bg-indigo-500 checked:border-transparent transition-all"
-                                        checked={task.completed}
-                                        onChange={() => handleToggleTask(weekIndex, taskIndex)}
-                                      />
-                                      <svg className="absolute w-3.5 h-3.5 text-white pointer-events-none opacity-0 peer-checked:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                      </svg>
-                                    </div>
-                                    <span className={`ml-4 block text-base ${task.completed ? 'text-slate-500 line-through' : 'text-slate-200 font-medium'}`}>
-                                      {task.title}
-                                    </span>
-                                  </li>
-                                ))}
-                              </ul>
+                            <div className="truncate">
+                              <p className="text-white font-semibold text-sm truncate">{s.searchQuery}</p>
+                              <p className="text-xs text-slate-400">{s.type} • {s.progress}% Completed</p>
                             </div>
                           </div>
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-                </div>
-                
-                <div className="text-center mt-12 mb-8">
-                  <button onClick={() => setShowModal(true)} className="text-indigo-400 hover:text-indigo-300 font-semibold text-sm underline underline-offset-4">
-                    Generate a new roadmap
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-slate-400 text-sm">No saved roadmaps yet. Try searching above!</p>
+                    )}
+                    <div className="mt-6 pt-4 border-t border-slate-800">
+                      <p className="text-xs text-slate-500 mb-3 uppercase tracking-wider font-semibold">Try searching for:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {['React Developer', 'Amazon SDE', 'Machine Learning', 'System Design'].map(q => (
+                          <button key={q} onClick={(e) => { e.preventDefault(); setSearchQuery(q); }} className="px-3 py-1.5 rounded-full bg-slate-800 text-slate-300 text-xs border border-slate-700 hover:bg-indigo-600 hover:text-white transition-colors">{q}</button>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Action Bar */}
+            <div className="flex justify-between items-center print:hidden">
+              <button onClick={() => setShowCompare(true)} className="px-5 py-2.5 rounded-full bg-slate-900 border border-slate-700 text-white font-semibold hover:bg-slate-800 flex items-center gap-2 transition-all">
+                <FaBalanceScale className="text-indigo-400" /> Compare Roadmaps
+              </button>
+              {roadmap && (
+                <div className="flex gap-3">
+                  <button onClick={handleExportPDF} className="p-3 rounded-full bg-slate-900 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 transition-all" title="Export as PDF">
+                    <FaDownload />
+                  </button>
+                  <button onClick={handleToggleBookmark} className={`p-3 rounded-full border transition-all ${roadmap.isSaved ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/30' : 'bg-slate-900 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800'}`} title="Bookmark">
+                    {roadmap.isSaved ? <FaBookmark /> : <FaRegBookmark />}
                   </button>
                 </div>
+              )}
+            </div>
+
+            {error && <div className="p-4 bg-red-900/30 border border-red-500/30 text-red-400 rounded-xl">{error}</div>}
+
+            {generating && (
+              <div className="py-20 flex flex-col items-center justify-center">
+                <div className="w-16 h-16 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-6"></div>
+                <h2 className="text-2xl font-bold text-white mb-2">Generating Comprehensive Roadmap...</h2>
+                <p className="text-slate-400">Our AI is analyzing industry standards, salary data, and optimal learning paths.</p>
+              </div>
+            )}
+
+            {roadmap && !generating && (
+              <div className="space-y-8 animate-fade-in print-content">
+                
+                {/* 1. Top Overview Section */}
+                <div className="glass-card rounded-3xl p-8 border border-slate-800 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-3xl rounded-full -mt-20 -mr-20 pointer-events-none"></div>
+                  
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-16 h-16 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-3xl shrink-0">
+                      {roadmap.type === 'Company' ? <FaBuilding /> : roadmap.type === 'Technology' ? <FaCode /> : <FaBriefcase />}
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded-md mb-2 inline-block">{roadmap.type} Roadmap</span>
+                      <h1 className="text-3xl md:text-4xl font-black text-white">{roadmap.searchQuery}</h1>
+                    </div>
+                  </div>
+
+                  <p className="text-slate-300 text-lg leading-relaxed mb-8">{roadmap.overview?.careerOverview}</p>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+                      <FaMoneyBillWave className="text-green-400 mb-2 text-xl" />
+                      <p className="text-slate-500 text-xs font-semibold uppercase">Avg Salary</p>
+                      <p className="text-white font-bold">{roadmap.overview?.salaryRange || 'N/A'}</p>
+                    </div>
+                    <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+                      <FaClock className="text-amber-400 mb-2 text-xl" />
+                      <p className="text-slate-500 text-xs font-semibold uppercase">Est. Duration</p>
+                      <p className="text-white font-bold">{roadmap.overview?.learningDuration || 'N/A'}</p>
+                    </div>
+                    <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+                      <FaChartLine className="text-blue-400 mb-2 text-xl" />
+                      <p className="text-slate-500 text-xs font-semibold uppercase">Difficulty</p>
+                      <p className="text-white font-bold">{roadmap.overview?.difficultyLevel || 'N/A'}</p>
+                    </div>
+                    <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+                      <FaBuilding className="text-purple-400 mb-2 text-xl" />
+                      <p className="text-slate-500 text-xs font-semibold uppercase">Top Hiring</p>
+                      <p className="text-white font-bold truncate" title={roadmap.overview?.topHiringCompanies?.join(', ')}>{roadmap.overview?.topHiringCompanies?.[0] || 'N/A'} +</p>
+                    </div>
+                  </div>
+                  
+                  {roadmap.overview?.whyLearn && (
+                     <div className="mt-6 bg-indigo-500/5 p-5 rounded-2xl border border-indigo-500/20">
+                       <h3 className="text-indigo-400 font-bold mb-2 flex items-center gap-2"><FaRobot /> Why choose this path?</h3>
+                       <p className="text-slate-300 text-sm leading-relaxed">{roadmap.overview.whyLearn}</p>
+                     </div>
+                  )}
+                </div>
+
+                {/* 2. Interactive Dashboards & Analytics (Hidden in Print) */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print:hidden">
+                  <div className="lg:col-span-1 glass-card rounded-3xl p-6 border border-slate-800 flex flex-col justify-center items-center">
+                    <h3 className="text-white font-bold mb-2 w-full text-left">Your Readiness Radar</h3>
+                    <div className="w-full h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
+                          <PolarGrid stroke="#334155" />
+                          <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10 }} />
+                          <Radar name="Readiness" dataKey="A" stroke="#6366f1" fill="#6366f1" fillOpacity={0.3} />
+                        </RadarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <p className="text-slate-400 text-xs text-center mt-2">Based on platform analytics</p>
+                  </div>
+
+                  <div className="lg:col-span-2 glass-card rounded-3xl p-6 border border-slate-800">
+                     <h3 className="text-white font-bold mb-6">Module Progress Tracking</h3>
+                     <div className="w-full h-60">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={barData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                            <XAxis dataKey="name" stroke="#64748b" tick={{fill: '#94a3b8', fontSize: 12}} />
+                            <YAxis stroke="#64748b" tick={{fill: '#94a3b8', fontSize: 12}} />
+                            <Tooltip cursor={{fill: '#1e293b'}} contentStyle={{backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', color: '#fff'}} />
+                            <Bar dataKey="completed" stackId="a" fill="#10b981" radius={[0, 0, 4, 4]} name="Completed Tasks" />
+                            <Bar dataKey="remaining" stackId="a" fill="#334155" radius={[4, 4, 0, 0]} name="Remaining Tasks" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                     </div>
+                  </div>
+                </div>
+
+                {/* 3. Company Specific Data (If any) */}
+                {roadmap.type === 'Company' && roadmap.companyDetails && (
+                  <div className="glass-card rounded-3xl p-6 md:p-8 border border-slate-800 bg-gradient-to-br from-slate-900 to-indigo-950/20">
+                     <h2 className="text-2xl font-bold text-white mb-6 border-b border-slate-800 pb-4">Company Hiring Profile</h2>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                       <div className="space-y-4">
+                         <div>
+                           <p className="text-slate-400 text-xs font-bold uppercase mb-1">Eligibility & CGPA</p>
+                           <p className="text-slate-200">{roadmap.companyDetails.eligibility} • {roadmap.companyDetails.cgpaRequirement}</p>
+                         </div>
+                         <div>
+                           <p className="text-slate-400 text-xs font-bold uppercase mb-1">Hiring Process</p>
+                           <p className="text-slate-200">{roadmap.companyDetails.hiringProcess}</p>
+                         </div>
+                         <div>
+                           <p className="text-slate-400 text-xs font-bold uppercase mb-1">Selection Rate</p>
+                           <p className="text-amber-400 font-bold">{roadmap.companyDetails.selectionRate}</p>
+                         </div>
+                       </div>
+                       <div className="space-y-4">
+                         <div>
+                           <p className="text-slate-400 text-xs font-bold uppercase mb-1">Interview Rounds</p>
+                           <ul className="list-disc pl-4 text-slate-200 text-sm space-y-1">
+                             {roadmap.companyDetails.interviewRounds?.map((r, i) => <li key={i}>{r}</li>)}
+                           </ul>
+                         </div>
+                         <div>
+                           <p className="text-slate-400 text-xs font-bold uppercase mb-1">Core Subjects</p>
+                           <div className="flex flex-wrap gap-2">
+                             {roadmap.companyDetails.coreSubjects?.map((sub, i) => <span key={i} className="px-2 py-1 bg-slate-800 rounded-md text-xs text-slate-300">{sub}</span>)}
+                           </div>
+                         </div>
+                       </div>
+                     </div>
+                  </div>
+                )}
+
+                {/* 4. The Massive Learning Path Timeline */}
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-8 border-b border-slate-800 pb-4">Complete Learning Path</h2>
+                  
+                  <div className="relative pl-4 md:pl-0 space-y-8 print:space-y-4">
+                    <div className="hidden md:block absolute left-8 top-0 bottom-0 w-1 bg-slate-800 rounded-full print:hidden"></div>
+                    
+                    {roadmap.modules?.map((mod, modIdx) => (
+                      <div key={modIdx} className="relative md:pl-20 print:pl-0">
+                        <div className="hidden md:flex absolute left-6 w-5 h-5 rounded-full mt-6 -ml-0.5 border-4 border-slate-950 bg-indigo-500 shadow z-10 print:hidden"></div>
+                        
+                        <div className="glass-card rounded-3xl border border-slate-800 overflow-hidden print:border-slate-400 print:break-inside-avoid">
+                          {/* Module Header */}
+                          <div onClick={() => toggleModule(modIdx)} className="p-6 bg-slate-900/50 cursor-pointer flex justify-between items-center group print:bg-transparent">
+                            <div>
+                              <p className="text-indigo-400 text-xs font-bold mb-1 tracking-wider">MODULE {modIdx + 1} • {mod.estimatedTime}</p>
+                              <h3 className="text-2xl font-bold text-white group-hover:text-indigo-300 transition-colors">{mod.title}</h3>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <span className={`text-xs font-bold px-3 py-1 rounded-full ${mod.difficulty === 'Hard' ? 'bg-red-500/20 text-red-400' : mod.difficulty === 'Medium' ? 'bg-amber-500/20 text-amber-400' : 'bg-green-500/20 text-green-400'}`}>
+                                {mod.difficulty}
+                              </span>
+                              <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 print:hidden">
+                                {expandedModules[modIdx] ? <FaChevronUp /> : <FaChevronDown />}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Module Topics (Expanded by default in print) */}
+                          <AnimatePresence>
+                            {(expandedModules[modIdx] || true) && (
+                              <motion.div 
+                                initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                                className={`border-t border-slate-800 p-6 space-y-6 bg-slate-950/30 ${!expandedModules[modIdx] ? 'hidden print:block' : ''}`}
+                              >
+                                {mod.topics?.map((topic, topIdx) => (
+                                  <div key={topIdx} className="border border-slate-800 rounded-2xl bg-slate-900/30 overflow-hidden print:border-slate-300">
+                                    <div onClick={() => toggleTopic(modIdx, topIdx)} className="p-4 cursor-pointer flex justify-between items-center hover:bg-slate-800/30 transition-colors">
+                                      <div className="flex items-center gap-3">
+                                        <button onClick={(e) => { e.stopPropagation(); toggleTask(modIdx, topIdx, null, 'topic'); }} className={`text-xl ${topic.isCompleted ? 'text-green-500' : 'text-slate-600 hover:text-slate-400'} print:hidden`}>
+                                          {topic.isCompleted ? <FaCheckCircle /> : <FaRegCircle />}
+                                        </button>
+                                        <h4 className={`text-lg font-bold ${topic.isCompleted ? 'text-slate-400 line-through' : 'text-white'}`}>{topic.title}</h4>
+                                      </div>
+                                      <FaChevronDown className={`text-slate-500 transition-transform print:hidden ${expandedTopics[`${modIdx}-${topIdx}`] ? 'rotate-180' : ''}`} />
+                                    </div>
+                                    
+                                    <AnimatePresence>
+                                      {(expandedTopics[`${modIdx}-${topIdx}`] || true) && (
+                                        <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className={`px-4 pb-6 pt-2 border-t border-slate-800/50 ${!expandedTopics[`${modIdx}-${topIdx}`] ? 'hidden print:block' : ''}`}>
+                                          {loadingTopicDetail[`${modIdx}-${topIdx}`] ? (
+                                            <div className="py-8 flex flex-col items-center justify-center gap-3">
+                                              <div className="w-8 h-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin"></div>
+                                              <p className="text-xs text-slate-400">AI Coach is preparing detailed topic guide...</p>
+                                            </div>
+                                          ) : topic.explanation ? (
+                                            <>
+                                              <p className="text-slate-300 text-sm leading-relaxed mb-6 whitespace-pre-wrap">{topic.explanation}</p>
+                                              
+                                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                                {/* Left: Problems & Resources */}
+                                                <div className="space-y-6">
+                                                  {topic.practiceProblems?.length > 0 && (
+                                                    <div>
+                                                      <h5 className="text-xs font-bold text-slate-500 uppercase mb-3 flex items-center gap-2"><FaCode /> Practice Problems</h5>
+                                                      <ul className="space-y-2">
+                                                        {topic.practiceProblems.map((prob, pIdx) => (
+                                                          <li key={pIdx} className="flex items-start gap-3 bg-slate-900/50 p-2 rounded-lg border border-slate-800/50">
+                                                            <button onClick={() => toggleTask(modIdx, topIdx, pIdx, 'practiceProblems')} className={`mt-1 ${prob.isCompleted ? 'text-green-500' : 'text-slate-600'}`}>
+                                                              {prob.isCompleted ? <FaCheckCircle /> : <FaRegCircle />}
+                                                            </button>
+                                                            <div>
+                                                              <a href={prob.link} target="_blank" rel="noreferrer" className="text-sm font-medium text-slate-200 hover:text-indigo-400 transition-colors">{prob.title}</a>
+                                                              <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded border ${prob.difficulty === 'Hard' ? 'text-red-400 border-red-500/30' : prob.difficulty === 'Medium' ? 'text-amber-400 border-amber-500/30' : 'text-green-400 border-green-500/30'}`}>{prob.difficulty}</span>
+                                                            </div>
+                                                          </li>
+                                                        ))}
+                                                      </ul>
+                                                    </div>
+                                                  )}
+                                                  {topic.learningResources?.length > 0 && (
+                                                    <div>
+                                                      <h5 className="text-xs font-bold text-slate-500 uppercase mb-3 flex items-center gap-2"><FaBook /> Resources</h5>
+                                                      <ul className="space-y-2">
+                                                        {topic.learningResources.map((res, rIdx) => (
+                                                          <li key={rIdx} className="flex items-center gap-2 text-sm">
+                                                            <FaExternalLinkAlt className="text-slate-600 text-xs" />
+                                                            <a href={res.link} target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline truncate max-w-[80%]">{res.title}</a>
+                                                            <span className="text-[10px] text-slate-500 px-1.5 py-0.5 bg-slate-800 rounded">{res.type}</span>
+                                                          </li>
+                                                        ))}
+                                                      </ul>
+                                                    </div>
+                                                  )}
+                                                </div>
+                                                
+                                                {/* Right: Interview Questions */}
+                                                {topic.interviewQuestions?.length > 0 && (
+                                                  <div>
+                                                    <h5 className="text-xs font-bold text-slate-500 uppercase mb-3 flex items-center gap-2"><FaBriefcase /> Interview Prep</h5>
+                                                    <div className="space-y-3">
+                                                      {topic.interviewQuestions.map((iq, iIdx) => (
+                                                        <div key={iIdx} className="bg-indigo-900/10 border border-indigo-500/20 p-4 rounded-xl">
+                                                          <p className="text-sm font-bold text-white mb-2">{iq.question}</p>
+                                                          <p className="text-xs text-indigo-200/70 italic mb-2">Hint: {iq.answerHint}</p>
+                                                          {iq.companies?.length > 0 && (
+                                                            <div className="flex gap-1 flex-wrap">
+                                                              {iq.companies.map((c, cIdx) => <span key={cIdx} className="text-[9px] px-1.5 py-0.5 bg-indigo-500/20 text-indigo-300 rounded">{c}</span>)}
+                                                            </div>
+                                                          )}
+                                                        </div>
+                                                      ))}
+                                                    </div>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </>
+                                          ) : (
+                                            <div className="py-4 flex flex-col items-center justify-center">
+                                              <p className="text-xs text-slate-500">Click topic title to load detailed guide (practice tasks, interview prep & resources).</p>
+                                            </div>
+                                          )}
+                                        </motion.div>
+                                      )}
+                                    </AnimatePresence>
+                                  </div>
+                                ))}
+
+                                {/* Module Projects */}
+                                {mod.projects?.length > 0 && (
+                                  <div className="mt-8 pt-6 border-t border-slate-800">
+                                    <h4 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><FaCode className="text-indigo-400" /> Module Projects</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                      {mod.projects.map((proj, pIdx) => (
+                                        <div key={pIdx} className="bg-slate-900 border border-slate-800 p-5 rounded-2xl relative group">
+                                          <button onClick={() => toggleTask(modIdx, null, pIdx, 'projects')} className={`absolute top-4 right-4 text-xl ${proj.isCompleted ? 'text-green-500' : 'text-slate-700 group-hover:text-slate-500'} print:hidden`}>
+                                            {proj.isCompleted ? <FaCheckCircle /> : <FaRegCircle />}
+                                          </button>
+                                          <h5 className={`font-bold text-white pr-8 mb-2 ${proj.isCompleted ? 'line-through opacity-50' : ''}`}>{proj.title}</h5>
+                                          <p className="text-xs text-slate-400 mb-4">{proj.description}</p>
+                                          <div className="flex flex-wrap gap-1.5">
+                                            {proj.techStack?.map((tech, tIdx) => (
+                                              <span key={tIdx} className="text-[10px] px-2 py-1 bg-slate-800 text-slate-300 rounded-md">{tech}</span>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
               </div>
             )}
           </div>
         </main>
+        
+        {/* Floating AI Mentor */}
+        <div className="print:hidden">
+          <AIMentorWidget />
+        </div>
       </div>
 
-      {/* Generate Modal */}
-      <AnimatePresence>
-        {showModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-              <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity" aria-hidden="true" onClick={() => setShowModal(false)}></div>
-              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-              <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative z-10 inline-block align-bottom bg-slate-900 border border-slate-800 rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
-                <form onSubmit={handleGenerate}>
-                  <div className="px-8 pt-8 pb-6">
-                    <div className="sm:flex sm:items-start">
-                      <div className="mx-auto flex-shrink-0 flex items-center justify-center h-16 w-16 rounded-full bg-indigo-500/20 sm:mx-0 sm:h-12 sm:w-12">
-                        <span className="text-2xl">🎯</span>
-                      </div>
-                      <div className="mt-3 text-center sm:mt-0 sm:ml-6 sm:text-left w-full">
-                        <h3 className="text-2xl leading-6 font-bold text-white" id="modal-title">What's your target role?</h3>
-                        <div className="mt-4 w-full">
-                          <input
-                            type="text"
-                            className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500/20 px-4 py-3 font-medium placeholder-slate-500 outline-none transition-all"
-                            placeholder="e.g. Amazon SDE, Frontend Engineer"
-                            value={targetRole}
-                            onChange={(e) => setTargetRole(e.target.value)}
-                            required
-                            autoFocus
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-slate-900/50 px-8 py-5 sm:flex sm:flex-row-reverse border-t border-slate-800">
-                    <button type="submit" className="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-6 py-3 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-500 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm transition-colors">
-                      Generate Plan
-                    </button>
-                    <button type="button" onClick={() => setShowModal(false)} className="mt-3 w-full inline-flex justify-center rounded-xl border border-slate-700 shadow-sm px-6 py-3 bg-slate-800 text-base font-medium text-slate-300 hover:bg-slate-700 hover:text-white focus:outline-none sm:mt-0 sm:w-auto sm:text-sm transition-colors">
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              </motion.div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <CompareModal isOpen={showCompare} onClose={() => setShowCompare(false)} />
     </div>
   );
 };

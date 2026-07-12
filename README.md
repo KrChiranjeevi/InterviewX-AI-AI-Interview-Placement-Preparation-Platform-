@@ -58,6 +58,7 @@ Our comprehensive suite of tools includes:
 | 📄 **Resume Analyzer** | ATS compatibility scoring, keyword analysis, and personalized suggestions to improve your resume. |
 | 📊 **Advanced Analytics** | Generates detailed post-interview reports with accuracy, communication, technical, and confidence scores. |
 | 🗺️ **AI Career Roadmap** | Auto-generates weekly milestones and study paths based on your interview weaknesses and performance gaps. |
+| ⚙️ **User Control Center** | Premium SaaS-style Settings module with GSAP animations, theme toggle, AI preferences, and account health monitoring. |
 
 ---
 

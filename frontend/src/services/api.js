@@ -31,8 +31,13 @@ export const getReports = () => api.get('/reports');
 export const getReport = (interviewId) => api.get(`/reports/${interviewId}`);
 
 export const getRoadmap = () => api.get('/roadmap');
-export const generateRoadmap = (targetRole) => api.post('/roadmap/generate', { targetRole });
-export const toggleRoadmapTask = (id, weekIndex, taskIndex) => api.put(`/roadmap/${id}/task`, { weekIndex, taskIndex });
+export const getSavedRoadmaps = () => api.get('/roadmap/saved');
+export const generateRoadmap = (searchQuery) => api.post('/roadmap/generate', { searchQuery });
+export const toggleRoadmapTask = (id, moduleIndex, topicIndex, taskIndex, taskType) => api.put(`/roadmap/${id}/task`, { moduleIndex, topicIndex, taskIndex, taskType });
+export const bookmarkRoadmap = (id) => api.put(`/roadmap/${id}/bookmark`);
+export const compareRoadmaps = (topic1, topic2) => api.post('/roadmap/compare', { topic1, topic2 });
+export const askMentor = (message, history) => api.post('/roadmap/ask-mentor', { message, history });
+export const getTopicDetail = (id, moduleIndex, topicIndex) => api.post(`/roadmap/${id}/topic-detail`, { moduleIndex, topicIndex });
 
 export const getCommunityPosts = () => api.get('/community/posts');
 export const createCommunityPost = (postData) => api.post('/community/post', postData);

@@ -216,7 +216,7 @@ body {
 }
 .btn-primary:active { transform: translateY(0); }
 
-/* Tag badge */
+// Tag badge
 .badge {
   background: rgba(99, 102, 241, 0.15);
   border: 1px solid rgba(99, 102, 241, 0.3);
@@ -226,3 +226,129 @@ body {
   border-radius: 9999px;
   font-weight: 500;
 }
+
+/* Premium Light Mode Overrides */
+.light {
+  --bg-dark: #f8fafc;
+  --bg-darker: #f1f5f9;
+  --bg-card: rgba(255, 255, 255, 0.85);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --border: rgba(99, 102, 241, 0.15);
+  --glow-primary: rgba(99, 102, 241, 0.06);
+  --glow-secondary: rgba(139, 92, 246, 0.06);
+}
+
+.light body {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+.light .bg-slate-950,
+.light .bg-slate-950\/80,
+.light .bg-slate-950\/90,
+.light .bg-slate-950\/50,
+.light .bg-slate-950\/30,
+.light .bg-slate-950\/40 {
+  background-color: #f1f5f9 !important;
+}
+
+.light .bg-slate-900,
+.light .bg-slate-900\/80,
+.light .bg-slate-900\/70,
+.light .bg-slate-900\/50,
+.light .bg-slate-900\/40,
+.light .bg-slate-900\/30,
+.light .bg-slate-900\/20,
+.light .bg-slate-900\/10,
+.light .bg-slate-800,
+.light .bg-slate-800\/80,
+.light .bg-slate-800\/50,
+.light .bg-slate-800\/30,
+.light .bg-slate-800\/10,
+.light .bg-slate-850,
+.light .bg-slate-900\/60 {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.light .text-white,
+.light .text-slate-100,
+.light .text-slate-200,
+.light .text-slate-300 {
+  color: #0f172a !important;
+}
+
+.light .text-slate-400,
+.light .text-slate-500 {
+  color: #475569 !important;
+}
+
+.light .text-indigo-400 {
+  color: #4f46e5 !important;
+}
+
+.light .border-slate-800,
+.light .border-slate-800\/80,
+.light .border-slate-700,
+.light .border-slate-800\/30,
+.light .border-slate-805,
+.light .border-slate-850,
+.light .border-slate-705,
+.light .border-indigo-500\/20,
+.light .border-indigo-400\/40,
+.light .border-white\/10 {
+  border-color: rgba(99, 102, 241, 0.15) !important;
+}
+
+.light input,
+.light select,
+.light textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+.light input::placeholder,
+.light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+.light .glass-card {
+  background: rgba(255, 255, 255, 0.75) !important;
+  border-color: rgba(99, 102, 241, 0.15) !important;
+  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+}
+
+.light .glass-card-bright {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(99, 102, 241, 0.25) !important;
+  box-shadow: 0 15px 40px rgba(99, 102, 241, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+.light .hover\:bg-slate-800:hover {
+  background-color: rgba(99, 102, 241, 0.06) !important;
+  color: #4f46e5 !important;
+}
+
+.light .hover\:text-slate-200:hover {
+  color: #4f46e5 !important;
+}
+
+.light .hover\:bg-slate-900\/50:hover {
+  background-color: rgba(99, 102, 241, 0.05) !important;
+}
+
+.light .bg-indigo-600\/10 {
+  background-color: rgba(99, 102, 241, 0.1) !important;
+  color: #4f46e5 !important;
+}
+
+.light .navbar-glass {
+  background: rgba(241, 245, 249, 0.85) !important;
+  border-bottom: 1px solid rgba(99, 102, 241, 0.12) !important;
+}
+
+.light ::-webkit-scrollbar-track { background: #f1f5f9; }
+.light ::-webkit-scrollbar-thumb { background: #cbd5e1; }
+.light ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+

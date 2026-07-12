@@ -19,6 +19,7 @@ const ai = {
         const response = await openai.chat.completions.create({
           model: "gpt-4o-mini",
           messages: [{ role: "user", content: contents }],
+          max_tokens: 8000,
         });
         return { text: response.choices[0].message.content };
       } catch (err1) {
@@ -39,6 +40,7 @@ const ai = {
             const response = await groq.chat.completions.create({
               model: "llama-3.1-8b-instant",
               messages: [{ role: "user", content: contents }],
+              max_tokens: 2048,
             });
             return { text: response.choices[0].message.content };
           } catch (err3) {
@@ -54,6 +56,13 @@ const ai = {
 
 const parseAIResponse = (text) => {
   try {
+    // Write raw text to file for debugging
+    try {
+      fs.writeFileSync('C:/Users/kchir/.gemini/antigravity-ide/brain/2a259707-2dca-4fa1-aacb-89518349e26a/scratch/raw_ai_response.txt', text);
+    } catch (fsErr) {
+      console.error('Failed to write raw AI response to file:', fsErr.message);
+    }
+    
     let jsonStr = text.trim();
     // Strip markdown code blocks if present
     if (jsonStr.startsWith('```json')) {
@@ -66,11 +75,14 @@ const parseAIResponse = (text) => {
     if (lastBacktick !== -1) {
       jsonStr = jsonStr.substring(0, lastBacktick);
     }
-    // Remove single-line JS comments (// ...) that may be inside AI output
-    jsonStr = jsonStr.replace(/\/\/.*$/gm, '');
+    
+    // Sanitize literal control characters (like actual unescaped newlines/tabs inside strings)
+    // JSON allows structural whitespace, so replacing them with spaces makes it valid 1-line JSON
+    jsonStr = jsonStr.replace(/[\u0000-\u001F\u007F-\u009F]+/g, ' ');
+    
     return JSON.parse(jsonStr.trim());
   } catch (e) {
-    console.error('parseAIResponse failed:', e.message, '\nRaw text:', text?.substring(0, 300));
+    console.error('parseAIResponse failed:', e.message, '\nRaw text:', text?.substring(0, 4000));
     throw e;
   }
 };
@@ -504,25 +516,74 @@ Please generate a detailed performance report. Return the result strictly in thi
   }
 };
 
-const generateRoadmap = async (targetRole, reports) => {
+const generateRoadmap = async (searchQuery, userContext) => {
   try {
-    const prompt = `You are an expert career coach creating a personalized preparation roadmap for a candidate targeting a ${targetRole} role.
-Based on their past performance reports: ${JSON.stringify(reports)}
+    const prompt = `You are an expert, highly personalized AI Career Coach.
+Create a highly detailed, deeply nested, industry-level learning path for the search query: "${searchQuery}".
 
-Generate a 4-week personalized learning roadmap focusing on their weak skills. Return the result strictly in this JSON format:
+Take into account the user's current platform profile details (if available):
+- Experience: ${userContext?.experienceLevel || 'Beginner'}
+- Skills: ${userContext?.currentSkills?.join(', ') || 'None'}
+- Target DSA Level: ${userContext?.dsaLevel || 'Medium'}
+- Platform Analytics (Interview Reports & Resume): ${JSON.stringify(userContext?.reports || [])}
+
+DIRECTIONS:
+1. Generate an exhaustive learning roadmap matching this exact JSON schema.
+2. If it's a Company (e.g. "Amazon"), populate "companyDetails" fully.
+3. Keep the "topics" array simple - only generate the "title" string for each topic. Do NOT generate explanations, resources, practice problems, or interview questions for topics yet. They will be loaded dynamically.
+4. Calculate realistic Analytics & Readiness scores.
+5. Provide ONLY raw JSON matching exactly this structure (no markdown, no backticks).
+6. CRITICAL: Do NOT use raw unescaped newlines inside JSON strings. Use "\\n" instead for newlines.
+7. CRITICAL: All JSON string properties and keys MUST be enclosed in standard double quotes ("). If you want to quote a word inside a string value, you MUST use single quotes (') instead.
+8. CRITICAL: Ensure the output is a fully valid parseable JSON.
+
 {
-  "weeks": [
+  "type": "Role" | "Technology" | "Company" | "Custom",
+  "overview": {
+    "careerOverview": "Detailed overview",
+    "whyLearn": "Detailed reason",
+    "salaryRange": "e.g. $80K - $150K",
+    "futureScope": "Detailed scope",
+    "topHiringCompanies": ["Company 1", "Company 2"],
+    "learningDuration": "e.g. 6 Months",
+    "difficultyLevel": "Medium",
+    "placementStrategy": "Detailed strategy"
+  },
+  "companyDetails": { 
+    "eligibility": "string", "cgpaRequirement": "string", "hiringProcess": "string",
+    "interviewRounds": ["string"], "coreSubjects": ["string"], "behavioralPrep": "string",
+    "systemDesignRequired": true, "selectionRate": "string"
+  },
+  "analytics": {
+    "overallReadiness": number, "roleReadiness": number, "companyReadiness": number,
+    "codingReadiness": number, "interviewReadiness": number, "resumeReadiness": number,
+    "communicationReadiness": number, "learningStreak": 0
+  },
+  "recommendations": {
+    "nextTopic": "string", "miniProject": "string", "revisionTopics": ["string"],
+    "relatedTechnologies": ["string"], "certificationSuggestions": ["string"]
+  },
+  "modules": [
     {
-      "title": "Week 1: Focus Area",
-      "topics": ["topic1", "topic2"],
-      "tasks": [
-        {"title": "Task description 1", "completed": false},
-        {"title": "Task description 2", "completed": false}
+      "title": "Module Title",
+      "difficulty": "Beginner" | "Intermediate" | "Advanced",
+      "estimatedTime": "string",
+      "topics": [
+        {
+          "title": "Topic Name"
+        }
+      ],
+      "projects": [
+        {
+          "title": "Project Name",
+          "description": "Detailed project description",
+          "techStack": ["React", "Node"]
+        }
       ]
     }
   ]
 }
-Make sure there are exactly 4 weeks.`;
+Make sure you generate exactly 4-5 rich modules, and exactly 3 topics per module. Make sure the JSON is completely valid and closed properly.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
@@ -532,11 +593,139 @@ Make sure there are exactly 4 weeks.`;
     return parseAIResponse(response.text);
   } catch (error) {
     console.error('Gemini Error generating roadmap:', error);
-    return {
-      weeks: [
-        { title: "Week 1: Fundamentals", topics: ["Basics"], tasks: [{title: "Review basics", completed: false}] }
-      ]
-    };
+    throw new Error('AI Roadmap Generation Failed');
+  }
+};
+
+const generateTopicDetail = async (topicTitle, roadmapQuery) => {
+  try {
+    const prompt = `You are a world-class technical mentor and career coach.
+Provide a detailed explanation, practice problems, interview questions, and learning resources for the topic: "${topicTitle}" within the learning path for: "${roadmapQuery}".
+
+Provide ONLY raw JSON matching exactly this structure (no markdown, no backticks, no comments):
+{
+  "explanation": "Concise 1-2 paragraph explanation of the topic, its real-world usage, and core concepts (max 100 words). Use \\n for newlines.",
+  "practiceProblems": [
+    {
+      "title": "Problem Name",
+      "difficulty": "Easy" | "Medium" | "Hard",
+      "link": "https://leetcode.com/problems/... (use a real relevant leetcode or hackerank URL if possible)"
+    }
+  ],
+  "interviewQuestions": [
+    {
+      "question": "An actual common interview question on this topic.",
+      "answerHint": "Detailed clue or hint on how to answer this question.",
+      "companies": ["Amazon", "Google" (list actual companies that ask this)]
+    }
+  ],
+  "learningResources": [
+    {
+      "title": "Clear resource title (e.g. YouTube Video, Article, Docs)",
+      "type": "Video" | "Article" | "Course",
+      "link": "A real, high-quality learning link if possible, or a placeholder like https://youtube.com"
+    }
+  ]
+}
+Keep the explanations highly informative but concise to prevent token truncation. Make sure the JSON format is 100% valid and closed properly. Do NOT use unescaped newlines inside JSON string properties! Use "\\n" instead.
+CRITICAL: All JSON string properties and keys MUST be enclosed in standard double quotes ("). If you want to quote a word inside a string value, you MUST use single quotes (') instead. For example: "explanation": "HTML stands for 'HyperText Markup Language' and is used..."`;
+
+    const response = await ai.models.generateContent({
+      model: 'mixtral-8x7b-32768',
+      contents: prompt,
+    });
+
+    return parseAIResponse(response.text);
+  } catch (error) {
+    console.error('Gemini Error generating topic detail:', error);
+    throw new Error('AI Topic Detail Generation Failed');
+  }
+};
+
+const compareRoadmaps = async (topic1, topic2) => {
+  try {
+    const prompt = `You are an expert AI Career Coach. 
+Compare "${topic1}" vs "${topic2}" comprehensively.
+
+Provide ONLY raw JSON matching exactly this structure (no markdown, no backticks):
+{
+  "comparison": [
+    {
+      "metric": "Difficulty",
+      "topic1Value": "string",
+      "topic2Value": "string",
+      "winner": "topic1" | "topic2" | "tie"
+    },
+    {
+      "metric": "Learning Time",
+      "topic1Value": "string",
+      "topic2Value": "string",
+      "winner": "topic1" | "topic2" | "tie"
+    },
+    {
+      "metric": "Average Salary",
+      "topic1Value": "string",
+      "topic2Value": "string",
+      "winner": "topic1" | "topic2" | "tie"
+    },
+    {
+      "metric": "Demand",
+      "topic1Value": "string",
+      "topic2Value": "string",
+      "winner": "topic1" | "topic2" | "tie"
+    },
+    {
+      "metric": "Top Companies",
+      "topic1Value": "string",
+      "topic2Value": "string",
+      "winner": "tie"
+    },
+    {
+      "metric": "Career Growth",
+      "topic1Value": "string",
+      "topic2Value": "string",
+      "winner": "topic1" | "topic2" | "tie"
+    }
+  ],
+  "summary": "A comprehensive 3-paragraph summary of the comparison, detailing which path is better suited for different types of developers."
+}`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+    });
+
+    return parseAIResponse(response.text);
+  } catch (error) {
+    console.error('Gemini Error comparing roadmaps:', error);
+    throw new Error('AI Comparison Failed');
+  }
+};
+
+const askMentor = async (message, roadmapContext, history = []) => {
+  try {
+    const formattedHistory = history.map(h => `${h.role === 'user' ? 'User' : 'Mentor'}: ${h.content}`).join('\n');
+    
+    const prompt = `You are the InterviewX AI Mentor, an expert career coach helping a user with their interview prep.
+Here is the user's current personalized career roadmap context (do not mention you see JSON, just use it to know what they are studying, their weaknesses, and readiness):
+${JSON.stringify(roadmapContext).substring(0, 3000)} // Truncated to save tokens, but gives context.
+
+Past conversation:
+${formattedHistory}
+
+User's new message: "${message}"
+
+Respond directly to the user in a helpful, conversational, and motivating tone (like ChatGPT). Use markdown for formatting (bullet points, bold text). If they ask what to study, look at their incomplete modules. If they ask about readiness, look at their readiness scores. Keep responses concise and highly actionable.`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+    });
+
+    return response.text.trim();
+  } catch (error) {
+    console.error('askMentor Error:', error);
+    return "I'm having trouble analyzing your roadmap right now. Please try asking again in a moment!";
   }
 };
 
@@ -579,5 +768,4 @@ Output only the hint text. No preamble, no "Hint:", no markdown (unless it's pse
   }
 };
 
-module.exports = { generateQuestion, analyzeAnswer, analyzeResume, generateCompanyQuestion, analyzeCode, generateReport, generateRoadmap, getCodeHint, generateAIReport };
-
+module.exports = { generateQuestion, analyzeAnswer, analyzeResume, generateCompanyQuestion, analyzeCode, generateReport, generateRoadmap, generateTopicDetail, getCodeHint, generateAIReport, askMentor, compareRoadmaps };
