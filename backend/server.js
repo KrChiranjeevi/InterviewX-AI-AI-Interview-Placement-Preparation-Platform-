@@ -60,6 +60,11 @@ app.use('/api/assessments', assessmentRoutes);
 // Global Error Handler
 app.use(errorHandler);
 
+// Basic health check route
+app.get('/', (req, res) => {
+  res.send('InterviewX AI Backend is running!');
+});
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, console.log(`Server running on port ${PORT}`));
