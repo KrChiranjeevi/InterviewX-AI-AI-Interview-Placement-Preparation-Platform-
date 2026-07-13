@@ -315,16 +315,37 @@ const LiveInterview = () => {
         }
       };
 
+      recognition.onsoundstart = () => {
+        if (!isAIThinkingRef.current && !isTypingModeRef.current && !isPausedRef.current) {
+          handleUserSpeaking();
+        }
+      };
+
+      recognition.onspeechstart = () => {
+        if (!isAIThinkingRef.current && !isTypingModeRef.current && !isPausedRef.current) {
+          handleUserSpeaking();
+        }
+      };
+
       recognition.onerror = (e) => {
         if (e.error !== 'no-speech' && e.error !== 'aborted') {
           console.error('Speech error:', e.error);
         }
+        if (e.error === 'no-speech' || e.error === 'aborted') {
+          setTimeout(() => {
+            if (!isAIThinkingRef.current && !isTypingModeRef.current && !isPausedRef.current) {
+              try { recognition.start(); } catch {}
+            }
+          }, 300);
+        }
       };
 
-      // Auto restart on end (browser cuts recognition after ~1 min silence)
+      // Auto restart on end with safety timeout
       recognition.onend = () => {
-        if (!isAIThinkingRef.current && !isTypingModeRef.current) {
-          try { recognition.start(); } catch { /* already running */ }
+        if (!isAIThinkingRef.current && !isTypingModeRef.current && !isPausedRef.current) {
+          setTimeout(() => {
+            try { recognition.start(); } catch {}
+          }, 300);
         }
       };
 

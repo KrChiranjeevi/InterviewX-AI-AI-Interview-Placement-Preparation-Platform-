@@ -235,15 +235,16 @@ ${hintCheck}
 ${previousQuestionsStr}
 
 RULES:
-1. Keep the question extremely brief, concise, and under 2 sentences maximum. Do not ask long-winded, multi-paragraph questions.
-2. Target the difficulty level strictly:
+1. Keep the question medium-sized, concise, and between 2 to 3 sentences maximum. Avoid long-winded, multi-paragraph questions.
+2. Conduct a natural, conversational dialogue (like HackerRank mock interviews). Weave in a mix of follow-up questions reacting to the candidate's last answer, along with introducing new questions from the role's domain.
+3. Target the difficulty level strictly:
    - For Beginner/Easy: Ask simple, introductory fundamental concepts or basic definitions.
    - For Intermediate/Medium: Ask typical mid-level scenarios, core practical logic, or conceptual usage.
    - For Advanced/Hard/Expert: Ask challenging scaling bottlenecks, performance optimizations, or complex data structure challenges.
-3. Output ONLY the question text (and the hint in brackets if instructed). Include a brief, natural welcoming sentence ONLY if it's the first question.
-4. No meta-commentary, no preambles (e.g., "Here is your question:"), and no conversational filler before the actual question (except for the first question welcome).
-5. Do NOT repeat any previous questions.
-6. Output should be raw text only (no quotes around the final response).`;
+4. Output ONLY the question text (and the hint in brackets if instructed). Include a brief, natural welcoming sentence ONLY if it's the first question.
+5. No meta-commentary, no preambles (e.g., "Here is your question:"), and no conversational filler before the actual question (except for the first question welcome).
+6. Do NOT repeat any previous questions.
+7. Output should be raw text only (no quotes around the final response).`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
