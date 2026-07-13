@@ -55,6 +55,7 @@ const LiveInterview = () => {
   const synthRef            = useRef(window.speechSynthesis);
   const autoSubmitTimer     = useRef(null);
   const countdownInterval   = useRef(null);
+  const silenceTimer        = useRef(null);
   const currentQuestionRef  = useRef('Loading AI question...');
   const isAIThinkingRef     = useRef(true);
   const finalTranscriptRef  = useRef('');
@@ -287,6 +288,8 @@ const LiveInterview = () => {
       recognition.onresult = (event) => {
         if (isAIThinkingRef.current || isTypingModeRef.current) return;
 
+        handleUserSpeaking();
+
         let newFinal  = '';
         let interim   = '';
 
@@ -307,8 +310,6 @@ const LiveInterview = () => {
             return updated;
           });
           setInterimTranscript('');
-          // Reset the 1-minute auto-submit countdown on each new final word
-          scheduleAutoSubmit();
         } else {
           setInterimTranscript(interim);
         }
@@ -342,33 +343,43 @@ const LiveInterview = () => {
   const clearAutoSubmitTimers = () => {
     if (autoSubmitTimer.current)   clearTimeout(autoSubmitTimer.current);
     if (countdownInterval.current) clearInterval(countdownInterval.current);
+    if (silenceTimer.current)      clearTimeout(silenceTimer.current);
     autoSubmitTimer.current   = null;
     countdownInterval.current = null;
+    silenceTimer.current      = null;
     setAutoSubmitCountdown(null);
   };
 
-  const scheduleAutoSubmit = () => {
-    // Always reset the 1-min timeout (silence window restarts on each spoken word)
-    if (autoSubmitTimer.current) clearTimeout(autoSubmitTimer.current);
+  const handleUserSpeaking = () => {
+    // User is actively speaking. Hides the countdown and pauses the submit timers.
+    clearAutoSubmitTimers();
+
+    // Start 2.5-second silence checker. If they pause speaking for 2.5s, countdown starts.
+    silenceTimer.current = setTimeout(() => {
+      startSilenceCountdown();
+    }, 2500);
+  };
+
+  const startSilenceCountdown = () => {
+    if (autoSubmitTimer.current)   clearTimeout(autoSubmitTimer.current);
+    if (countdownInterval.current) clearInterval(countdownInterval.current);
+
     autoSubmitTimer.current = setTimeout(() => {
       setAutoSubmitCountdown(null);
       submitAnswer();
     }, AUTO_SUBMIT_DELAY);
 
-    // Start the visual countdown interval only if not already running
-    if (!countdownInterval.current) {
-      setAutoSubmitCountdown(60);
-      countdownInterval.current = setInterval(() => {
-        setAutoSubmitCountdown(prev => {
-          if (prev === null || prev <= 1) {
-            clearInterval(countdownInterval.current);
-            countdownInterval.current = null;
-            return null;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
+    setAutoSubmitCountdown(60);
+    countdownInterval.current = setInterval(() => {
+      setAutoSubmitCountdown(prev => {
+        if (prev === null || prev <= 1) {
+          clearInterval(countdownInterval.current);
+          countdownInterval.current = null;
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
   /* ─── TTS with natural female voice ─── */
@@ -406,6 +417,7 @@ const LiveInterview = () => {
       try {
         recognitionRef.current.start();
         setIsRecording(true);
+        startSilenceCountdown();
       } catch { /* already running */ }
     }
   };
@@ -551,6 +563,7 @@ const LiveInterview = () => {
         recognitionRef.current?.stop();
         setIsRecording(false);
         synthRef.current.cancel();
+        clearAutoSubmitTimers();
       } else {
         startListening();
       }
