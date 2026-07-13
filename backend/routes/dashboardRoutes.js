@@ -50,7 +50,10 @@ const getDashboardStats = async (req, res) => {
       confidenceLevel,
       currentGoal: user.interviewGoal || 'Not Set',
       chartData,
-      recentInterviews
+      recentInterviews,
+      xp: user.xp || 0,
+      level: user.level || 1,
+      streakCount: user.streakCount || 0
     });
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });

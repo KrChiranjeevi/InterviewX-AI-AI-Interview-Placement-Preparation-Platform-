@@ -85,6 +85,35 @@ const reportSchema = new mongoose.Schema({
     type: [String],
     default: [],
   },
+  companyReadiness: [{
+    company: String,
+    score: Number,
+    explanation: String
+  }],
+  feedbackCards: [{
+    category: String,
+    score: Number,
+    strengths: [String],
+    weaknesses: [String],
+    examples: [String],
+    suggestions: [String],
+    resources: [String]
+  }],
+  careerCoach: {
+    nextWeekPlan: { type: String, default: '' },
+    thirtyDayPlan: { type: String, default: '' },
+    ninetyDayPlan: { type: String, default: '' },
+    resumeSuggestions: { type: [String], default: [] },
+    portfolioSuggestions: { type: [String], default: [] }
+  },
+  codeAnalysis: {
+    timeComplexity: { type: String, default: '' },
+    spaceComplexity: { type: String, default: '' },
+    codeQuality: { type: String, default: '' },
+    variableNaming: { type: String, default: '' },
+    edgeCases: { type: String, default: '' },
+    expectedSolution: { type: String, default: '' }
+  },
   questions: [{
     question: String,
     userAnswer: String,
@@ -97,7 +126,15 @@ const reportSchema = new mongoose.Schema({
       confidence: Number,
       accuracy: Number,
       logicalThinking: Number
-    }
+    },
+    speechStats: {
+      speakingSpeed: { type: Number, default: 0 },
+      fillerWordsCount: { type: Number, default: 0 },
+      eyeContactScore: { type: Number, default: 0 },
+      voiceClarity: { type: Number, default: 0 },
+      grammarScore: { type: Number, default: 0 }
+    },
+    bookmarked: { type: Boolean, default: false }
   }]
 }, {
   timestamps: true,

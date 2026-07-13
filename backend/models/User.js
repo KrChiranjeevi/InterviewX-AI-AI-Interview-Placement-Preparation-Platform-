@@ -48,6 +48,22 @@ const userSchema = new mongoose.Schema({
     type: [String],
     default: []
   },
+  xp: {
+    type: Number,
+    default: 0
+  },
+  level: {
+    type: Number,
+    default: 1
+  },
+  streakCount: {
+    type: Number,
+    default: 0
+  },
+  lastActiveDate: {
+    type: Date,
+    default: null
+  },
   notificationsEnabled: {
     type: Boolean,
     default: true

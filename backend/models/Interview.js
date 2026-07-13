@@ -23,7 +23,7 @@ const interviewSchema = new mongoose.Schema({
   difficulty: {
     type: String,
     required: true,
-    enum: ['Beginner', 'Intermediate', 'Advanced'],
+    enum: ['Beginner', 'Intermediate', 'Advanced', 'Easy', 'Medium', 'Hard', 'Expert'],
   },
   duration: {
     type: String,
@@ -55,6 +55,17 @@ const interviewSchema = new mongoose.Schema({
       confidence: { type: Number, default: 0 },
       accuracy: { type: Number, default: 0 },
       logicalThinking: { type: Number, default: 0 }
+    },
+    speechStats: {
+      speakingSpeed: { type: Number, default: 0 },
+      fillerWordsCount: { type: Number, default: 0 },
+      eyeContactScore: { type: Number, default: 0 },
+      voiceClarity: { type: Number, default: 0 },
+      grammarScore: { type: Number, default: 0 }
+    },
+    bookmarked: {
+      type: Boolean,
+      default: false
     },
     createdAt: {
       type: Date,

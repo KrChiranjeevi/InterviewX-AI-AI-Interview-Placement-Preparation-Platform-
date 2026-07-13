@@ -62,6 +62,10 @@ const getReportByInterviewId = async (req, res) => {
       strengths: aiReport.strengths || [],
       weakness: aiReport.weakness || [],
       suggestions: aiReport.suggestions || [],
+      companyReadiness: aiReport.companyReadiness || [],
+      feedbackCards: aiReport.feedbackCards || [],
+      careerCoach: aiReport.careerCoach || {},
+      codeAnalysis: aiReport.codeAnalysis || {},
       questions: interview.questions.map(q => ({
         question: q.question,
         userAnswer: q.userAnswer,
@@ -74,7 +78,15 @@ const getReportByInterviewId = async (req, res) => {
           confidence: q.metrics.confidence,
           accuracy: q.metrics.accuracy,
           logicalThinking: q.metrics.logicalThinking
-        } : undefined
+        } : undefined,
+        speechStats: q.speechStats ? {
+          speakingSpeed: q.speechStats.speakingSpeed,
+          fillerWordsCount: q.speechStats.fillerWordsCount,
+          eyeContactScore: q.speechStats.eyeContactScore,
+          voiceClarity: q.speechStats.voiceClarity,
+          grammarScore: q.speechStats.grammarScore
+        } : undefined,
+        bookmarked: q.bookmarked || false
       }))
     });
     
@@ -90,4 +102,23 @@ const getReportByInterviewId = async (req, res) => {
   }
 };
 
-module.exports = { getReports, getReportByInterviewId };
+const askReportMentor = async (req, res) => {
+  try {
+    const { reportId } = req.params;
+    const { message, history } = req.body;
+    
+    const report = await Report.findOne({ _id: reportId, userId: req.user._id }).populate('interviewId');
+    if (!report) {
+      return res.status(404).json({ message: 'Report not found' });
+    }
+
+    const { askMentor } = require('../services/aiService');
+    const responseText = await askMentor(message, report, history || []);
+    
+    res.json({ response: responseText });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+module.exports = { getReports, getReportByInterviewId, askReportMentor };

@@ -135,6 +135,47 @@ const Dashboard = () => {
             </div>
           </motion.div>
 
+          {/* Gamification Progress Widget */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
+          >
+            <div className="bg-slate-900/40 rounded-2xl border border-slate-800 p-5 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-1">XP Level</p>
+                <h3 className="text-xl font-bold text-white">Level {stats?.level || 1}</h3>
+                <p className="text-xs text-indigo-400 font-medium mt-1">{(stats?.xp || 0) % 500} / 500 XP to next level</p>
+              </div>
+              <div className="w-12 h-12 rounded-full border border-indigo-500/20 bg-indigo-500/5 flex items-center justify-center text-lg">
+                🏆
+              </div>
+            </div>
+
+            <div className="bg-slate-900/40 rounded-2xl border border-slate-800 p-5 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-1">Streak Count</p>
+                <h3 className="text-xl font-bold text-white">{stats?.streakCount || 0} Days</h3>
+                <p className="text-xs text-amber-500 font-medium mt-1">Practice daily to keep it up!</p>
+              </div>
+              <div className="w-12 h-12 rounded-full border border-amber-500/20 bg-amber-500/5 flex items-center justify-center text-lg animate-pulse">
+                🔥
+              </div>
+            </div>
+
+            <div className="bg-slate-900/40 rounded-2xl border border-slate-800 p-5 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-1">Total Rank</p>
+                <h3 className="text-xl font-bold text-white">{stats?.level >= 5 ? 'Senior Engineer' : stats?.level >= 3 ? 'Mid-level Engineer' : 'Junior Associate'}</h3>
+                <p className="text-xs text-emerald-400 font-medium mt-1">Earn XP to climb ranks</p>
+              </div>
+              <div className="w-12 h-12 rounded-full border border-emerald-500/20 bg-emerald-500/5 flex items-center justify-center text-lg">
+                ⭐
+              </div>
+            </div>
+          </motion.div>
+
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <StatCard title="Total Interviews" value={`${stats?.totalInterviews || 0} Completed`} icon={<FaBullseye />} delay={0.1} />

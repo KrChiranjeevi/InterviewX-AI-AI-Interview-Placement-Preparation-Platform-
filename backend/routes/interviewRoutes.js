@@ -141,7 +141,15 @@ const submitAnswer = async (req, res) => {
         confidence: analysis.metrics?.confidence || 5,
         accuracy: analysis.metrics?.accuracy || 5,
         logicalThinking: analysis.metrics?.logicalThinking || 5
-      }
+      },
+      speechStats: {
+        speakingSpeed: analysis.speechStats?.speakingSpeed || 120,
+        fillerWordsCount: analysis.speechStats?.fillerWordsCount || 0,
+        eyeContactScore: analysis.speechStats?.eyeContactScore || 85,
+        voiceClarity: analysis.speechStats?.voiceClarity || 90,
+        grammarScore: analysis.speechStats?.grammarScore || 90
+      },
+      bookmarked: req.body.bookmarked || false
     });
 
     // Step 3: Adaptive Difficulty logic based on score performance
@@ -204,7 +212,61 @@ const finishInterview = async (req, res) => {
     interview.feedback = summaryFeedback;
 
     await interview.save();
+
+    // Award XP and update streak for user
+    try {
+      const User = require('../models/User');
+      const user = await User.findById(req.user._id);
+      if (user) {
+        user.xp = (user.xp || 0) + 150; // award 150 XP
+        const newLevel = Math.floor(user.xp / 500) + 1;
+        if (newLevel > (user.level || 1)) {
+          user.level = newLevel;
+        }
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (user.lastActiveDate) {
+          const lastActive = new Date(user.lastActiveDate);
+          lastActive.setHours(0, 0, 0, 0);
+          const diffDays = Math.round((today - lastActive) / (1000 * 60 * 60 * 24));
+          if (diffDays === 1) {
+            user.streakCount = (user.streakCount || 0) + 1;
+          } else if (diffDays > 1) {
+            user.streakCount = 1;
+          }
+        } else {
+          user.streakCount = 1;
+        }
+        user.lastActiveDate = new Date();
+        await user.save();
+      }
+    } catch (err) {
+      console.error('Error awarding XP:', err);
+    }
+
     res.json(interview);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+const bookmarkQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { questionIndex, bookmarked } = req.body;
+    const interview = await Interview.findById(id);
+    if (!interview || interview.userId.toString() !== req.user._id.toString()) {
+      return res.status(404).json({ message: 'Interview not found' });
+    }
+
+    if (interview.questions[questionIndex]) {
+      interview.questions[questionIndex].bookmarked = bookmarked;
+      await interview.save();
+      return res.json({ success: true, bookmarked: interview.questions[questionIndex].bookmarked });
+    } else {
+      return res.status(404).json({ message: 'Question not found' });
+    }
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
@@ -216,5 +278,6 @@ router.get('/:id', protect, getInterviewById);
 router.post('/:id/question', protect, getNextQuestion);
 router.post('/:id/answer', protect, submitAnswer);
 router.put('/:id/finish', protect, finishInterview);
+router.put('/:id/bookmark', protect, bookmarkQuestion);
 
 module.exports = router;

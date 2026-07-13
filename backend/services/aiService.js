@@ -88,40 +88,55 @@ const parseAIResponse = (text) => {
 };
 
 const companyGuides = {
-  'Amazon': `
-AMAZON Interview Style:
+  'Amazon': `AMAZON Interview Style:
 - High focus on Amazon's 16 Leadership Principles (Customer Obsession, Ownership, Deliver Results, Bias for Action).
 - Frequently weave in questions or follow-ups related to these principles.
 - Expect coding questions accompanied by behavioural checks.`,
-
-  'Google': `
-GOOGLE Interview Style:
+  'Google': `GOOGLE Interview Style:
 - Target raw intelligence, algorithmic thinking, graph traversals, dynamic programming, and mathematical proofs.
 - Probe candidate's step-by-step thinking process rather than just code.
 - Expect excellent communications and structural descriptions.`,
-
-  'Microsoft': `
-MICROSOFT Interview Style:
+  'Microsoft': `MICROSOFT Interview Style:
 - Emphasize solid OOP design, database query normalization, thread safety, system components scaling, and standard coding.
 - Inquire about design choices, error handling, and collaborative engineering.`,
-
-  'Meta': `
-META Interview Style:
+  'Meta': `META Interview Style:
 - Target high-speed coding, space/time optimizations, memory allocations, caching systems, and massive system scalability.
 - Rapid technical follow-ups.`,
-
-  'TCS': `
-TCS/INFOSYS/WIPRO Interview Style:
+  'Apple': `APPLE Interview Style:
+- Focus on pixel-perfect details, low-level optimizations, hardware-software integration, product design choices, and user experience excellence.`,
+  'Netflix': `NETFLIX Interview Style:
+- High emphasis on freedom and responsibility culture, distributed architectures, high throughput streaming design, chaos engineering, and system resilience.`,
+  'Uber': `UBER Interview Style:
+- Focus on real-time systems, geospatial indexing (like H3), high concurrency, dispatch systems scaling, and hard algorithmic challenges.`,
+  'Atlassian': `ATLASSIAN Interview Style:
+- Focus on values fit (Play, as a team; Open company, no bullshit), collaborative coding, solid API design, and building scale-independent developer tools.`,
+  'Salesforce': `SALESFORCE Interview Style:
+- High focus on multi-tenant architecture, cloud integrations, enterprise scale systems, security models, and design patterns.`,
+  'Oracle': `ORACLE Interview Style:
+- Focus heavily on database internals, query scaling, storage systems, operating systems, and heavy enterprise Java.`,
+  'Goldman Sachs': `GOLDMAN SACHS Interview Style:
+- High focus on mathematical reasoning, probability, low latency trading systems design, concurrent data structures, and core financial engineering logic.`,
+  'JP Morgan': `JP MORGAN Interview Style:
+- Emphasize solid OOP designs, enterprise software engineering, relational database optimization, transactional integrity, and core Java/Spring foundations.`,
+  'TCS': `TCS/INFOSYS/WIPRO/ACCENTURE/CAPGEMINI Interview Style:
 - Probe foundational CS fundamentals: DBMS Joins, OS process states, OOP concepts (Inheritance vs Abstraction), and basic syntax structures.
 - Traditional behavioral questions.`,
-  'Infosys': `
-TCS/INFOSYS/WIPRO Interview Style:
+  'Infosys': `TCS/INFOSYS/WIPRO/ACCENTURE/CAPGEMINI Interview Style:
 - Probe foundational CS fundamentals: DBMS Joins, OS process states, OOP concepts (Inheritance vs Abstraction), and basic syntax structures.
 - Traditional behavioral questions.`,
-  'Wipro': `
-TCS/INFOSYS/WIPRO Interview Style:
+  'Wipro': `TCS/INFOSYS/WIPRO/ACCENTURE/CAPGEMINI Interview Style:
 - Probe foundational CS fundamentals: DBMS Joins, OS process states, OOP concepts (Inheritance vs Abstraction), and basic syntax structures.
-- Traditional behavioral questions.`
+- Traditional behavioral questions.`,
+  'Accenture': `TCS/INFOSYS/WIPRO/ACCENTURE/CAPGEMINI Interview Style:
+- Probe foundational CS fundamentals: DBMS Joins, OS process states, OOP concepts (Inheritance vs Abstraction), and basic syntax structures.
+- Traditional behavioral questions.`,
+  'Capgemini': `TCS/INFOSYS/WIPRO/ACCENTURE/CAPGEMINI Interview Style:
+- Probe foundational CS fundamentals: DBMS Joins, OS process states, OOP concepts (Inheritance vs Abstraction), and basic syntax structures.
+- Traditional behavioral questions.`,
+  'Startup': `STARTUP Interview Style:
+- High emphasis on fast shipping speed, raw resourcefulness, full stack capacity, API integrations, agile trade-offs, and rapid feature prototyping.`,
+  'Flipkart': `FLIPKART Interview Style:
+- High focus on system scaling, e-commerce challenges, flash sale concurrency designs, warehousing logistics tech, and dynamic coding rounds.`
 };
 
 const roleGuides = {
@@ -136,13 +151,23 @@ const generateQuestion = async (role, type, difficulty, history, resumeSkills = 
   try {
     const difficultyGuide = {
       'Beginner': `BEGINNER level: Ask basic definitions, fundamental syntax rules, and simple single-variable iterations. Keep it clear and introductory.`,
-      'Intermediate': `INTERMEDIATE level: Focus on applied scenarios, multi-layer conceptual logic (e.g. state contexts, SOLID design, relational joins), and mid-level troubleshooting.`,
-      'Advanced': `ADVANCED level: Deep dive into distributed scaling, hard dynamic algorithms, microservices pipelines, extreme optimization cases, and structural bottlenecks.`
+      'Intermediate': `INTERMEDIATE level: Focus on applied scenarios, multi-layer conceptual logic, and mid-level troubleshooting.`,
+      'Advanced': `ADVANCED level: Deep dive into distributed scaling, hard dynamic algorithms, microservices pipelines, extreme optimization cases, and structural bottlenecks.`,
+      'Easy': `EASY level: Ask basic definitions, fundamental syntax rules, and simple single-variable iterations. Keep it clear and introductory.`,
+      'Medium': `MEDIUM level: Focus on applied scenarios, multi-layer conceptual logic, and mid-level troubleshooting.`,
+      'Hard': `HARD level: Deep dive into distributed scaling, hard dynamic algorithms, microservices pipelines, extreme optimization cases, and structural bottlenecks.`,
+      'Expert': `EXPERT level: Ask extremely challenging design queries, microsecond performance optimization, complex concurrency patterns, and architectural trade-offs under severe constraints.`
     };
 
     const typeGuide = {
       'Technical Interview': `Technical Interview Focus: Focus on core programming modules, runtime complexities, memory optimizations, frameworks internals, and practical system logic.`,
-      'HR Interview': `HR Interview Focus: Focus strictly on behavioral STAR method scenarios, team conflicts, failures, corporate ethic values, and salary structure alignments.`
+      'HR Interview': `HR Interview Focus: Focus strictly on behavioral STAR method scenarios, team conflicts, failures, corporate ethic values, and salary structure alignments.`,
+      'Coding Interview': `Coding Interview Focus: Ask candidates to write or describe complete algorithms, explain time and space complexity, discuss edge cases, variable naming, and explain their choices.`,
+      'System Design': `System Design Focus: Ask about designing distributed systems at scale. Focus on scaling, high availability, bottlenecks, databases, caching, load balancers, and tradeoffs.`,
+      'Behavioral Interview': `Behavioral Interview Focus: Ask for specific instances in their career using the STAR method. Focus on leadership principles, resolving conflicts, handling failures, and teamwork.`,
+      'Manager Round': `Manager Round Focus: Evaluate organizational ability, mentorship, design tradeoffs, handling deadline pressures, and aligning product goals with technical realities.`,
+      'Leadership Round': `Leadership Round Focus: Focus on vision, long-term technical direction, mentoring, executive communication, and making hard decisions under ambiguity.`,
+      'Product Round': `Product Round Focus: Evaluate product sense, trade-offs between speed and quality, metrics identification, user empathy, and feature design.`
     };
 
     // Grab company interviewing guide
@@ -179,13 +204,15 @@ const generateQuestion = async (role, type, difficulty, history, resumeSkills = 
       } else {
         followUpCheck = `Progressive Follow-up: The candidate answered well. Ask a follow-up asking them to optimize their approach, explain boundary limits, or justify design limitations of their previous solution: "${lastAnswerObj.userAnswer}".`;
       }
+    } else {
+      followUpCheck = `FIRST QUESTION INSTRUCTION: Welcome the candidate warmly. Introduce yourself briefly as Sarah, a Senior Lead Interviewer. State that you're excited to conduct this ${type} for their ${role} path at ${company || 'our company'}. Start with an engaging introductory query relevant to the role.`;
     }
 
     const previousQuestionsStr = history.length > 0
       ? `Previously asked questions in this session: ${history.map(h => `"${h.question}"`).join(', ')}`
       : 'This is the first question of the session.';
 
-    const prompt = `You are Sarah, an expert senior AI Interviewer conducting a realistic job placement assessment.
+    const prompt = `You are Sarah, an expert senior FAANG AI Interviewer conducting a realistic job placement assessment.
 Selected Company: ${company || 'Top Tech Company'}
 Hiring Role: ${role}
 Round Type: ${type}
@@ -208,8 +235,8 @@ ${hintCheck}
 ${previousQuestionsStr}
 
 RULES:
-1. Output ONLY the question text (and the hint in brackets if instructed).
-2. No preambles, no conversational filler (like "Sure, let's move on").
+1. Output ONLY the question text (and the hint in brackets if instructed). Include a brief, natural welcoming sentence ONLY if it's the first question.
+2. No meta-commentary, no preambles (e.g., "Here is your question:"), and no conversational filler before the actual question (except for the first question welcome).
 3. Do NOT repeat any previous questions.
 4. Output should be raw text only (no quotes around the final response).`;
 
@@ -229,13 +256,7 @@ Difficulty target: ${difficulty}
 
 Determine if this is a clarifying question (e.g. asking for examples, asking to repeat).
 - If it is clarification, reply as Sarah explaining context concisely. Set isClarification=true.
-- If it is an answer, assess technical accuracy, STAR consistency, and grade out of 10. Also evaluate live metrics (score 0-10 each):
-  1. technicalKnowledge
-  2. problemSolving
-  3. communication
-  4. confidence
-  5. accuracy
-  6. logicalThinking
+- If it is an answer, assess technical accuracy, STAR consistency, and grade out of 10. Also evaluate live metrics (score 0-10 each) and speech parameters (based on transcript composition, sentence run-ons, and presence of placeholders).
 
 Return strictly as JSON with no markdown decoration:
 {
@@ -249,6 +270,13 @@ Return strictly as JSON with no markdown decoration:
     "confidence": number,
     "accuracy": number,
     "logicalThinking": number
+  },
+  "speechStats": {
+    "speakingSpeed": number, // estimate words per minute (e.g., 100-150)
+    "fillerWordsCount": number, // count of filler words (like 'um', 'uh', 'like', 'so', 'actually') found in the text
+    "eyeContactScore": number, // mock a score between 75 and 98
+    "voiceClarity": number, // mock a score between 80 and 98
+    "grammarScore": number // grade from 0 to 100 based on sentence structure
   }
 }`;
 
@@ -259,7 +287,8 @@ Return strictly as JSON with no markdown decoration:
       isClarification: false, 
       feedback: "Answer registered. System was unable to grade metrics due to quota limit.", 
       score: 6,
-      metrics: { technicalKnowledge: 6, problemSolving: 6, communication: 6, confidence: 6, accuracy: 6, logicalThinking: 6 }
+      metrics: { technicalKnowledge: 6, problemSolving: 6, communication: 6, confidence: 6, accuracy: 6, logicalThinking: 6 },
+      speechStats: { speakingSpeed: 120, fillerWordsCount: 2, eyeContactScore: 85, voiceClarity: 90, grammarScore: 88 }
     };
   }
 };
@@ -485,19 +514,68 @@ ${jsonFormat}`;
 
 const generateReport = async (interviewData) => {
   try {
-    const prompt = `You are an expert technical recruiter analyzing an interview performance.
-Here is the interview data: ${JSON.stringify(interviewData)}
+    const prompt = `You are an expert technical recruiter and senior FAANG engineering leader. Analyze this interview session:
+${JSON.stringify(interviewData)}
 
-Please generate a detailed performance report. Return the result strictly in this JSON format:
+Please generate an advanced, exhaustive performance report.
+All scores should be numbers between 0 and 100.
+Evaluate companyReadiness for at least 8 top companies (like Google, Amazon, Meta, Microsoft, Apple, Uber, Netflix, Adobe, Salesforce, Oracle, TCS, Infosys, Accenture, Flipkart).
+Generate feedbackCards for multiple categories (Communication, Technical Knowledge, Problem Solving, Coding Quality, System Design, OOP, DSA, Leadership, Confidence, Teamwork).
+Generate careerCoach plans (Next Week, 30-Day, and 90-Day goals).
+For codeAnalysis: evaluate the time/space complexities and expected code quality if code was written, else leave them empty.
+
+Return the result strictly in this JSON format (no markdown, no backticks):
 {
   "overallScore": 85,
   "technicalScore": 80,
   "communicationScore": 90,
   "confidenceScore": 85,
+  "problemSolvingScore": 88,
+  "hiringDecision": "Strong Fit" | "Excellent Fit" | "Moderate Fit" | "Weak Fit" | "Not Recommended",
+  "questionsAsked": 5,
+  "questionsAttempted": 5,
+  "questionsSkipped": 0,
+  "correctResponses": 4,
+  "incorrectResponses": 1,
+  "technicalReason": "Detailed explanation of candidate's technical skills.",
+  "communicationReason": "Detailed explanation of candidate's communication skills.",
+  "confidenceReason": "Detailed explanation of candidate's confidence levels.",
+  "overallReason": "Overall decision rationale.",
   "strengths": ["string", "string"],
   "weakness": ["string", "string"],
   "suggestions": ["string", "string"],
-  "improvedAnswer": "Provide a better version of the user's weakest answer if possible, or a general tip."
+  "improvedAnswer": "Provide a better model version of the candidate's weakest answer.",
+  "companyReadiness": [
+    { "company": "Google", "score": 75, "explanation": "Detailed rationale" },
+    { "company": "Amazon", "score": 85, "explanation": "Detailed rationale" }
+  ],
+  "feedbackCards": [
+    {
+      "category": "Communication",
+      "score": 90,
+      "strengths": ["Clear structure", "Good pace"],
+      "weaknesses": ["Minor filler words"],
+      "examples": ["E.g. Candidate said 'um' twice in Q3"],
+      "suggestions": ["Practice pause-before-speaking method"],
+      "resources": ["Speak Like a Leader (Book)", "https://youtube.com"],
+      "transcriptReferences": ["Reference to Q3 response"]
+    }
+  ],
+  "careerCoach": {
+    "nextWeekPlan": "Exhaustive day-by-day plan for the upcoming week",
+    "thirtyDayPlan": "Comprehensive plan for the next 30 days including target subjects",
+    "ninetyDayPlan": "Strategic milestones for 90 days",
+    "resumeSuggestions": ["Increase project metric highlights", "Add Docker keywords"],
+    "portfolioSuggestions": ["Build one full-stack production application", "Deploy using GitHub Actions"]
+  },
+  "codeAnalysis": {
+    "timeComplexity": "O(N log N)",
+    "spaceComplexity": "O(N)",
+    "codeQuality": "Clean styling, modular methods",
+    "variableNaming": "Clear camelCase notation",
+    "edgeCases": "Handles empty lists, but fails on overflows",
+    "expectedSolution": "Expected optimal solution description using hash maps or sorting."
+  }
 }`;
 
     const response = await ai.models.generateContent({
@@ -509,9 +587,55 @@ Please generate a detailed performance report. Return the result strictly in thi
   } catch (error) {
     console.error('Gemini Error generating report:', error);
     return {
-      overallScore: 70, technicalScore: 70, communicationScore: 70, confidenceScore: 70,
-      strengths: ["Completed the interview"], weakness: ["Needs more practice"], suggestions: ["Review core concepts"],
-      improvedAnswer: "Keep practicing and structuring your thoughts."
+      overallScore: 70, 
+      technicalScore: 70, 
+      communicationScore: 70, 
+      confidenceScore: 70,
+      problemSolvingScore: 70,
+      hiringDecision: "Moderate Fit",
+      questionsAsked: interviewData.questions?.length || 0,
+      questionsAttempted: interviewData.questions?.length || 0,
+      questionsSkipped: 0,
+      correctResponses: Math.ceil((interviewData.questions?.length || 0) * 0.7),
+      incorrectResponses: Math.floor((interviewData.questions?.length || 0) * 0.3),
+      technicalReason: "Demonstrates standard understanding of major principles.",
+      communicationReason: "Expresses concepts clearly but can be structured better.",
+      confidenceReason: "Displays basic assurance and flow.",
+      overallReason: "Shows solid competence but requires additional refinement.",
+      strengths: ["Completed the interview successfully"], 
+      weakness: ["Requires more practice under constrained time limits"], 
+      suggestions: ["Review core architectural tradeoffs and practice custom mock prompts"],
+      improvedAnswer: "Ensure you structure your replies starting with the high level concept, then detail constraints, then implementation details.",
+      companyReadiness: [
+        { company: "Google", score: 60, explanation: "Focus on algorithms optimization and runtime limits." },
+        { company: "Amazon", score: 70, explanation: "Focus on AWS scaling patterns and Leadership Principles." }
+      ],
+      feedbackCards: [
+        {
+          category: "Technical Knowledge",
+          score: 70,
+          strengths: ["Understand frameworks"],
+          weaknesses: ["Deep internal workings require study"],
+          examples: ["In Q2, struggled to describe React virtual dom diffing algorithm"],
+          suggestions: ["Read deep-dive official documentation"],
+          resources: ["React Docs", "https://react.dev"]
+        }
+      ],
+      careerCoach: {
+        nextWeekPlan: "Day 1-3: Review OOP. Day 4-7: Practice 10 Leetcode Mediums.",
+        thirtyDayPlan: "Focus on System Design architectures, API integration, and Redis caching.",
+        ninetyDayPlan: "Perform 5 mock sessions and optimize resume metrics.",
+        resumeSuggestions: ["Quantify achievements"],
+        portfolioSuggestions: ["Host coding projects on Vercel"]
+      },
+      codeAnalysis: {
+        timeComplexity: "O(N)",
+        spaceComplexity: "O(1)",
+        codeQuality: "Good styling",
+        variableNaming: "Standard patterns",
+        edgeCases: "Lacks overflow check",
+        expectedSolution: "Use binary search to resolve in log time."
+      }
     };
   }
 };

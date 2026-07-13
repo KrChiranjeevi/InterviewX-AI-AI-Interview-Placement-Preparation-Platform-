@@ -37,6 +37,7 @@ export const toggleRoadmapTask = (id, moduleIndex, topicIndex, taskIndex, taskTy
 export const bookmarkRoadmap = (id) => api.put(`/roadmap/${id}/bookmark`);
 export const compareRoadmaps = (topic1, topic2) => api.post('/roadmap/compare', { topic1, topic2 });
 export const askMentor = (message, history) => api.post('/roadmap/ask-mentor', { message, history });
+export const askReportMentor = (reportId, message, history) => api.post(`/reports/${reportId}/mentor`, { message, history });
 export const getTopicDetail = (id, moduleIndex, topicIndex) => api.post(`/roadmap/${id}/topic-detail`, { moduleIndex, topicIndex });
 
 export const getCommunityPosts = () => api.get('/community/posts');

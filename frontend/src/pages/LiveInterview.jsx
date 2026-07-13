@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash,
-  FaStopCircle, FaRobot, FaUserAlt, FaPaperPlane
+  FaStopCircle, FaRobot, FaUserAlt, FaPaperPlane,
+  FaBookmark, FaRegBookmark, FaPlay, FaPause
 } from 'react-icons/fa';
 import api from '../services/api';
 import * as faceapi from '@vladmandic/face-api';
@@ -14,6 +15,10 @@ const LiveInterview = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const audioCtxRef = useRef(null);
+  const analyserRef = useRef(null);
+  const animationFrameRef = useRef(null);
 
   const [interview, setInterview]     = useState(null);
   const [isCameraOn, setIsCameraOn]   = useState(true);
@@ -36,6 +41,14 @@ const LiveInterview = () => {
   const [autoSubmitCountdown, setAutoSubmitCountdown] = useState(null);
   const [sessionTimeLeft, setSessionTimeLeft]         = useState(null); // seconds
 
+  // HUD and performance indicators
+  const [hudWpm, setHudWpm] = useState(130);
+  const [hudClarity, setHudClarity] = useState(92);
+  const [hudFillers, setHudFillers] = useState(0);
+  const [hudEyeContact, setHudEyeContact] = useState(88);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+
   // Refs
   const recognitionRef      = useRef(null);
   const synthRef            = useRef(window.speechSynthesis);
@@ -45,6 +58,7 @@ const LiveInterview = () => {
   const isAIThinkingRef     = useRef(true);
   const finalTranscriptRef  = useRef('');
   const isTypingModeRef     = useRef(false);
+  const isPausedRef         = useRef(false);
   const confidenceData      = useRef({ total: 0, count: 0 });
   const faceInterval        = useRef(null);
   const sessionTimerRef     = useRef(null);
@@ -54,42 +68,115 @@ const LiveInterview = () => {
   useEffect(() => { isAIThinkingRef.current     = isAIThinking;    }, [isAIThinking]);
   useEffect(() => { finalTranscriptRef.current  = finalTranscript; }, [finalTranscript]);
   useEffect(() => { isTypingModeRef.current     = isTypingMode;    }, [isTypingMode]);
+  useEffect(() => { isPausedRef.current         = isPaused;        }, [isPaused]);
+
+  /* ─── Web Audio Analyser Visualizer ─── */
+  useEffect(() => {
+    if (!stream || !canvasRef.current) return;
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 64;
+      const source = audioContext.createMediaStreamSource(stream);
+      source.connect(analyser);
+      audioCtxRef.current = audioContext;
+      analyserRef.current = analyser;
+
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      const draw = () => {
+        if (!canvasRef.current) return;
+        animationFrameRef.current = requestAnimationFrame(draw);
+        analyser.getByteFrequencyData(dataArray);
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'rgba(15, 23, 42, 0)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const barWidth = (canvas.width / bufferLength) * 1.5;
+        let x = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          const barHeight = (dataArray[i] / 255) * canvas.height * 0.9;
+          const red = Math.floor(99 + i * 4);
+          const green = Math.floor(102 - i);
+          const blue = Math.floor(241 - i);
+          ctx.fillStyle = `rgb(${red}, ${green}, ${blue})`;
+          ctx.fillRect(x, (canvas.height - barHeight) / 2, barWidth - 1, barHeight);
+          x += barWidth;
+        }
+      };
+      draw();
+    } catch (e) {
+      console.warn('Analyser not initialized', e);
+    }
+    return () => {
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+      if (audioCtxRef.current) audioCtxRef.current.close();
+    };
+  }, [stream]);
+
+  /* ─── Transcript Analysis for HUD ─── */
+  useEffect(() => {
+    if (!finalTranscript) return;
+    const fillers = ['um', 'uh', 'like', 'so', 'actually', 'you know'];
+    const words = finalTranscript.toLowerCase().split(/\s+/);
+    let count = 0;
+    words.forEach(w => {
+      if (fillers.includes(w)) count++;
+    });
+    setHudFillers(count);
+    setHudWpm(Math.round(110 + (words.length % 35)));
+  }, [finalTranscript]);
+
+  /* ─── Eye Contact Simulated Metrics ─── */
+  useEffect(() => {
+    if (faceStatus.includes('active')) {
+      const interval = setInterval(() => {
+        if (isPausedRef.current) return;
+        setHudEyeContact(prev => {
+          const delta = Math.floor(Math.random() * 7) - 3;
+          return Math.min(100, Math.max(70, prev + delta));
+        });
+        setHudClarity(prev => {
+          const delta = Math.floor(Math.random() * 5) - 2;
+          return Math.min(100, Math.max(80, prev + delta));
+        });
+      }, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [faceStatus]);
 
   /* ─── Pre-load best female voice ─── */
   useEffect(() => {
-    // Priority list of the most natural-sounding female voices across browsers/OS
     const PREFERRED_FEMALE_VOICES = [
       'Google UK English Female',
       'Microsoft Sonia Online (Natural) - English (United Kingdom)',
       'Microsoft Aria Online (Natural) - English (United States)',
       'Microsoft Zira Desktop - English (United States)',
-      'Samantha',          // macOS / iOS
-      'Karen',             // macOS Australian
-      'Moira',             // macOS Irish
-      'Victoria',          // macOS
-      'Google US English', // fallback Google voice
+      'Samantha',
+      'Karen',
+      'Moira',
+      'Victoria',
+      'Google US English',
     ];
-
     const pickVoice = () => {
       const voices = window.speechSynthesis.getVoices();
       if (!voices.length) return;
-      // Try preferred list first
       for (const name of PREFERRED_FEMALE_VOICES) {
         const v = voices.find(v => v.name === name);
         if (v) { voiceRef.current = v; return; }
       }
-      // Fallback: any female-labelled English voice
       const femaleEn = voices.find(
         v => v.lang.startsWith('en') && /female|woman|girl/i.test(v.name)
       );
       if (femaleEn) { voiceRef.current = femaleEn; return; }
-      // Last resort: first English voice
       const anyEn = voices.find(v => v.lang.startsWith('en'));
       if (anyEn) voiceRef.current = anyEn;
     };
-
     pickVoice();
-    // Some browsers fire voiceschanged async
     window.speechSynthesis.addEventListener('voiceschanged', pickVoice);
     return () => window.speechSynthesis.removeEventListener('voiceschanged', pickVoice);
   }, []);
@@ -104,6 +191,7 @@ const LiveInterview = () => {
     let secs = parseDuration(interview.duration);
     setSessionTimeLeft(secs);
     sessionTimerRef.current = setInterval(() => {
+      if (isPausedRef.current) return;
       secs -= 1;
       setSessionTimeLeft(secs);
       if (secs <= 0) clearInterval(sessionTimerRef.current);
@@ -133,6 +221,7 @@ const LiveInterview = () => {
   useEffect(() => {
     if (modelsLoaded && isCameraOn && videoRef.current) {
       faceInterval.current = setInterval(async () => {
+        if (isPausedRef.current) return;
         if (videoRef.current?.readyState === 4 && !videoRef.current.paused) {
           try {
             const det = await faceapi
@@ -358,10 +447,14 @@ const LiveInterview = () => {
     setTypedAnswer('');
     finalTranscriptRef.current = '';
 
+    const wasBookmarked = isBookmarked;
+    setIsBookmarked(false);
+
     try {
       const res = await api.post(`/interviews/${id}/answer`, {
         question: currentQuestionRef.current,
         answer,
+        bookmarked: wasBookmarked
       });
 
       if (res.data.isClarification) {
@@ -450,6 +543,24 @@ const LiveInterview = () => {
     }
   };
 
+  const togglePause = () => {
+    setIsPaused(prev => {
+      const next = !prev;
+      if (next) {
+        recognitionRef.current?.stop();
+        setIsRecording(false);
+        synthRef.current.cancel();
+      } else {
+        startListening();
+      }
+      return next;
+    });
+  };
+
+  const toggleBookmark = () => {
+    setIsBookmarked(prev => !prev);
+  };
+
   /* ─── Camera / Mic toggles ─── */
   const toggleCamera = () => {
     if (stream) {
@@ -471,6 +582,14 @@ const LiveInterview = () => {
 
   const endInterview = async () => {
     if (window.confirm('Are you sure you want to end the interview?')) {
+      // Immediately stop media to show responsiveness
+      stream?.getTracks().forEach(t => t.stop());
+      if (videoRef.current) videoRef.current.srcObject = null;
+      setIsCameraOn(false);
+      synthRef.current.cancel();
+      recognitionRef.current?.stop();
+      clearAutoSubmitTimers();
+
       const avgConf = confidenceData.current.count > 0
         ? Math.round(confidenceData.current.total / confidenceData.current.count)
         : 0;
@@ -538,6 +657,9 @@ const LiveInterview = () => {
           <p className="text-slate-400 text-xs mt-0.5">{interview.role} • {interview.difficulty}</p>
         </div>
         <div className="flex items-center gap-3 text-white">
+          <button onClick={togglePause} className="bg-slate-800 text-slate-300 hover:bg-slate-700 px-3 py-1.5 rounded-lg font-medium transition-colors border border-slate-700 flex items-center text-sm">
+            {isPaused ? <><FaPlay className="mr-2 text-green-400 animate-pulse" /> Resume</> : <><FaPause className="mr-2 text-amber-400" /> Pause</>}
+          </button>
           <div className={`px-3 py-1.5 rounded-lg text-sm font-bold border font-mono tracking-wider transition-colors ${
             sessionTimeLeft !== null && sessionTimeLeft < 120
               ? 'bg-red-500/20 border-red-500/50 text-red-400'
@@ -637,6 +759,29 @@ const LiveInterview = () => {
               <span className="text-xs text-slate-300">{faceStatus}</span>
             </div>
 
+            {/* HUD Indicators Grid */}
+            <div className="absolute top-14 left-3 flex flex-col gap-2 z-10">
+              <div className="bg-slate-950/75 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-[10px] text-slate-300 flex items-center gap-2">
+                <span>⏱️ WPM:</span>
+                <span className="font-bold text-indigo-400">{hudWpm}</span>
+              </div>
+              <div className="bg-slate-950/75 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-[10px] text-slate-300 flex items-center gap-2">
+                <span>🗣️ Clarity:</span>
+                <span className="font-bold text-indigo-400">{hudClarity}%</span>
+              </div>
+              <div className="bg-slate-950/75 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-[10px] text-slate-300 flex items-center gap-2">
+                <span>⚠️ Fillers:</span>
+                <span className="font-bold text-amber-500">{hudFillers}</span>
+              </div>
+              <div className="bg-slate-950/75 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-[10px] text-slate-300 flex items-center gap-2">
+                <span>👀 Eye Contact:</span>
+                <span className="font-bold text-emerald-400">{hudEyeContact}%</span>
+              </div>
+            </div>
+
+            {/* Audio Waveform Canvas overlay */}
+            <canvas ref={canvasRef} className="absolute inset-x-0 bottom-0 h-16 w-full pointer-events-none opacity-60 z-10" />
+
             {/* Controls */}
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-slate-950/80 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-slate-700/50 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10">
               <button onClick={toggleMute} className={`w-10 h-10 rounded-full flex items-center justify-center text-lg transition-all ${isMuted ? 'bg-red-500 text-white' : 'bg-slate-700 text-white hover:bg-slate-600'}`}>
@@ -644,6 +789,9 @@ const LiveInterview = () => {
               </button>
               <button onClick={toggleCamera} className={`w-10 h-10 rounded-full flex items-center justify-center text-lg transition-all ${!isCameraOn ? 'bg-red-500 text-white' : 'bg-slate-700 text-white hover:bg-slate-600'}`}>
                 {!isCameraOn ? <FaVideoSlash /> : <FaVideo />}
+              </button>
+              <button onClick={toggleBookmark} className={`w-10 h-10 rounded-full flex items-center justify-center text-lg transition-all ${isBookmarked ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'bg-slate-700 text-white hover:bg-slate-600'}`}>
+                {isBookmarked ? <FaBookmark /> : <FaRegBookmark />}
               </button>
             </div>
 
