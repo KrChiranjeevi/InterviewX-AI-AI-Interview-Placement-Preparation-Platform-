@@ -40,6 +40,7 @@ const LiveInterview = () => {
   const [faceStatus, setFaceStatus]     = useState('Loading scanner...');
   const [autoSubmitCountdown, setAutoSubmitCountdown] = useState(null);
   const [sessionTimeLeft, setSessionTimeLeft]         = useState(null); // seconds
+  const [isEnding, setIsEnding]                       = useState(false);
 
   // HUD and performance indicators
   const [hudWpm, setHudWpm] = useState(130);
@@ -582,6 +583,7 @@ const LiveInterview = () => {
 
   const endInterview = async () => {
     if (window.confirm('Are you sure you want to end the interview?')) {
+      setIsEnding(true);
       // Immediately stop media to show responsiveness
       stream?.getTracks().forEach(t => t.stop());
       if (videoRef.current) videoRef.current.srcObject = null;
@@ -634,6 +636,16 @@ const LiveInterview = () => {
 
   if (!interview) {
     return <div className="h-screen bg-slate-950 flex items-center justify-center text-white">Loading Room...</div>;
+  }
+
+  if (isEnding) {
+    return (
+      <div className="h-screen bg-slate-950 flex flex-col items-center justify-center text-white p-6">
+        <div className="w-16 h-16 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-6"></div>
+        <h2 className="text-2xl font-semibold text-white animate-pulse text-center">Finalizing and Analyzing your Interview...</h2>
+        <p className="text-slate-400 mt-2 text-center">Please wait while Sarah compiles your detailed performance report.</p>
+      </div>
+    );
   }
 
   /* Composed display text (what user will see) */

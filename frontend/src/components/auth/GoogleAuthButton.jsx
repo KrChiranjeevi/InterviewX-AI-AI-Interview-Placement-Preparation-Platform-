@@ -38,10 +38,9 @@ const GoogleAuthButton = () => {
     if (!scriptLoaded) return;
 
     try {
-      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "512190977757-h9hlj7445jjvm6jm3pf4t13i9bbot1nb.apps.googleusercontent.com";
-      if (!clientId || clientId === 'YOUR_GOOGLE_CLIENT_ID_HERE') {
-        console.warn('Google Client ID is not configured.');
-        return;
+      let clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      if (!clientId || clientId === 'YOUR_GOOGLE_CLIENT_ID_HERE' || clientId === '') {
+        clientId = "512190977757-h9hlj7445jjvm6jm3pf4t13i9bbot1nb.apps.googleusercontent.com";
       }
 
       window.google.accounts.id.initialize({
