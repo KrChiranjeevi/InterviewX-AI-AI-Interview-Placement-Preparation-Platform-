@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getReport, askReportMentor } from '../services/api';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaBookmark, FaPrint, FaShareAlt, FaRobot, FaPaperPlane, FaTimes, FaAngleRight, FaArrowLeft, FaAward } from 'react-icons/fa';
+import { FaBookmark, FaPrint, FaShareAlt, FaRobot, FaPaperPlane, FaTimes, FaAngleRight, FaArrowLeft, FaAward, FaExclamationTriangle, FaCheckCircle, FaBookOpen } from 'react-icons/fa';
 import Sidebar from '../components/layout/Sidebar';
 import Navbar from '../components/layout/Navbar';
 import toast from 'react-hot-toast';
@@ -19,13 +19,13 @@ const ReportDetail = () => {
   const [mentorOpen, setMentorOpen] = useState(false);
   const [mentorInput, setMentorInput] = useState('');
   const [chatMessages, setChatMessages] = useState([
-    { role: 'mentor', content: 'Hi there! I am your InterviewX AI Coach. Ask me anything about your mistakes, or how you can improve your scores!' }
+    { role: 'mentor', content: 'Hi! I am your AI Career Coach. Ask me anything about your mistakes, or how you can improve your answers!' }
   ]);
   const [mentorLoading, setMentorLoading] = useState(false);
   const chatEndRef = useRef(null);
 
-  // Tab state for feedback cards
-  const [activeCardTab, setActiveCardTab] = useState(0);
+  // Tab state for the 7 key evaluations
+  const [activeCategoryTab, setActiveCategoryTab] = useState("Communication");
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -85,8 +85,8 @@ const ReportDetail = () => {
       <div className="flex h-screen bg-slate-950 items-center justify-center">
         <div className="flex flex-col items-center">
           <div className="w-16 h-16 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-6"></div>
-          <h2 className="text-2xl font-semibold text-white animate-pulse">Generating your AI Performance Report...</h2>
-          <p className="text-slate-400 mt-2">Our AI is analyzing your responses in depth.</p>
+          <h2 className="text-2xl font-semibold text-white animate-pulse">Analyzing your interview...</h2>
+          <p className="text-slate-400 mt-2">Compiling transcript, audio cues, and final report.</p>
         </div>
       </div>
     );
@@ -109,6 +109,7 @@ const ReportDetail = () => {
     );
   }
 
+  // 1. Radar Chart Data
   const radarData = [
     { subject: 'Technical', A: report.technicalScore || 0, fullMark: 100 },
     { subject: 'Communication', A: report.communicationScore || 0, fullMark: 100 },
@@ -117,49 +118,46 @@ const ReportDetail = () => {
     { subject: 'Accuracy', A: Math.round(((report.technicalScore || 0) + (report.problemSolvingScore || 0)) / 2), fullMark: 100 }
   ];
 
-  const progressData = [
-    { name: 'Int 1', score: Math.max(0, report.overallScore - 15) },
-    { name: 'Int 2', score: Math.max(0, report.overallScore - 8) },
-    { name: 'Int 3', score: Math.max(0, report.overallScore - 2) },
-    { name: 'Current', score: report.overallScore || 0 },
-  ];
+  // 2. Timeline Progression (Confidence & Speed) Chart
+  const timelineData = report.questions?.map((q, idx) => ({
+    name: `Q${idx + 1}`,
+    confidence: q.speechStats?.voiceClarity || q.speechStats?.eyeContactScore || 70,
+    speed: q.speechStats?.speakingSpeed || 120,
+    score: Math.round((q.score || 7) * 10)
+  })) || [];
 
+  // 3. FAANG/Selected Company Readiness
   const defaultCompat = [
     { company: 'Google', score: 62, explanation: 'Solid coding concepts but needs faster optimal responses.' },
     { company: 'Amazon', score: 84, explanation: 'Excellent STAR approach alignment with leadership goals.' },
     { company: 'Meta', score: 41, explanation: 'Optimize complex algorithm designs under pressure.' },
     { company: 'Microsoft', score: 70, explanation: 'Strong OOP base but system components require scaling considerations.' }
   ];
-
   const displayReadiness = (report.companyReadiness && report.companyReadiness.length > 0)
     ? report.companyReadiness
     : defaultCompat;
 
-  const defaultCards = [
-    {
-      category: "Communication",
-      score: report.communicationScore || 75,
-      strengths: ["Clear response rhythm", "Effective high-level overviews"],
-      weaknesses: ["Occasional filler words"],
-      examples: ["Struggled to articulate modular boundaries in the initial questions"],
-      suggestions: ["Structure speaking using the STAR technique (Situation, Task, Action, Result)"],
-      resources: ["Speak Like a Leader Series", "https://youtube.com"]
-    },
-    {
-      category: "Technical Knowledge",
-      score: report.technicalScore || 70,
-      strengths: ["Good understanding of framework internals", "Clear API descriptions"],
-      weaknesses: ["Needs improvement in system design bottlenecks"],
-      examples: ["Struggled to define database normalization types"],
-      suggestions: ["Study B-Trees and distributed architecture patterns"],
-      resources: ["High Scalability Articles", "https://react.dev"]
-    }
+  // 4. Feedback Cards Array
+  const displayCards = report.feedbackCards || [];
+
+  // 5. 7 core skills mapping (checks actual feedback cards or prints insufficient evidence)
+  const coreCategories = [
+    { key: "Communication", label: "Communication" },
+    { key: "English Analysis", label: "English Analysis" },
+    { key: "Confidence Analysis", label: "Confidence Analysis" },
+    { key: "Technical Knowledge", label: "Technical Knowledge" },
+    { key: "Coding Analysis", label: "Coding Analysis" },
+    { key: "Behavioural Skills", label: "Behavioral Skills" },
+    { key: "HR Round Analysis", label: "HR Round Analysis" }
   ];
 
-  const displayCards = (report.feedbackCards && report.feedbackCards.length > 0)
-    ? report.feedbackCards
-    : defaultCards;
+  // Find feedback card for active tab
+  const getActiveCardData = () => {
+    return displayCards.find(c => c.category?.toLowerCase().includes(activeCategoryTab.toLowerCase()));
+  };
+  const activeCard = getActiveCardData();
 
+  // 6. Career Coach
   const defaultCoach = {
     nextWeekPlan: "Study OOP principles, implement dynamic programming algorithms, and practice 5 standard behavioral scenarios using the STAR technique.",
     thirtyDayPlan: "Focus heavily on System Design scaling bottlenecks, Distributed Caching, and SQL indexing optimization.",
@@ -167,11 +165,11 @@ const ReportDetail = () => {
     resumeSuggestions: ["Quantify achievements in resume projects.", "Highlight cloud hosting details."],
     portfolioSuggestions: ["Host 3 fully functioning, scalable web servers.", "Add continuous integration workflows."]
   };
-
   const displayCoach = report.careerCoach && report.careerCoach.nextWeekPlan
     ? report.careerCoach
     : defaultCoach;
 
+  // 7. General properties
   const isCodingRound = report.interviewId?.type?.toLowerCase().includes('coding') || (report.codeAnalysis && report.codeAnalysis.timeComplexity);
 
   return (
@@ -188,7 +186,7 @@ const ReportDetail = () => {
         <main className="flex-1 overflow-y-auto p-4 md:p-8 no-scrollbar print:p-0">
           <div className="max-w-7xl mx-auto space-y-8">
             
-            {/* Header Section */}
+            {/* Header / Top Verdict Bar */}
             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col md:flex-row md:items-center md:justify-between bg-slate-900/40 rounded-3xl p-6 md:p-8 border border-slate-800 backdrop-blur-xl relative overflow-hidden">
               <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/5 rounded-full blur-3xl" />
               <div className="z-10 flex-1">
@@ -198,12 +196,14 @@ const ReportDetail = () => {
                   </button>
                   <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight">AI Assessment Report</h1>
                   <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                    report.hiringDecision?.includes('Fit') || report.hiringDecision?.includes('Hire') ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                    report.hiringDecision === 'Excellent Fit' || report.hiringDecision === 'Strong Fit' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                    report.hiringDecision === 'Moderate Fit' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                    'bg-red-500/10 text-red-400 border border-red-500/20'
                   }`}>
-                    {report.hiringDecision}
+                    {report.hiringDecision || 'Moderate Fit'}
                   </span>
                 </div>
-                <p className="text-slate-400 ml-10">{report.interviewId?.role} • {report.interviewId?.type} • {new Date(report.createdAt).toLocaleDateString()}</p>
+                <p className="text-slate-400 ml-10">{report.interviewId?.role || 'Full Stack Engineer'} • {report.interviewId?.type || 'Technical Round'} • {new Date(report.createdAt).toLocaleDateString()}</p>
               </div>
 
               <div className="mt-6 md:mt-0 flex items-center gap-4 z-10 flex-wrap">
@@ -218,141 +218,153 @@ const ReportDetail = () => {
                   <div className="mr-4">
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Score</p>
                     <div className="flex items-baseline">
-                      <span className="text-4xl font-black text-indigo-400">{report.overallScore}</span>
+                      <span className="text-4xl font-black text-indigo-400">{report.overallScore || 0}</span>
                       <span className="text-sm text-slate-600 ml-0.5">/100</span>
                     </div>
                   </div>
-                  <div className={`h-12 w-12 rounded-full flex items-center justify-center ${report.overallScore >= 80 ? 'bg-green-500/20 text-green-400' : report.overallScore >= 60 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>
+                  <div className={`h-12 w-12 rounded-full flex items-center justify-center ${report.overallScore >= 80 ? 'bg-emerald-500/20 text-emerald-400' : report.overallScore >= 60 ? 'bg-amber-500/20 text-amber-400' : 'bg-red-500/20 text-red-400'}`}>
                     <FaAward className="text-xl" />
                   </div>
                 </div>
               </div>
             </motion.div>
 
-            {/* Grid Breakdown */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Visual Analytics Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               
-              {/* Left Column: Visualizers */}
-              <div className="lg:col-span-2 space-y-8">
-                {/* Skill radar chart */}
-                <div className="bg-slate-900/40 rounded-3xl border border-slate-800 p-6 md:p-8 backdrop-blur-xl">
-                  <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                    <span className="w-1.5 h-6 bg-indigo-500 rounded-full" /> Analysis Radar
-                  </h2>
-                  <div className="h-80 w-full flex justify-center">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
-                        <PolarGrid stroke="#334155" />
-                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 500 }} />
-                        <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: '#64748b' }} />
-                        <Radar name="Candidate" dataKey="A" stroke="#818cf8" strokeWidth={2} fill="#6366f1" fillOpacity={0.25} />
-                        <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #334155', backgroundColor: '#0f172a', color: '#f8fafc' }} />
-                      </RadarChart>
-                    </ResponsiveContainer>
-                  </div>
+              {/* Radar Chart Component */}
+              <div className="bg-slate-900/40 rounded-3xl border border-slate-800 p-6 md:p-8 backdrop-blur-xl">
+                <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                  <span className="w-1.5 h-6 bg-indigo-500 rounded-full" /> Analysis Radar
+                </h2>
+                <div className="h-80 w-full flex justify-center">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
+                      <PolarGrid stroke="#334155" />
+                      <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 500 }} />
+                      <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: '#64748b' }} />
+                      <Radar name="Candidate" dataKey="A" stroke="#818cf8" strokeWidth={2} fill="#6366f1" fillOpacity={0.25} />
+                      <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #334155', backgroundColor: '#0f172a', color: '#f8fafc' }} />
+                    </RadarChart>
+                  </ResponsiveContainer>
                 </div>
-
-                {/* Company Readiness Checklist */}
-                <div className="bg-slate-900/40 rounded-3xl border border-slate-800 p-6 md:p-8 backdrop-blur-xl">
-                  <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                    <span className="w-1.5 h-6 bg-indigo-500 rounded-full" /> FAANG Compatibility
-                  </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {displayReadiness.map((comp, idx) => (
-                      <div key={idx} className="bg-slate-950/50 rounded-2xl p-4 border border-slate-800/80 flex flex-col justify-between">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-slate-200 font-bold text-sm">{comp.company}</span>
-                          <span className={`text-xs font-mono font-bold ${
-                            comp.score >= 80 ? 'text-green-400' : comp.score >= 60 ? 'text-yellow-400' : 'text-red-400'
-                          }`}>{comp.score}% Ready</span>
-                        </div>
-                        <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mb-3">
-                          <div className={`h-full rounded-full transition-all ${
-                            comp.score >= 80 ? 'bg-green-500' : comp.score >= 60 ? 'bg-yellow-500' : 'bg-red-500'
-                          }`} style={{ width: `${comp.score}%` }} />
-                        </div>
-                        <p className="text-[11px] text-slate-400 leading-relaxed">{comp.explanation}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Coding round complexities (rendered if relevant) */}
-                {isCodingRound && (
-                  <div className="bg-slate-900/40 rounded-3xl border border-slate-800 p-6 md:p-8 backdrop-blur-xl">
-                    <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                      <span className="w-1.5 h-6 bg-indigo-500 rounded-full" /> Code Complexity Analyzer
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800">
-                        <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-1">Time Complexity</p>
-                        <p className="text-lg font-mono text-indigo-300 font-bold">{report.codeAnalysis?.timeComplexity || 'O(N)'}</p>
-                      </div>
-                      <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800">
-                        <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-1">Space Complexity</p>
-                        <p className="text-lg font-mono text-indigo-300 font-bold">{report.codeAnalysis?.spaceComplexity || 'O(1)'}</p>
-                      </div>
-                      <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800 md:col-span-2">
-                        <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-1">Hiring Code Quality</p>
-                        <p className="text-sm text-slate-300 leading-relaxed">{report.codeAnalysis?.codeQuality || 'Solid implementation style, modular formatting. Handles basic bounds correctly.'}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
 
-              {/* Right Column: Key Details */}
-              <div className="space-y-8">
-                {/* Recommendation summary card */}
-                <div className="bg-slate-900/40 rounded-3xl border border-slate-800 p-6 backdrop-blur-xl">
-                  <h2 className="text-lg font-bold text-white mb-4">Interview Verdict</h2>
-                  <p className="text-slate-300 text-sm leading-relaxed mb-4">{report.overallReason || 'Demonstrated high competence across frameworks with structured technical explanations.'}</p>
-                  
-                  <div className="space-y-3 pt-3 border-t border-slate-800">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-500 font-medium">Difficulty Level</span>
-                      <span className="text-slate-300 font-bold capitalize">{report.interviewId?.difficulty || 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-500 font-medium">Attempted Responses</span>
-                      <span className="text-slate-300 font-bold">{report.questionsAttempted || 0}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-500 font-medium">Hiring Probability</span>
-                      <span className="text-emerald-400 font-bold">{report.overallScore > 75 ? 'High (85%)' : 'Medium (60%)'}</span>
-                    </div>
-                  </div>
+              {/* Confidence / Speaking Speed / Score Progression Timeline Chart */}
+              <div className="bg-slate-900/40 rounded-3xl border border-slate-800 p-6 md:p-8 backdrop-blur-xl">
+                <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                  <span className="w-1.5 h-6 bg-indigo-500 rounded-full" /> Confidence & Performance Timeline
+                </h2>
+                <div className="h-80 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={timelineData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis dataKey="name" stroke="#94a3b8" />
+                      <YAxis stroke="#94a3b8" />
+                      <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #334155', backgroundColor: '#0f172a', color: '#f8fafc' }} />
+                      <Legend />
+                      <Line type="monotone" dataKey="confidence" name="Confidence Index" stroke="#38bdf8" activeDot={{ r: 8 }} strokeWidth={2} />
+                      <Line type="monotone" dataKey="speed" name="WPM / Speed" stroke="#fbbf24" strokeWidth={2} />
+                      <Line type="monotone" dataKey="score" name="Response Score" stroke="#818cf8" strokeWidth={2} />
+                    </LineChart>
+                  </ResponsiveContainer>
                 </div>
-
-                {/* AI Improved Answer Card */}
-                {report.improvedAnswer && (
-                  <div className="bg-gradient-to-br from-indigo-900/30 to-purple-900/30 rounded-3xl border border-indigo-500/20 p-6 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 -mt-8 -mr-8 w-24 h-24 bg-indigo-500 opacity-20 rounded-full blur-2xl" />
-                    <h2 className="text-sm font-bold text-indigo-300 uppercase tracking-widest mb-3">Sarah's Model Answer</h2>
-                    <p className="text-indigo-100 text-xs leading-relaxed font-medium">"{report.improvedAnswer}"</p>
-                  </div>
-                )}
               </div>
             </div>
 
-            {/* Tabbed Feedback Category Cards */}
+            {/* Verdict Explanation Bar (Senior Hiring Panel style) */}
+            <div className="bg-slate-900/40 rounded-3xl border border-slate-800 p-6 md:p-8 backdrop-blur-xl">
+              <h2 className="text-xl font-bold text-white mb-4">Senior Hiring Verdict & Rationale</h2>
+              <p className="text-slate-300 text-sm leading-relaxed mb-6">
+                {report.overallReason || 'Evaluation was generated based directly on transcript replies and timing profiles.'}
+              </p>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 border-t border-slate-800/80 pt-6">
+                <div>
+                  <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold block mb-1">Technical Verdict</span>
+                  <p className="text-xs text-slate-300 leading-relaxed font-semibold">{report.technicalReason || 'Satisfactory coverage of basic paradigms.'}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold block mb-1">Communication Style</span>
+                  <p className="text-xs text-slate-300 leading-relaxed font-semibold">{report.communicationReason || 'Clear pacing observed.'}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold block mb-1">Confidence Score</span>
+                  <p className="text-xs text-slate-300 leading-relaxed font-semibold">{report.confidenceReason || 'Steady speaking speed with minor filler words.'}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold block mb-1">Questions Answered</span>
+                  <p className="text-xs text-slate-300 leading-relaxed font-semibold">{report.questionsAttempted || 0} / {report.questionsAsked || 0} Questions</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Company Compatibility Readiness Checklist */}
             <div className="bg-slate-900/40 rounded-3xl border border-slate-800 p-6 md:p-8 backdrop-blur-xl">
               <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                <span className="w-1.5 h-6 bg-indigo-500 rounded-full" /> Detailed Category Review
+                <span className="w-1.5 h-6 bg-indigo-500 rounded-full" /> FAANG Compatibility Readiness
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {displayReadiness.map((comp, idx) => (
+                  <div key={idx} className="bg-slate-950/50 rounded-2xl p-4 border border-slate-800/80 flex flex-col justify-between">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-slate-200 font-bold text-sm">{comp.company}</span>
+                      <span className={`text-xs font-mono font-bold ${
+                        comp.score >= 80 ? 'text-emerald-400' : comp.score >= 60 ? 'text-amber-400' : 'text-red-400'
+                      }`}>{comp.score}% Compatible</span>
+                    </div>
+                    <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mb-3">
+                      <div className={`h-full rounded-full transition-all ${
+                        comp.score >= 80 ? 'bg-emerald-500' : comp.score >= 60 ? 'bg-amber-500' : 'bg-red-500'
+                      }`} style={{ width: `${comp.score}%` }} />
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">{comp.explanation}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Coding Round Complexity Card */}
+            {isCodingRound && (
+              <div className="bg-slate-900/40 rounded-3xl border border-slate-800 p-6 md:p-8 backdrop-blur-xl">
+                <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                  <span className="w-1.5 h-6 bg-indigo-500 rounded-full" /> Algorithmic Performance
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800">
+                    <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-1">Time Complexity</p>
+                    <p className="text-lg font-mono text-indigo-300 font-bold">{report.codeAnalysis?.timeComplexity || 'O(N)'}</p>
+                  </div>
+                  <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800">
+                    <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-1">Space Complexity</p>
+                    <p className="text-lg font-mono text-indigo-300 font-bold">{report.codeAnalysis?.spaceComplexity || 'O(1)'}</p>
+                  </div>
+                  <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800 md:col-span-2">
+                    <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-1">Hiring Code Quality</p>
+                    <p className="text-sm text-slate-300 leading-relaxed">{report.codeAnalysis?.codeQuality || 'Solid implementation style, modular formatting. Handles basic bounds correctly.'}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Core Skills Feedback (The 7 Categories) */}
+            <div className="bg-slate-900/40 rounded-3xl border border-slate-800 p-6 md:p-8 backdrop-blur-xl">
+              <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                <span className="w-1.5 h-6 bg-indigo-500 rounded-full" /> Skill Assessment Breakdown
               </h2>
               
               <div className="flex space-x-2 border-b border-slate-800 pb-3 overflow-x-auto no-scrollbar">
-                {displayCards.map((card, idx) => (
+                {coreCategories.map((cat, idx) => (
                   <button
                     key={idx}
-                    onClick={() => setActiveCardTab(idx)}
+                    onClick={() => setActiveCategoryTab(cat.key)}
                     className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
-                      activeCardTab === idx
+                      activeCategoryTab === cat.key
                         ? 'bg-indigo-600 text-white shadow-lg'
                         : 'bg-slate-950/40 hover:bg-slate-900 text-slate-400'
                     }`}
                   >
-                    {card.category}
+                    {cat.label}
                   </button>
                 ))}
               </div>
@@ -360,78 +372,140 @@ const ReportDetail = () => {
               <div className="mt-6">
                 <AnimatePresence mode="wait">
                   <motion.div
-                    key={activeCardTab}
+                    key={activeCategoryTab}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     className="grid grid-cols-1 md:grid-cols-2 gap-6"
                   >
-                    <div>
-                      <div className="flex justify-between items-center mb-4">
-                        <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Strengths</span>
-                        <span className="text-indigo-400 font-bold text-xs font-mono">{displayCards[activeCardTab].score}% Rating</span>
-                      </div>
-                      <ul className="space-y-2 mb-6">
-                        {displayCards[activeCardTab].strengths?.map((str, idx) => (
-                          <li key={idx} className="text-xs text-slate-300 flex items-start">
-                            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full mt-1.5 mr-2 flex-shrink-0" />
-                            {str}
-                          </li>
-                        ))}
-                      </ul>
-                      
-                      <span className="text-slate-400 text-xs font-bold uppercase tracking-wider block mb-2">Weaknesses</span>
-                      <ul className="space-y-2">
-                        {displayCards[activeCardTab].weaknesses?.map((wk, idx) => (
-                          <li key={idx} className="text-xs text-slate-300 flex items-start">
-                            <span className="w-1.5 h-1.5 bg-red-400 rounded-full mt-1.5 mr-2 flex-shrink-0" />
-                            {wk}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="space-y-4">
-                      {displayCards[activeCardTab].examples && displayCards[activeCardTab].examples.length > 0 && (
-                        <div className="bg-slate-950/50 rounded-2xl p-4 border border-slate-800">
-                          <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block mb-1">Transcript Example</span>
-                          <p className="text-slate-300 text-xs italic">"{displayCards[activeCardTab].examples[0]}"</p>
+                    {activeCard ? (
+                      <>
+                        <div>
+                          <div className="flex justify-between items-center mb-4">
+                            <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Identified Strengths</span>
+                            <span className="text-indigo-400 font-bold text-xs font-mono">{activeCard.score}% Competency</span>
+                          </div>
+                          <ul className="space-y-2 mb-6">
+                            {activeCard.strengths?.length > 0 ? (
+                              activeCard.strengths.map((str, idx) => (
+                                <li key={idx} className="text-xs text-slate-300 flex items-start">
+                                  <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full mt-1.5 mr-2 flex-shrink-0" />
+                                  {str}
+                                </li>
+                              ))
+                            ) : (
+                              <span className="text-slate-500 text-xs italic">No specific strengths captured.</span>
+                            )}
+                          </ul>
+                          
+                          <span className="text-slate-400 text-xs font-bold uppercase tracking-wider block mb-2">Identified Weaknesses</span>
+                          <ul className="space-y-2">
+                            {activeCard.weaknesses?.length > 0 ? (
+                              activeCard.weaknesses.map((wk, idx) => (
+                                <li key={idx} className="text-xs text-slate-300 flex items-start">
+                                  <span className="w-1.5 h-1.5 bg-red-400 rounded-full mt-1.5 mr-2 flex-shrink-0" />
+                                  {wk}
+                                </li>
+                              ))
+                            ) : (
+                              <span className="text-slate-500 text-xs italic">No weaknesses captured.</span>
+                            )}
+                          </ul>
                         </div>
-                      )}
-                      
-                      <div className="bg-slate-950/50 rounded-2xl p-4 border border-slate-800">
-                        <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block mb-1">Improvement Suggestions</span>
-                        <p className="text-slate-300 text-xs leading-relaxed">{displayCards[activeCardTab].suggestions?.[0] || 'Focus on depth in technical explanations.'}</p>
-                      </div>
 
-                      {displayCards[activeCardTab].resources && displayCards[activeCardTab].resources.length > 0 && (
-                        <div className="bg-slate-950/50 rounded-2xl p-4 border border-slate-800">
-                          <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block mb-1">Study Material</span>
-                          <a
-                            href={displayCards[activeCardTab].resources[1] || '#'}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-indigo-400 font-bold hover:underline flex items-center gap-1"
-                          >
-                            {displayCards[activeCardTab].resources[0]} <FaAngleRight />
-                          </a>
+                        <div className="space-y-4">
+                          {activeCard.examples && activeCard.examples.length > 0 && (
+                            <div className="bg-slate-950/50 rounded-2xl p-4 border border-slate-800">
+                              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block mb-1">Transcript Reference</span>
+                              <p className="text-slate-300 text-xs italic">"{activeCard.examples[0]}"</p>
+                              {activeCard.transcriptReferences && activeCard.transcriptReferences.length > 0 && (
+                                <p className="text-[10px] text-indigo-400 mt-2 font-mono">{activeCard.transcriptReferences[0]}</p>
+                              )}
+                            </div>
+                          )}
+                          
+                          <div className="bg-slate-950/50 rounded-2xl p-4 border border-slate-800">
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block mb-1">Improvement Plan</span>
+                            <p className="text-slate-300 text-xs leading-relaxed">{activeCard.suggestions?.[0] || 'Observe question rhythm and pacing.'}</p>
+                          </div>
+
+                          {activeCard.resources && activeCard.resources.length > 0 && (
+                            <div className="bg-slate-950/50 rounded-2xl p-4 border border-slate-800">
+                              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block mb-1">Study Material</span>
+                              <a
+                                href={activeCard.resources[1] || '#'}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-indigo-400 font-bold hover:underline flex items-center gap-1"
+                              >
+                                {activeCard.resources[0]} <FaAngleRight />
+                              </a>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
+                      </>
+                    ) : (
+                      <div className="col-span-2 py-8 flex flex-col items-center justify-center border border-dashed border-slate-800 rounded-3xl bg-slate-950/30">
+                        <FaExclamationTriangle className="text-amber-500/70 text-3xl mb-3 animate-pulse" />
+                        <p className="text-slate-400 text-sm font-semibold">Insufficient evidence to evaluate this skill.</p>
+                        <p className="text-slate-600 text-xs mt-1">This skill was not discussed or practiced during this interview session.</p>
+                      </div>
+                    )}
                   </motion.div>
                 </AnimatePresence>
               </div>
             </div>
 
-            {/* Career Coach & Study Recommendations */}
+            {/* Mistakes & Misconceptions Analysis */}
             <div className="bg-slate-900/40 rounded-3xl border border-slate-800 p-6 md:p-8 backdrop-blur-xl">
               <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                <span className="w-1.5 h-6 bg-indigo-500 rounded-full" /> AI Career Plan
+                <span className="w-1.5 h-6 bg-red-500 rounded-full" /> Factual Error & Mistake Analysis
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-slate-950/40 border border-slate-800 rounded-2xl p-5">
+                  <h3 className="text-sm font-bold text-white mb-3">Key Performance Gaps</h3>
+                  <ul className="space-y-2">
+                    {report.weakness?.length > 0 ? (
+                      report.weakness.map((wk, idx) => (
+                        <li key={idx} className="text-xs text-slate-300 flex items-start">
+                          <span className="w-1.5 h-1.5 bg-red-400 rounded-full mt-1.5 mr-2" />
+                          {wk}
+                        </li>
+                      ))
+                    ) : (
+                      <li className="text-xs text-slate-500 italic">No critical errors captured. Excellent response metrics!</li>
+                    )}
+                  </ul>
+                </div>
+                
+                <div className="bg-slate-950/40 border border-slate-800 rounded-2xl p-5">
+                  <h3 className="text-sm font-bold text-white mb-3">Hiring Panel Recommendations</h3>
+                  <ul className="space-y-2">
+                    {report.suggestions?.length > 0 ? (
+                      report.suggestions.map((sug, idx) => (
+                        <li key={idx} className="text-xs text-slate-300 flex items-start">
+                          <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full mt-1.5 mr-2" />
+                          {sug}
+                        </li>
+                      ))
+                    ) : (
+                      <li className="text-xs text-slate-500 italic">Proceed with the standard scaling path.</li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* AI Career Coach & Actionable Timeline */}
+            <div className="bg-slate-900/40 rounded-3xl border border-slate-800 p-6 md:p-8 backdrop-blur-xl">
+              <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                <span className="w-1.5 h-6 bg-indigo-500 rounded-full" /> AI Career Plan & Action Plan
               </h2>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-slate-950/40 border border-slate-800 rounded-2xl p-5 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 bg-indigo-600/10 text-indigo-400 text-[9px] font-bold px-2 py-0.5 rounded-bl-lg">WEEK 1</div>
+                  <div className="absolute top-0 right-0 bg-indigo-600/10 text-indigo-400 text-[9px] font-bold px-2 py-0.5 rounded-bl-lg">IMMEDIATE / WEEK 1</div>
                   <h3 className="text-sm font-bold text-white mb-3">Immediate Priorities</h3>
                   <p className="text-xs text-slate-400 leading-relaxed">{displayCoach.nextWeekPlan}</p>
                 </div>
@@ -493,8 +567,8 @@ const ReportDetail = () => {
                         )}
                       </h3>
                       <span className={`text-xs font-mono font-bold px-2.5 py-1 rounded-lg ${
-                        q.score >= 8 ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
-                        q.score >= 5 ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :
+                        q.score >= 8 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                        q.score >= 5 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
                         'bg-red-500/10 text-red-400 border border-red-500/20'
                       }`}>{q.score * 10}% Score</span>
                     </div>

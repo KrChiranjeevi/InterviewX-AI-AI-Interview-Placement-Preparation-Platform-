@@ -514,15 +514,15 @@ ${jsonFormat}`;
 
 const generateReport = async (interviewData) => {
   try {
-    const prompt = `You are an expert technical recruiter and senior FAANG engineering leader. Analyze this interview session:
+    const prompt = `You are an expert technical recruiter and senior FAANG engineering leader. Analyze this interview session strictly using only the facts provided in the interview history:
 ${JSON.stringify(interviewData)}
 
-Please generate an advanced, exhaustive performance report.
-All scores should be numbers between 0 and 100.
-Evaluate companyReadiness for at least 8 top companies (like Google, Amazon, Meta, Microsoft, Apple, Uber, Netflix, Adobe, Salesforce, Oracle, TCS, Infosys, Accenture, Flipkart).
-Generate feedbackCards for multiple categories (Communication, Technical Knowledge, Problem Solving, Coding Quality, System Design, OOP, DSA, Leadership, Confidence, Teamwork).
-Generate careerCoach plans (Next Week, 30-Day, and 90-Day goals).
-For codeAnalysis: evaluate the time/space complexities and expected code quality if code was written, else leave them empty.
+EVALUATION RULES (MOST IMPORTANT):
+1. Evaluate ONLY using actual facts, actual answers, and actual code from this interview data. 
+2. NEVER guess, speculate, fabricate, exaggerate, or invent any strengths, weaknesses, or metrics.
+3. If a skill, technology, or topic was NOT discussed, do NOT evaluate it. Set its score to 0 or omit it, or write "Insufficient evidence to evaluate this skill." inside the lists or explanation.
+4. Every feedback card, strength, and weakness must cite evidence from the transcript or candidates answer. Include the question number or quote.
+5. All scores must reflect the candidate's actual performance - no unnecessary praise, no arbitrary deductions.
 
 Return the result strictly in this JSON format (no markdown, no backticks):
 {
@@ -537,13 +537,13 @@ Return the result strictly in this JSON format (no markdown, no backticks):
   "questionsSkipped": 0,
   "correctResponses": 4,
   "incorrectResponses": 1,
-  "technicalReason": "Detailed explanation of candidate's technical skills.",
-  "communicationReason": "Detailed explanation of candidate's communication skills.",
-  "confidenceReason": "Detailed explanation of candidate's confidence levels.",
+  "technicalReason": "Detailed explanation of candidate's technical skills based on evidence.",
+  "communicationReason": "Detailed explanation of candidate's communication skills based on evidence.",
+  "confidenceReason": "Detailed explanation of candidate's confidence levels based on evidence.",
   "overallReason": "Overall decision rationale.",
-  "strengths": ["string", "string"],
-  "weakness": ["string", "string"],
-  "suggestions": ["string", "string"],
+  "strengths": ["string citing question or transcript line"],
+  "weakness": ["string citing question or transcript line"],
+  "suggestions": ["constructive suggestion mapping to mistakes"],
   "improvedAnswer": "Provide a better model version of the candidate's weakest answer.",
   "companyReadiness": [
     { "company": "Google", "score": 75, "explanation": "Detailed rationale" },
@@ -551,10 +551,10 @@ Return the result strictly in this JSON format (no markdown, no backticks):
   ],
   "feedbackCards": [
     {
-      "category": "Communication",
+      "category": "Communication" | "Technical Knowledge" | "Problem Solving" | "Coding Quality" | "System Design" | "OOP" | "DSA" | "Leadership" | "Confidence" | "Teamwork",
       "score": 90,
-      "strengths": ["Clear structure", "Good pace"],
-      "weaknesses": ["Minor filler words"],
+      "strengths": ["Clear structure in Q2", "Good pace"],
+      "weaknesses": ["Minor filler words in Q3"],
       "examples": ["E.g. Candidate said 'um' twice in Q3"],
       "suggestions": ["Practice pause-before-speaking method"],
       "resources": ["Speak Like a Leader (Book)", "https://youtube.com"],
@@ -562,7 +562,7 @@ Return the result strictly in this JSON format (no markdown, no backticks):
     }
   ],
   "careerCoach": {
-    "nextWeekPlan": "Exhaustive day-by-day plan for the upcoming week",
+    "nextWeekPlan": "Exhaustive day-by-day plan for the upcoming week mapping to actual weaknesses",
     "thirtyDayPlan": "Comprehensive plan for the next 30 days including target subjects",
     "ninetyDayPlan": "Strategic milestones for 90 days",
     "resumeSuggestions": ["Increase project metric highlights", "Add Docker keywords"],

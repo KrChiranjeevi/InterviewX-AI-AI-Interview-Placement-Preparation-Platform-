@@ -630,7 +630,7 @@ const LiveInterview = () => {
         return;
       }
 
-      navigate('/dashboard');
+      navigate(`/report/${id}`);
     }
   };
 
