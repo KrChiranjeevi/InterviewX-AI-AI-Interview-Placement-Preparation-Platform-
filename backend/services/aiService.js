@@ -235,12 +235,20 @@ ${hintCheck}
 ${previousQuestionsStr}
 
 RULES:
-1. Output ONLY the question text (and the hint in brackets if instructed). Include a brief, natural welcoming sentence ONLY if it's the first question.
-2. No meta-commentary, no preambles (e.g., "Here is your question:"), and no conversational filler before the actual question (except for the first question welcome).
-3. Do NOT repeat any previous questions.
-4. Output should be raw text only (no quotes around the final response).`;
+1. Keep the question extremely brief, concise, and under 2 sentences maximum. Do not ask long-winded, multi-paragraph questions.
+2. Target the difficulty level strictly:
+   - For Beginner/Easy: Ask simple, introductory fundamental concepts or basic definitions.
+   - For Intermediate/Medium: Ask typical mid-level scenarios, core practical logic, or conceptual usage.
+   - For Advanced/Hard/Expert: Ask challenging scaling bottlenecks, performance optimizations, or complex data structure challenges.
+3. Output ONLY the question text (and the hint in brackets if instructed). Include a brief, natural welcoming sentence ONLY if it's the first question.
+4. No meta-commentary, no preambles (e.g., "Here is your question:"), and no conversational filler before the actual question (except for the first question welcome).
+5. Do NOT repeat any previous questions.
+6. Output should be raw text only (no quotes around the final response).`;
 
-    const response = await ai.models.generateContent({ contents: prompt });
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt
+    });
     return response.text.trim().replace(/^["']|["']$/g, '');
   } catch (error) {
     return "Failed to construct simulation question. Check your API token configuration in the backend env file.";
@@ -403,6 +411,7 @@ const generateCompanyQuestion = async (companyName, round, difficulty, history) 
     const prompt = `You are an expert AI interviewer conducting a ${difficulty} level ${round} interview for ${companyName}.
 Based on the interview history: ${JSON.stringify(history)}
 Generate ONE insightful and challenging interview question specific to ${companyName}'s typical interview process, leadership principles, or technology stack. 
+Keep the question extremely brief, concise, and under 2 sentences maximum. Do not write long-winded paragraphs.
 Do not include any other text, just the question.`;
 
     const response = await ai.models.generateContent({
