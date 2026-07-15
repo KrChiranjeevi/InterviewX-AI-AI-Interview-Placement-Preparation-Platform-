@@ -119,7 +119,7 @@ function App() {
             } 
           />
           <Route 
-            path="/assessment/:module" 
+            path="/assessment/:category" 
             element={
               <ProtectedRoute>
                 <AssessmentRoom />
