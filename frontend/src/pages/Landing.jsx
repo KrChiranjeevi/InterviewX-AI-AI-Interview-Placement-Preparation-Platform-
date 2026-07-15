@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Sphere, MeshDistortMaterial, Float, Stars } from '@react-three/drei';
+import { Moon, Sun, Sparkles } from 'lucide-react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { TextPlugin } from 'gsap/TextPlugin';
@@ -69,6 +70,9 @@ function HeroScene() {
 function Navbar() {
   const navRef = useRef();
   const [scrolled, setScrolled] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem('theme') !== 'light';
+  });
 
   useEffect(() => {
     gsap.fromTo(navRef.current,
@@ -80,41 +84,67 @@ function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.remove('light');
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.add('light');
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+    window.dispatchEvent(new Event('theme-changed'));
+  }, [isDarkMode]);
+
   return (
     <nav
       ref={navRef}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? 'navbar-glass shadow-lg' : 'bg-transparent'
+        scrolled ? 'navbar-glass shadow-lg border-b border-slate-200 dark:border-white/10' : 'bg-transparent'
       }`}
     >
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        {/* Left Logo */}
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
-            <FaBolt className="text-white text-sm" />
-          </div>
-          <span className="text-xl font-bold gradient-text" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
-            InterviewX
+          <Sparkles className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+          <span className="text-xl font-bold text-slate-900 dark:text-white" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
+            InterviewX AI
           </span>
         </div>
 
-        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
-          <a href="#features" className="hover:text-white transition-colors cursor-pointer">Features</a>
-          <a href="#stats" className="hover:text-white transition-colors cursor-pointer">Results</a>
-          <a href="#testimonials" className="hover:text-white transition-colors cursor-pointer">Reviews</a>
+        {/* Center menu links */}
+        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-500 dark:text-slate-400">
+          <a href="#features" className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer">Features</a>
+          <a href="#stats" className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer">Results</a>
+          <a href="#testimonials" className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer">Reviews</a>
         </div>
 
+        {/* Right actions */}
         <div className="flex items-center gap-3">
+          {/* Theme Toggle */}
+          <button
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.07] text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-all cursor-pointer"
+            title="Toggle Theme"
+          >
+            {isDarkMode ? <Sun className="h-4.5 w-4.5" /> : <Moon className="h-4.5 w-4.5" />}
+          </button>
+
+          {/* Sign In */}
           <Link
             to="/login"
-            className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+            className="px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl transition-all cursor-pointer"
           >
             Sign In
           </Link>
+
+          {/* Get Started */}
           <Link
             to="/register"
-            className="px-5 py-2 text-sm font-semibold text-white rounded-xl btn-primary glow-btn"
+            className="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition-all cursor-pointer"
           >
-            Get Started Free
+            Get Started
           </Link>
         </div>
       </div>

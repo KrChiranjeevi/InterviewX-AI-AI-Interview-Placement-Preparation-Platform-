@@ -7,6 +7,10 @@ const assessmentQuestionSchema = new mongoose.Schema({
     enum: ['aptitude', 'quant', 'reasoning', 'verbal'],
     index: true,
   },
+  subCategory: {
+    type: String,
+    required: true,
+  },
   question: {
     type: String,
     required: true,

@@ -902,4 +902,36 @@ Output only the hint text. No preamble, no "Hint:", no markdown (unless it's pse
   }
 };
 
-module.exports = { generateQuestion, analyzeAnswer, analyzeResume, generateCompanyQuestion, analyzeCode, generateReport, generateRoadmap, generateTopicDetail, getCodeHint, generateAIReport, askMentor, compareRoadmaps };
+const generateAptitudeReport = async (attemptData) => {
+  try {
+    const prompt = `You are an expert AI Career Coach evaluating an Aptitude Assessment attempt.
+Here is the attempt data summary (time spent is in seconds):
+Module: ${attemptData.module}
+Total Questions: ${attemptData.totalQuestions}
+Correct: ${attemptData.correctAnswers}, Incorrect: ${attemptData.incorrectAnswers}, Skipped: ${attemptData.skippedQuestions}
+Accuracy: ${attemptData.accuracy}%
+Responses: ${JSON.stringify(attemptData.responses.map(r => ({
+  subCategory: r.subCategory,
+  difficulty: r.difficulty,
+  isCorrect: r.isCorrect,
+  timeSpent: r.timeSpent,
+  isSkipped: r.isSkipped
+})))}
+
+Generate 4-5 sentences of extremely insightful, personalized feedback focusing on:
+1. Speed vs Accuracy correlation (are they rushing and failing, or slow and accurate?).
+2. Specific Topic strengths and weaknesses (mention exact subCategories like "Time & Work").
+3. Specific Difficulty handling (e.g., "You struggle with Hard questions").
+4. A highly actionable recommendation on what to practice next.
+
+Output ONLY the final feedback string. No JSON, no markdown formatting. Keep it conversational and professional.`;
+
+    const response = await ai.models.generateContent({ contents: prompt });
+    return response.text.trim();
+  } catch (error) {
+    console.error('generateAptitudeReport error:', error);
+    return "Your assessment is complete. Review your detailed solutions below to identify areas of improvement and practice specific topics to increase your speed and accuracy.";
+  }
+};
+
+module.exports = { generateQuestion, analyzeAnswer, analyzeResume, generateCompanyQuestion, analyzeCode, generateReport, generateRoadmap, generateTopicDetail, getCodeHint, generateAIReport, askMentor, compareRoadmaps, generateAptitudeReport };

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import Sidebar from '../components/layout/Sidebar';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import Editor from '@monaco-editor/react';
 import { FaPlay, FaCheck, FaLightbulb, FaRobot, FaArrowLeft, FaUndo, FaSpinner, FaCheckCircle, FaTimesCircle, FaChevronDown, FaChevronUp, FaBuilding, FaTag, FaCode, FaQuestionCircle } from 'react-icons/fa';
@@ -110,7 +110,7 @@ const CodingEditor = () => {
   };
 
   if (!question) return (
-    <div className="flex h-screen bg-slate-950 items-center justify-center text-white flex-col gap-4">
+    <div className="flex h-screen bg-background items-center justify-center text-foreground flex-col gap-4">
       <div className="text-4xl">😕</div>
       <p>Question not found.</p>
       <button onClick={() => navigate('/coding')} className="text-indigo-400 hover:underline">Back to Hub</button>
@@ -118,27 +118,27 @@ const CodingEditor = () => {
   );
 
   return (
-    <div className="flex h-screen bg-slate-950 overflow-hidden">
-      <Sidebar />
+    <div className="flex h-screen bg-background overflow-hidden">
+      
       <div className="flex-1 ml-64 flex flex-col h-screen overflow-hidden">
 
         {/* Top Bar */}
-        <div className="flex-shrink-0 h-14 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4 gap-4">
-          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 hover:text-white text-sm transition-colors">
+        <div className="flex-shrink-0 h-14 bg-card border-b border-border flex items-center justify-between px-4 gap-4">
+          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm transition-colors">
             <FaArrowLeft /> Back
           </button>
           <div className="flex items-center gap-3 flex-1">
-            <h1 className="text-white font-semibold text-sm truncate">{question.title}</h1>
+            <h1 className="text-foreground font-semibold text-sm truncate">{question.title}</h1>
             <span className={`text-xs px-2.5 py-0.5 rounded-full border font-medium flex-shrink-0 ${diffColor[question.difficulty]}`}>{question.difficulty}</span>
             {solved && <span className="text-xs text-green-400 flex items-center gap-1"><FaCheckCircle /> Solved</span>}
           </div>
           <div className="flex items-center gap-2">
             <select value={language} onChange={e => setLanguage(e.target.value)}
-              className="bg-slate-800 border border-slate-700 text-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500">
+              className="bg-card border border-slate-700 text-muted-foreground rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500">
               {LANGUAGES.map(l => <option key={l.id} value={l.id}>{l.label}</option>)}
             </select>
             <button onClick={handleReset} title="Reset Code"
-              className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm transition-colors">
+              className="p-2 bg-card hover:bg-slate-700 text-muted-foreground rounded-lg text-sm transition-colors">
               <FaUndo />
             </button>
             <button onClick={() => handleAIHint(1)}
@@ -154,11 +154,11 @@ const CodingEditor = () => {
               <FaLightbulb /> Hint 3
             </button>
             <button onClick={handleRun} disabled={analyzing}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50">
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-foreground rounded-lg text-xs font-medium transition-colors disabled:opacity-50">
               {analyzing ? <FaSpinner className="animate-spin" /> : <FaPlay />} Run
             </button>
             <button onClick={handleSubmit} disabled={analyzing}
-              className="flex items-center gap-1.5 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50">
+              className="flex items-center gap-1.5 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-foreground rounded-lg text-xs font-medium transition-colors disabled:opacity-50">
               {analyzing ? <FaSpinner className="animate-spin" /> : <FaCheck />} Submit
             </button>
           </div>
@@ -167,12 +167,12 @@ const CodingEditor = () => {
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
           {/* LEFT PANEL — Problem & Feedback */}
-          <div className="w-[42%] flex flex-col border-r border-slate-800 overflow-hidden">
+          <div className="w-[42%] flex flex-col border-r border-border overflow-hidden">
             {/* Tab Switcher */}
-            <div className="flex-shrink-0 flex border-b border-slate-800 bg-slate-900">
+            <div className="flex-shrink-0 flex border-b border-border bg-card">
               {['description', 'hints', 'analysis'].map(t => (
                 <button key={t} onClick={() => setTab(t)}
-                  className={`px-5 py-3 text-xs font-semibold capitalize transition-colors border-b-2 ${tab === t ? 'text-indigo-400 border-indigo-400 bg-slate-800/50' : 'text-slate-400 border-transparent hover:text-white'}`}>
+                  className={`px-5 py-3 text-xs font-semibold capitalize transition-colors border-b-2 ${tab === t ? 'text-indigo-400 border-indigo-400 bg-card/50' : 'text-muted-foreground border-transparent hover:text-foreground'}`}>
                   {t === 'analysis' ? '🤖 AI Analysis' : t === 'hints' ? '💡 Hints' : '📋 Problem'}
                 </button>
               ))}
@@ -186,7 +186,7 @@ const CodingEditor = () => {
                     {/* Company Tags */}
                     {question.companies?.length > 0 && (
                       <div>
-                        <div className="flex items-center gap-2 text-xs text-slate-400 mb-2"><FaBuilding /> Asked by</div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2"><FaBuilding /> Asked by</div>
                         <div className="flex flex-wrap gap-2">
                           {question.companies.map(c => (
                             <span key={c} className="text-xs bg-blue-500/10 border border-blue-500/20 text-blue-300 px-2.5 py-1 rounded-full">{c}</span>
@@ -197,21 +197,21 @@ const CodingEditor = () => {
 
                     {/* Description */}
                     <div>
-                      <h3 className="text-sm font-bold text-white mb-3">Problem Statement</h3>
-                      <div className="text-slate-300 text-sm whitespace-pre-wrap leading-relaxed">{question.description}</div>
+                      <h3 className="text-sm font-bold text-foreground mb-3">Problem Statement</h3>
+                      <div className="text-muted-foreground text-sm whitespace-pre-wrap leading-relaxed">{question.description}</div>
                     </div>
 
                     {/* Examples */}
                     <div>
-                      <h3 className="text-sm font-bold text-white mb-3">Examples</h3>
+                      <h3 className="text-sm font-bold text-foreground mb-3">Examples</h3>
                       <div className="space-y-3">
                         {question.examples.map((ex, idx) => (
-                          <div key={idx} className="bg-slate-900 border border-slate-800 rounded-xl p-4 font-mono text-xs">
-                            <div className="text-slate-400 mb-1">Input:</div>
+                          <div key={idx} className="bg-card border border-border rounded-xl p-4 font-mono text-xs">
+                            <div className="text-muted-foreground mb-1">Input:</div>
                             <div className="text-green-400 mb-2">{ex.input}</div>
-                            <div className="text-slate-400 mb-1">Output:</div>
+                            <div className="text-muted-foreground mb-1">Output:</div>
                             <div className="text-indigo-300">{ex.output}</div>
-                            {ex.explanation && <div className="text-slate-500 mt-2 text-[11px]">Explanation: {ex.explanation}</div>}
+                            {ex.explanation && <div className="text-muted-foreground mt-2 text-[11px]">Explanation: {ex.explanation}</div>}
                           </div>
                         ))}
                       </div>
@@ -220,10 +220,10 @@ const CodingEditor = () => {
                     {/* Constraints */}
                     {question.constraints?.length > 0 && (
                       <div>
-                        <h3 className="text-sm font-bold text-white mb-3">Constraints</h3>
+                        <h3 className="text-sm font-bold text-foreground mb-3">Constraints</h3>
                         <ul className="space-y-1">
                           {question.constraints.map((c, i) => (
-                            <li key={i} className="text-slate-300 text-xs font-mono flex gap-2">
+                            <li key={i} className="text-muted-foreground text-xs font-mono flex gap-2">
                               <span className="text-indigo-400">•</span>{c}
                             </li>
                           ))}
@@ -233,12 +233,12 @@ const CodingEditor = () => {
 
                     {/* Expected Complexity */}
                     <div className="flex gap-4">
-                      <div className="flex-1 bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
-                        <div className="text-xs text-slate-400 mb-1">Expected Time</div>
+                      <div className="flex-1 bg-card border border-border rounded-xl p-4 text-center">
+                        <div className="text-xs text-muted-foreground mb-1">Expected Time</div>
                         <div className="font-mono text-indigo-300 text-sm">{question.expectedComplexity?.time}</div>
                       </div>
-                      <div className="flex-1 bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
-                        <div className="text-xs text-slate-400 mb-1">Expected Space</div>
+                      <div className="flex-1 bg-card border border-border rounded-xl p-4 text-center">
+                        <div className="text-xs text-muted-foreground mb-1">Expected Space</div>
                         <div className="font-mono text-purple-300 text-sm">{question.expectedComplexity?.space}</div>
                       </div>
                     </div>
@@ -246,10 +246,10 @@ const CodingEditor = () => {
                     {/* Topic Tags */}
                     {question.topicTags && (
                       <div>
-                        <div className="flex items-center gap-2 text-xs text-slate-400 mb-2"><FaTag /> Topics</div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2"><FaTag /> Topics</div>
                         <div className="flex flex-wrap gap-1">
                           {question.topicTags.map(t => (
-                            <span key={t} className="text-xs bg-slate-800 text-slate-400 border border-slate-700 px-2 py-0.5 rounded-full">{t}</span>
+                            <span key={t} className="text-xs bg-card text-muted-foreground border border-slate-700 px-2 py-0.5 rounded-full">{t}</span>
                           ))}
                         </div>
                       </div>
@@ -257,13 +257,13 @@ const CodingEditor = () => {
 
                     {/* Similar Questions */}
                     {similarQuestions.length > 0 && (
-                      <div className="pt-6 border-t border-slate-800">
-                        <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2"><FaCode /> Practice Similar Questions</h3>
+                      <div className="pt-6 border-t border-border">
+                        <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2"><FaCode /> Practice Similar Questions</h3>
                         <div className="space-y-2">
                           {similarQuestions.map(sq => (
                             <Link key={sq.id} to={`/coding/problem/${sq.id}`} 
-                              className="flex items-center justify-between p-3 bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800 transition-colors group">
-                              <span className="text-sm text-slate-300 group-hover:text-indigo-400 transition-colors">{sq.title}</span>
+                              className="flex items-center justify-between p-3 bg-card border border-border rounded-xl hover:bg-card transition-colors group">
+                              <span className="text-sm text-muted-foreground group-hover:text-indigo-400 transition-colors">{sq.title}</span>
                               <span className={`text-[10px] px-2 py-0.5 rounded-full border ${diffColor[sq.difficulty]}`}>{sq.difficulty}</span>
                             </Link>
                           ))}
@@ -277,19 +277,19 @@ const CodingEditor = () => {
                   <motion.div key="hints" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-6">
                     <div className="flex items-center gap-2 mb-4">
                       <FaLightbulb className="text-amber-400" />
-                      <h3 className="text-white font-bold">Hints</h3>
+                      <h3 className="text-foreground font-bold">Hints</h3>
                     </div>
                     <div className="space-y-3">
                       {question.hints?.map((hint, i) => (
                         <div key={i} className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4">
                           <span className="text-amber-400 font-bold text-xs block mb-1">Hint {i + 1}</span>
-                          <p className="text-slate-300 text-sm">{hint}</p>
+                          <p className="text-muted-foreground text-sm">{hint}</p>
                         </div>
                       ))}
                     </div>
-                    <div className="mt-6 p-4 bg-slate-900 border border-slate-800 rounded-xl">
-                      <h4 className="text-white font-semibold text-sm mb-2">💡 AI-Generated Approach</h4>
-                      <p className="text-slate-400 text-xs">Click "AI Hint" in the top bar to get a personalized hint from AI based on your current code.</p>
+                    <div className="mt-6 p-4 bg-card border border-border rounded-xl">
+                      <h4 className="text-foreground font-semibold text-sm mb-2">💡 AI-Generated Approach</h4>
+                      <p className="text-muted-foreground text-xs">Click "AI Hint" in the top bar to get a personalized hint from AI based on your current code.</p>
                     </div>
                   </motion.div>
                 )}
@@ -298,7 +298,7 @@ const CodingEditor = () => {
                   <motion.div key="analysis" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-6">
                     <div className="flex items-center gap-2 mb-4">
                       <FaRobot className="text-indigo-400 text-lg" />
-                      <h3 className="text-white font-bold">AI Analysis</h3>
+                      <h3 className="text-foreground font-bold">AI Analysis</h3>
                     </div>
 
                     {analyzing && (
@@ -313,7 +313,7 @@ const CodingEditor = () => {
                     )}
 
                     {!analyzing && !feedback && (
-                      <div className="text-center py-16 text-slate-500 text-sm">
+                      <div className="text-center py-16 text-muted-foreground text-sm">
                         <div className="text-5xl mb-4">🤖</div>
                         <p>Run or Submit your code to get AI feedback.</p>
                       </div>
@@ -325,7 +325,7 @@ const CodingEditor = () => {
                         {feedback.type === 'hint' && (
                           <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-5">
                             <div className="flex items-center gap-2 text-amber-400 font-bold mb-3"><FaLightbulb /> AI Hint</div>
-                            <p className="text-slate-300 text-sm leading-relaxed">{feedback.feedback}</p>
+                            <p className="text-muted-foreground text-sm leading-relaxed">{feedback.feedback}</p>
                           </div>
                         )}
 
@@ -334,26 +334,26 @@ const CodingEditor = () => {
                           <div className={`rounded-xl p-5 border ${feedback.score >= 80 ? 'bg-green-500/5 border-green-500/20' : 'bg-red-500/5 border-red-500/20'}`}>
                             <div className="flex items-center justify-between mb-4">
                               <div className="flex flex-col">
-                                <span className="font-bold text-white flex items-center gap-2 text-xl mb-1">
+                                <span className="font-bold text-foreground flex items-center gap-2 text-xl mb-1">
                                   {feedback.score >= 80 ? <FaCheckCircle className="text-green-400" /> : <FaTimesCircle className="text-red-400" />}
                                   {feedback.score >= 80 ? <span className="text-green-400">Accepted</span> : <span className="text-red-400">Wrong Answer</span>}
                                 </span>
-                                <span className="text-slate-400 text-sm flex gap-2">
+                                <span className="text-muted-foreground text-sm flex gap-2">
                                   <span>Testcases Passed: <strong>{feedback.testCasesPassed || (feedback.score >= 80 ? "15/15" : "3/15")}</strong></span>
                                 </span>
                               </div>
                               <div className="flex gap-4 text-center">
-                                <div className="bg-slate-900/50 rounded-lg p-2 min-w-[80px]">
-                                  <div className="text-xs text-slate-500 mb-1">Runtime</div>
-                                  <div className="font-mono text-sm font-bold text-white">{feedback.runtime || "45 ms"}</div>
+                                <div className="bg-card/50 rounded-lg p-2 min-w-[80px]">
+                                  <div className="text-xs text-muted-foreground mb-1">Runtime</div>
+                                  <div className="font-mono text-sm font-bold text-foreground">{feedback.runtime || "45 ms"}</div>
                                 </div>
-                                <div className="bg-slate-900/50 rounded-lg p-2 min-w-[80px]">
-                                  <div className="text-xs text-slate-500 mb-1">Memory</div>
-                                  <div className="font-mono text-sm font-bold text-white">{feedback.memoryUsed || "41.2 MB"}</div>
+                                <div className="bg-card/50 rounded-lg p-2 min-w-[80px]">
+                                  <div className="text-xs text-muted-foreground mb-1">Memory</div>
+                                  <div className="font-mono text-sm font-bold text-foreground">{feedback.memoryUsed || "41.2 MB"}</div>
                                 </div>
                               </div>
                             </div>
-                            <p className="text-slate-300 text-sm leading-relaxed border-t border-white/5 pt-3 mt-3">{feedback.feedback}</p>
+                            <p className="text-muted-foreground text-sm leading-relaxed border-t border-border pt-3 mt-3">{feedback.feedback}</p>
 
                             {/* Simulation Continue button */}
                             {isSim && (
@@ -363,7 +363,7 @@ const CodingEditor = () => {
                                 onClick={() => navigate(`/companies/${companyName}?role=${encodeURIComponent(role)}&simComplete=true&round=${roundIndex}&score=${feedback.score}`)}
                                 className={`w-full mt-4 font-bold py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 text-sm ${
                                   feedback.score >= 60 
-                                    ? 'bg-emerald-650 hover:bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_20px_rgba(16,185,129,0.5)]'
+                                    ? 'bg-emerald-650 hover:bg-emerald-600 text-foreground shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_20px_rgba(16,185,129,0.5)]'
                                     : 'bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30'
                                 }`}
                               >
@@ -383,21 +383,21 @@ const CodingEditor = () => {
 
                         {/* Simulated Output */}
                         {feedback.simulatedOutput && (
-                          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                            <div className="text-xs text-slate-400 mb-2 font-semibold uppercase tracking-wider">Console Output</div>
-                            <pre className="font-mono text-sm text-slate-300 whitespace-pre-wrap">{feedback.simulatedOutput}</pre>
+                          <div className="bg-card border border-border rounded-xl p-4">
+                            <div className="text-xs text-muted-foreground mb-2 font-semibold uppercase tracking-wider">Console Output</div>
+                            <pre className="font-mono text-sm text-muted-foreground whitespace-pre-wrap">{feedback.simulatedOutput}</pre>
                           </div>
                         )}
 
                         {/* Complexity */}
                         {(feedback.timeComplexity || feedback.spaceComplexity) && (
                           <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
-                              <div className="text-xs text-slate-400 mb-1">Time Complexity</div>
+                            <div className="bg-card border border-border rounded-xl p-4 text-center">
+                              <div className="text-xs text-muted-foreground mb-1">Time Complexity</div>
                               <div className="font-mono text-indigo-300 font-bold">{feedback.timeComplexity}</div>
                             </div>
-                            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
-                              <div className="text-xs text-slate-400 mb-1">Space Complexity</div>
+                            <div className="bg-card border border-border rounded-xl p-4 text-center">
+                              <div className="text-xs text-muted-foreground mb-1">Space Complexity</div>
                               <div className="font-mono text-purple-300 font-bold">{feedback.spaceComplexity}</div>
                             </div>
                           </div>
@@ -409,16 +409,16 @@ const CodingEditor = () => {
                             <div className="text-blue-400 font-bold text-sm mb-3">📋 Professional Code Review</div>
                             <div className="space-y-3">
                               {feedback.codeReview.codeQuality && (
-                                <div><span className="text-xs text-slate-500 block uppercase tracking-wider mb-0.5">Code Quality</span><div className="text-sm text-slate-300">{feedback.codeReview.codeQuality}</div></div>
+                                <div><span className="text-xs text-muted-foreground block uppercase tracking-wider mb-0.5">Code Quality</span><div className="text-sm text-muted-foreground">{feedback.codeReview.codeQuality}</div></div>
                               )}
                               {feedback.codeReview.readability && (
-                                <div><span className="text-xs text-slate-500 block uppercase tracking-wider mb-0.5">Readability</span><div className="text-sm text-slate-300">{feedback.codeReview.readability}</div></div>
+                                <div><span className="text-xs text-muted-foreground block uppercase tracking-wider mb-0.5">Readability</span><div className="text-sm text-muted-foreground">{feedback.codeReview.readability}</div></div>
                               )}
                               {feedback.codeReview.variableNaming && (
-                                <div><span className="text-xs text-slate-500 block uppercase tracking-wider mb-0.5">Variable Naming</span><div className="text-sm text-slate-300">{feedback.codeReview.variableNaming}</div></div>
+                                <div><span className="text-xs text-muted-foreground block uppercase tracking-wider mb-0.5">Variable Naming</span><div className="text-sm text-muted-foreground">{feedback.codeReview.variableNaming}</div></div>
                               )}
                               {feedback.codeReview.edgeCases && (
-                                <div><span className="text-xs text-slate-500 block uppercase tracking-wider mb-0.5">Edge Case Handling</span><div className="text-sm text-slate-300">{feedback.codeReview.edgeCases}</div></div>
+                                <div><span className="text-xs text-muted-foreground block uppercase tracking-wider mb-0.5">Edge Case Handling</span><div className="text-sm text-muted-foreground">{feedback.codeReview.edgeCases}</div></div>
                               )}
                             </div>
                           </div>
@@ -430,7 +430,7 @@ const CodingEditor = () => {
                             <div className="text-red-400 font-bold text-sm mb-3">⚠️ Issues Found</div>
                             <ul className="space-y-2">
                               {feedback.mistakes.map((m, i) => (
-                                <li key={i} className="text-slate-300 text-sm flex gap-2"><span className="text-red-400 flex-shrink-0">•</span>{m}</li>
+                                <li key={i} className="text-muted-foreground text-sm flex gap-2"><span className="text-red-400 flex-shrink-0">•</span>{m}</li>
                               ))}
                             </ul>
                           </div>
@@ -442,7 +442,7 @@ const CodingEditor = () => {
                             <div className="text-indigo-400 font-bold text-sm mb-3">🚀 Optimization Suggestions</div>
                             <ul className="space-y-2">
                               {feedback.optimizationTips.map((t, i) => (
-                                <li key={i} className="text-slate-300 text-sm flex gap-2"><span className="text-indigo-400 flex-shrink-0">•</span>{t}</li>
+                                <li key={i} className="text-muted-foreground text-sm flex gap-2"><span className="text-indigo-400 flex-shrink-0">•</span>{t}</li>
                               ))}
                             </ul>
                           </div>
@@ -452,10 +452,10 @@ const CodingEditor = () => {
                         {feedback.followUpQuestions?.length > 0 && (
                           <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4">
                             <div className="text-emerald-400 font-bold text-sm mb-3 flex items-center gap-2"><FaQuestionCircle /> Interview Follow-up Questions</div>
-                            <p className="text-xs text-slate-400 mb-3">How would you answer these if the interviewer asked?</p>
+                            <p className="text-xs text-muted-foreground mb-3">How would you answer these if the interviewer asked?</p>
                             <ul className="space-y-3">
                               {feedback.followUpQuestions.map((q, i) => (
-                                <li key={i} className="text-slate-300 text-sm p-3 bg-slate-900 border border-slate-800 rounded-lg">{q}</li>
+                                <li key={i} className="text-muted-foreground text-sm p-3 bg-card border border-border rounded-lg">{q}</li>
                               ))}
                             </ul>
                           </div>
@@ -469,7 +469,7 @@ const CodingEditor = () => {
           </div>
 
           {/* RIGHT PANEL — Monaco Editor */}
-          <div className="flex-1 flex flex-col bg-[#1e1e1e] overflow-hidden">
+          <div className="flex-1 flex flex-col bg-background overflow-hidden">
             <div className="flex-1">
               <Editor
                 height="100%"
@@ -492,7 +492,7 @@ const CodingEditor = () => {
             </div>
 
             {/* Bottom Status Bar */}
-            <div className="flex-shrink-0 h-7 bg-indigo-600 flex items-center px-4 gap-4 text-xs text-white/80">
+            <div className="flex-shrink-0 h-7 bg-indigo-600 flex items-center px-4 gap-4 text-xs text-muted-foreground">
               <span>📝 {language.toUpperCase()}</span>
               <span>•</span>
               <span>InterviewX AI Coding Editor</span>

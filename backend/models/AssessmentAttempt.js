@@ -56,8 +56,13 @@ const assessmentAttemptSchema = new mongoose.Schema({
     selectedOption: String,
     correctOption: String,
     isCorrect: Boolean,
-    isSkipped: Boolean
-  }]
+    isSkipped: Boolean,
+    timeSpent: Number,
+    difficulty: String,
+    subCategory: String,
+    explanation: String
+  }],
+  aiFeedback: String
 }, {
   timestamps: true,
 });

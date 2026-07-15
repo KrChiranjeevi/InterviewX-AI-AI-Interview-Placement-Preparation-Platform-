@@ -77,8 +77,7 @@ const Login = () => {
       {/* ── Left Panel ── */}
       <div
         ref={leftRef}
-        className="hidden lg:flex flex-1 flex-col justify-center px-14 relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, rgba(10,10,40,0.95) 0%, rgba(30,27,75,0.9) 100%)' }}
+        className="auth-left-panel hidden lg:flex flex-1 flex-col justify-center px-14 relative overflow-hidden"
       >
         {/* Grid overlay */}
         <div className="absolute inset-0 grid-pattern opacity-40" />
@@ -92,7 +91,7 @@ const Login = () => {
           {/* Logo */}
           <Link to="/" className="inline-flex items-center gap-2 mb-12">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
-              <FaBolt className="text-white" />
+              <FaBolt className="text-foreground" />
             </div>
             <span className="text-xl font-bold gradient-text" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>InterviewX</span>
           </Link>
@@ -102,21 +101,21 @@ const Login = () => {
             <span>AI-Powered Practice Platform</span>
           </div>
 
-          <h1 className="text-4xl xl:text-5xl font-black text-white mb-5 leading-tight" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
+          <h1 className="text-4xl xl:text-5xl font-black text-foreground mb-5 leading-tight" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
             Welcome Back to Your{' '}
             <span className="shimmer-text">Interview Journey</span>
           </h1>
-          <p className="text-slate-400 text-base mb-10 leading-relaxed">
+          <p className="text-muted-foreground text-base mb-10 leading-relaxed">
             Continue your preparation and land that dream offer. Every practice session brings you closer.
           </p>
 
           <div className="space-y-4">
             {features.map((f, i) => (
-              <div key={i} className="flex items-center gap-4 glass-card rounded-xl px-4 py-3 border border-white/5 hover:border-indigo-500/30 transition-all">
+              <div key={i} className="flex items-center gap-4 bg-card border border-border shadow-sm rounded-xl px-4 py-3 border border-border hover:border-indigo-500/30 transition-all">
                 <span className="text-2xl">{f.icon}</span>
                 <div>
-                  <p className="text-white text-sm font-semibold">{f.title}</p>
-                  <p className="text-slate-500 text-xs">{f.desc}</p>
+                  <p className="text-foreground text-sm font-semibold">{f.title}</p>
+                  <p className="text-muted-foreground text-xs">{f.desc}</p>
                 </div>
               </div>
             ))}
@@ -125,29 +124,28 @@ const Login = () => {
       </div>
 
       {/* ── Right Panel ── */}
-      <div className="flex-1 h-full relative overflow-hidden" style={{ background: 'rgba(5,5,20,0.97)' }}>
+      <div className="auth-right-panel flex-1 h-full relative overflow-hidden">
         {/* Subtle glow */}
-        <div className="absolute inset-0 pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(99,102,241,0.06) 0%, transparent 70%)' }} />
+        <div className="absolute inset-0 pointer-events-none auth-radial-glow" />
 
         <div className="min-h-full w-full flex items-center justify-center p-4 lg:p-8">
           <div ref={rightRef} className="w-full max-w-md relative z-10">
           {/* Mobile logo */}
           <Link to="/" className="lg:hidden inline-flex items-center gap-2 mb-8">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-              <FaBolt className="text-white text-sm" />
+              <FaBolt className="text-foreground text-sm" />
             </div>
             <span className="text-lg font-bold gradient-text" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>InterviewX</span>
           </Link>
 
-          <div className="glass-card-bright rounded-3xl p-6 border border-indigo-500/15"
+          <div className="bg-card border border-border shadow-md rounded-3xl p-6 border border-indigo-500/15"
             style={{ boxShadow: '0 0 60px rgba(99,102,241,0.1), inset 0 1px 0 rgba(255,255,255,0.05)' }}>
 
             <div className="mb-8">
-              <h2 className="text-2xl font-black text-white mb-1" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
+              <h2 className="text-2xl font-black text-foreground mb-1" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
                 Sign In 👋
               </h2>
-              <p className="text-slate-400 text-sm">Enter your credentials to continue</p>
+              <p className="text-muted-foreground text-sm">Enter your credentials to continue</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -158,9 +156,9 @@ const Login = () => {
               )}
               {/* Email */}
               <div className="login-field opacity-0">
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Email Address</label>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Email Address</label>
                 <div className="relative">
-                  <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm" />
+                  <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm" />
                   <input
                     type="email"
                     className="input-dark w-full rounded-xl pl-11 pr-4 py-3 text-sm"
@@ -174,9 +172,9 @@ const Login = () => {
 
               {/* Password */}
               <div className="login-field opacity-0">
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Password</label>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Password</label>
                 <div className="relative">
-                  <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm" />
+                  <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm" />
                   <input
                     type={showPass ? 'text' : 'password'}
                     className="input-dark w-full rounded-xl pl-11 pr-12 py-3 text-sm"
@@ -186,7 +184,7 @@ const Login = () => {
                     required
                   />
                   <button type="button" onClick={() => setShowPass(!showPass)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors">
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground transition-colors">
                     {showPass ? <FaEyeSlash /> : <FaEye />}
                   </button>
                 </div>
@@ -194,7 +192,7 @@ const Login = () => {
 
               {/* Remember + forgot */}
               <div className="login-field opacity-0 flex items-center justify-between text-xs">
-                <label className="flex items-center gap-2 text-slate-400 cursor-pointer">
+                <label className="flex items-center gap-2 text-muted-foreground cursor-pointer">
                   <input type="checkbox" className="w-3.5 h-3.5 rounded border-slate-600 accent-indigo-500" />
                   Remember me
                 </label>
@@ -204,10 +202,10 @@ const Login = () => {
               {/* Submit */}
               <div className="login-field opacity-0 pt-1">
                 <button type="submit" disabled={loading}
-                  className="group w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white btn-primary glow-btn disabled:opacity-60 disabled:cursor-not-allowed">
+                  className="group w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-foreground btn-primary glow-btn disabled:opacity-60 disabled:cursor-not-allowed">
                   {loading ? (
                     <span className="flex items-center gap-2">
-                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span className="w-4 h-4 border-2 border-border border-t-white rounded-full animate-spin" />
                       Signing in...
                     </span>
                   ) : (
@@ -223,9 +221,9 @@ const Login = () => {
             {/* ── Google Sign-In Divider ── */}
             <div className="mt-4">
               <div className="relative flex items-center justify-center mb-3">
-                <div className="flex-1 border-t border-white/8" />
+                <div className="flex-1 border-t border-border" />
                 <span className="mx-3 text-xs text-slate-600 font-medium uppercase tracking-wider">or</span>
-                <div className="flex-1 border-t border-white/8" />
+                <div className="flex-1 border-t border-border" />
               </div>
               <GoogleAuthButton label="Continue with Google" />
               <p className="mt-3 text-center text-slate-600 text-xs">
@@ -233,8 +231,8 @@ const Login = () => {
               </p>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-white/5 text-center">
-              <p className="text-slate-500 text-sm">
+            <div className="mt-4 pt-4 border-t border-border text-center">
+              <p className="text-muted-foreground text-sm">
                 Don't have an account?{' '}
                 <Link to="/register" className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors">
                   Create one free →

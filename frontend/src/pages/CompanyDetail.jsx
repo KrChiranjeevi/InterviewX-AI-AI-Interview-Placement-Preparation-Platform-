@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import Sidebar from '../components/layout/Sidebar';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FaArrowLeft, FaPlay, FaCheckCircle, FaLock, 
@@ -415,7 +415,7 @@ const CompanyDetail = () => {
 
   return (
     <div className="flex bg-slate-950 text-slate-200 min-h-screen font-sans">
-      <Sidebar />
+      
       
       <div className="flex-1 ml-64 p-8 overflow-y-auto h-screen">
         <motion.div 

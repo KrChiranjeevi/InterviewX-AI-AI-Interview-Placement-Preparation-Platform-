@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import Sidebar from '../components/layout/Sidebar';
-import Navbar from '../components/layout/Navbar';
+
+
 import { motion } from 'framer-motion';
 import { FaArrowLeft, FaSearch, FaCheckCircle, FaCircle, FaBuilding, FaFilter } from 'react-icons/fa';
 import { CATEGORIES, getQuestionsByCategory } from '../data/questionBank';
@@ -73,33 +73,33 @@ const CodingTopicPage = () => {
   const solvedCount = questions.filter(q => progress[q.id]).length;
 
   if (!cat) return (
-    <div className="flex h-screen bg-slate-950 items-center justify-center text-white">
+    <div className="flex h-screen bg-background items-center justify-center text-foreground">
       Category not found. <Link to="/coding" className="text-indigo-400 ml-2">Go back</Link>
     </div>
   );
 
   return (
-    <div className="flex h-screen bg-slate-950 overflow-hidden">
-      <Sidebar />
+    <div className="flex h-screen bg-background overflow-hidden">
+      
       <div className="flex-1 ml-64 flex flex-col h-screen overflow-hidden">
-        <Navbar title={cat.name} subtitle={`${questions.length} questions • ${solvedCount} solved`} />
+        
 
         <main className="flex-1 overflow-y-auto p-8">
           {/* Breadcrumb */}
-          <button onClick={() => navigate('/coding')} className="flex items-center gap-2 text-slate-400 hover:text-white text-sm mb-6 transition-colors">
+          <button onClick={() => navigate('/coding')} className="flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm mb-6 transition-colors">
             <FaArrowLeft /> Back to Practice Hub
           </button>
 
           {/* Category Header */}
-          <div className={`glass-card rounded-2xl p-6 mb-8 border ${cat.borderColor} relative overflow-hidden`}>
+          <div className={`bg-card border border-border shadow-sm rounded-2xl p-6 mb-8 border ${cat.borderColor} relative overflow-hidden`}>
             <div className={`absolute -right-8 -top-8 text-9xl opacity-10`}>{cat.icon}</div>
             <div className="relative z-10 flex flex-col md:flex-row gap-6">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
                   <span className="text-4xl">{cat.icon}</span>
-                  <h1 className="text-2xl font-black text-white">{cat.name}</h1>
+                  <h1 className="text-2xl font-black text-foreground">{cat.name}</h1>
                 </div>
-                <p className="text-slate-400 mb-4">{cat.description}</p>
+                <p className="text-muted-foreground mb-4">{cat.description}</p>
                 <div className="flex gap-4 text-sm">
                   <span className="text-green-400">Easy: {questions.filter(q => q.difficulty === 'Easy').length}</span>
                   <span className="text-amber-400">Medium: {questions.filter(q => q.difficulty === 'Medium').length}</span>
@@ -107,9 +107,9 @@ const CodingTopicPage = () => {
                 </div>
               </div>
               <div className="flex flex-col items-center justify-center">
-                <div className="text-4xl font-black text-white">{solvedCount}/{questions.length}</div>
-                <div className="text-slate-400 text-sm">Solved</div>
-                <div className="w-32 h-2 bg-slate-800 rounded-full mt-2 overflow-hidden">
+                <div className="text-4xl font-black text-foreground">{solvedCount}/{questions.length}</div>
+                <div className="text-muted-foreground text-sm">Solved</div>
+                <div className="w-32 h-2 bg-card rounded-full mt-2 overflow-hidden">
                   <div className={`h-full bg-gradient-to-r ${cat.color} rounded-full`}
                     style={{ width: `${questions.length ? (solvedCount / questions.length * 100) : 0}%` }} />
                 </div>
@@ -125,10 +125,10 @@ const CodingTopicPage = () => {
                 <span className="text-[10.5px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-md mb-2 inline-block">
                   🏢 {company} Recruitment Simulation Mode
                 </span>
-                <h3 className="text-xl font-bold text-white mb-1">Round {parseInt(roundIndex, 10) + 1}: {roundName || cat.name}</h3>
-                <p className="text-xs text-slate-400">Target Role: <strong className="text-slate-300">{role}</strong> | Target Difficulty: <strong className="text-slate-300">{difficulty}</strong></p>
+                <h3 className="text-xl font-bold text-foreground mb-1">Round {parseInt(roundIndex, 10) + 1}: {roundName || cat.name}</h3>
+                <p className="text-xs text-muted-foreground">Target Role: <strong className="text-muted-foreground">{role}</strong> | Target Difficulty: <strong className="text-muted-foreground">{difficulty}</strong></p>
               </div>
-              <div className="text-xs text-slate-400 max-w-sm border-l border-white/5 pl-4 py-1 leading-relaxed">
+              <div className="text-xs text-muted-foreground max-w-sm border-l border-border pl-4 py-1 leading-relaxed">
                 Choose any question below. Submitting a solution with score <strong className="text-green-400 font-bold">&gt;= 60%</strong> will verify and pass this round, unlocking the next step.
               </div>
             </div>
@@ -138,13 +138,13 @@ const CodingTopicPage = () => {
               {/* Filters Row 1: Search & Difficulty */}
               <div className="flex flex-col md:flex-row gap-4 mb-4">
                 <div className="relative flex-1">
-                  <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
+                  <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm" />
                   <input
                     type="text"
                     placeholder="Search by title, topic, or company..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full bg-card border border-slate-700 text-foreground rounded-xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
                 <div className="flex gap-2">
@@ -152,8 +152,8 @@ const CodingTopicPage = () => {
                     <button key={d} onClick={() => setDiffFilter(d)}
                       className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                         diffFilter === d
-                          ? d === 'Easy' ? 'bg-green-600 text-white' : d === 'Medium' ? 'bg-amber-600 text-white' : d === 'Hard' ? 'bg-red-600 text-white' : 'bg-indigo-600 text-white'
-                          : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                          ? d === 'Easy' ? 'bg-green-600 text-foreground' : d === 'Medium' ? 'bg-amber-600 text-foreground' : d === 'Hard' ? 'bg-red-600 text-foreground' : 'bg-indigo-600 text-foreground'
+                          : 'bg-card text-muted-foreground hover:bg-slate-700'
                       }`}>{d}</button>
                   ))}
                 </div>
@@ -161,13 +161,13 @@ const CodingTopicPage = () => {
 
               {/* Filters Row 2: Company Filter */}
               <div className="flex flex-wrap items-center gap-2 mb-6">
-                <div className="text-xs text-slate-500 flex items-center gap-1.5 mr-2"><FaBuilding /> Companies:</div>
+                <div className="text-xs text-muted-foreground flex items-center gap-1.5 mr-2"><FaBuilding /> Companies:</div>
                 {uniqueCompanies.slice(0, 10).map(c => (
                   <button key={c} onClick={() => setCompanyFilter(c)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
                       companyFilter === c 
-                      ? 'bg-blue-600 border-blue-600 text-white' 
-                      : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-blue-500 hover:text-white'
+                      ? 'bg-blue-600 border-blue-600 text-foreground' 
+                      : 'bg-card border-slate-700 text-muted-foreground hover:border-blue-500 hover:text-foreground'
                     }`}>
                     {c}
                   </button>
@@ -178,13 +178,13 @@ const CodingTopicPage = () => {
                     onChange={(e) => setCompanyFilter(e.target.value)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border focus:outline-none ${
                       !uniqueCompanies.slice(0, 10).includes(companyFilter) && companyFilter !== 'All Companies'
-                      ? 'bg-blue-600 border-blue-600 text-white' 
-                      : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-blue-500 hover:text-white'
+                      ? 'bg-blue-600 border-blue-600 text-foreground' 
+                      : 'bg-card border-slate-700 text-muted-foreground hover:border-blue-500 hover:text-foreground'
                     }`}
                   >
                     <option value="" disabled>More Companies...</option>
                     {uniqueCompanies.slice(10).map(c => (
-                      <option key={c} value={c} className="bg-slate-800 text-white">{c}</option>
+                      <option key={c} value={c} className="bg-card text-foreground">{c}</option>
                     ))}
                   </select>
                 )}
@@ -193,10 +193,10 @@ const CodingTopicPage = () => {
               {/* Topic Filter Pills */}
               {uniqueTopics.length > 2 && (
                 <div className="flex flex-wrap gap-2 mb-6">
-                  <FaFilter className="text-slate-500 text-xs mt-1.5" />
+                  <FaFilter className="text-muted-foreground text-xs mt-1.5" />
                   {uniqueTopics.map(t => (
                     <button key={t} onClick={() => setTopicFilter(t)}
-                      className={`px-3 py-1 rounded-full text-xs font-medium transition-all border ${topicFilter === t ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-indigo-500 hover:text-white'}`}>
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-all border ${topicFilter === t ? 'bg-indigo-600 border-indigo-600 text-foreground' : 'bg-card border-slate-700 text-muted-foreground hover:border-indigo-500 hover:text-foreground'}`}>
                       {t}
                     </button>
                   ))}
@@ -206,13 +206,13 @@ const CodingTopicPage = () => {
           )}
 
           {/* Question Count */}
-          <div className="text-slate-400 text-sm mb-4">Showing {filtered.length} of {questions.length} questions</div>
+          <div className="text-muted-foreground text-sm mb-4">Showing {filtered.length} of {questions.length} questions</div>
 
           {/* Questions Table */}
-          <div className="glass-card rounded-2xl overflow-hidden">
+          <div className="bg-card border border-border shadow-sm rounded-2xl overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-slate-800 text-xs text-slate-400 uppercase tracking-wider">
+                <tr className="border-b border-border text-xs text-muted-foreground uppercase tracking-wider">
                   <th className="text-left p-4 w-8">#</th>
                   <th className="text-left p-4">Status</th>
                   <th className="text-left p-4 flex-1">Title</th>
@@ -231,20 +231,20 @@ const CodingTopicPage = () => {
                   return (
                     <motion.tr key={q.id}
                       initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.02 }}
-                      className={`border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors ${solved ? 'bg-green-500/3' : ''}`}>
-                      <td className="p-4 text-slate-500 text-sm">{i + 1}</td>
+                      className={`border-b border-border/50 hover:bg-card/30 transition-colors ${solved ? 'bg-green-500/3' : ''}`}>
+                      <td className="p-4 text-muted-foreground text-sm">{i + 1}</td>
                       <td className="p-4">
                         {solved
                           ? <FaCheckCircle className="text-green-500 text-lg" />
                           : <FaCircle className="text-slate-700 text-lg" />}
                       </td>
                       <td className="p-4">
-                        <Link to={qLink} className="text-white hover:text-indigo-400 font-medium transition-colors">
+                        <Link to={qLink} className="text-foreground hover:text-indigo-400 font-medium transition-colors">
                           {q.title}
                         </Link>
                       </td>
                       <td className="p-4">
-                        <span className="text-xs bg-slate-800 text-slate-400 border border-slate-700 px-2 py-1 rounded-full">{q.topic}</span>
+                        <span className="text-xs bg-card text-muted-foreground border border-slate-700 px-2 py-1 rounded-full">{q.topic}</span>
                       </td>
                       <td className="p-4">
                         <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${difficultyColor[q.difficulty]}`}>
@@ -254,16 +254,16 @@ const CodingTopicPage = () => {
                       <td className="p-4">
                         <div className="flex gap-1 flex-wrap">
                           {q.companies.slice(0, 2).map(c => (
-                            <span key={c} className="text-[10px] bg-slate-800 text-slate-400 border border-slate-700 px-2 py-0.5 rounded flex items-center gap-1">
+                            <span key={c} className="text-[10px] bg-card text-muted-foreground border border-slate-700 px-2 py-0.5 rounded flex items-center gap-1">
                               <FaBuilding className="text-[8px]" />{c}
                             </span>
                           ))}
-                          {q.companies.length > 2 && <span className="text-[10px] text-slate-500">+{q.companies.length - 2}</span>}
+                          {q.companies.length > 2 && <span className="text-[10px] text-muted-foreground">+{q.companies.length - 2}</span>}
                         </div>
                       </td>
                       <td className="p-4">
                         <Link to={qLink}
-                          className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg transition-colors font-medium">
+                          className="text-xs bg-indigo-600 hover:bg-indigo-500 text-foreground px-3 py-1.5 rounded-lg transition-colors font-medium">
                           Solve →
                         </Link>
                       </td>
@@ -273,7 +273,7 @@ const CodingTopicPage = () => {
               </tbody>
             </table>
             {filtered.length === 0 && (
-              <div className="text-center py-16 text-slate-500">
+              <div className="text-center py-16 text-muted-foreground">
                 <div className="text-4xl mb-3">🔍</div>
                 <p>No questions found matching your filters.</p>
               </div>

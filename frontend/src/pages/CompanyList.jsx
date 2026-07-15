@@ -1,13 +1,37 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/layout/Sidebar';
-import { motion } from 'framer-motion';
+import Navbar from '../components/layout/Navbar';
 import { FaBuilding, FaLayerGroup, FaArrowRight } from 'react-icons/fa';
+import { Search, Filter, Building2, Zap, Trophy, Star, ChevronRight, Play, TrendingUp, Clock, Users, Coins } from 'lucide-react';
+
+const fadeUp = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
+const container = { hidden: {}, show: { transition: { staggerChildren: 0.07, delayChildren: 0.05 } } };
+
+const Blob = ({ cx, cy, color, r, delay = 0 }) => (
+  <div
+    className="pointer-events-none absolute rounded-full animate-blob opacity-60"
+    style={{
+      left: `${cx}%`, top: `${cy}%`, width: r, height: r,
+      background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
+      animationDelay: `${delay}s`
+    }}
+  />
+);
+
+const DIFF_STYLES = {
+  Hard:   'bg-red-500/10 border-red-500/20 text-red-400',
+  Medium: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
+  Easy:   'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
+};
 
 const CompanyList = () => {
   const [companies, setCompanies] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]     = useState(true);
+  const [search, setSearch]       = useState('');
+  const [diffFilter, setDiffFilter] = useState('All');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -24,137 +48,179 @@ const CompanyList = () => {
     fetchCompanies();
   }, []);
 
+  const filtered = companies.filter(c => {
+    const matchSearch = !search || c.name.toLowerCase().includes(search.toLowerCase());
+    const matchDiff   = diffFilter === 'All' || c.difficulty === diffFilter;
+    return matchSearch && matchDiff;
+  });
+
   return (
-    <div className="flex bg-slate-950 text-slate-200 min-h-screen font-sans">
+    <div className="flex min-h-screen bg-background text-foreground overflow-x-hidden">
+      {/* Background */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <Blob cx={10} cy={15}  color="rgba(245,158,11,0.55)"  r={460} delay={0} />
+        <Blob cx={88} cy={10}  color="rgba(239,68,68,0.4)"    r={350} delay={3} />
+        <Blob cx={55} cy={80}  color="rgba(99,102,241,0.3)"   r={320} delay={6} />
+        <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: 'linear-gradient(rgba(245,158,11,0.7) 1px,transparent 1px),linear-gradient(90deg,rgba(245,158,11,0.7) 1px,transparent 1px)', backgroundSize: '72px 72px' }} />
+        <div className="absolute inset-0 vignette-overlay pointer-events-none" />
+      </div>
+
       <Sidebar />
-      
-      <div className="flex-1 ml-64 p-8">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-6xl mx-auto"
-        >
-          <header className="mb-10">
-            <h1 className="text-4xl font-bold text-white mb-2">Company Prep Mode</h1>
-            <p className="text-slate-400">Target your dream company by practicing their exact interview patterns.</p>
-          </header>
 
-          {loading ? (
-            <div className="flex justify-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {companies.map((company, index) => {
-                // Get progress tracker
-                const lastRole = localStorage.getItem(`last_role_${company.name}`) || '';
-                const savedSim = lastRole ? localStorage.getItem(`recruitment_sim_${company.name}_${lastRole}`) : null;
-                const simData = savedSim ? JSON.parse(savedSim) : null;
-                
-                let progressText = 'Not Started';
-                let progressPct = 0;
-                if (simData) {
-                  const total = company.rounds.length;
-                  const current = simData.currentRoundIndex;
-                  progressPct = Math.round((current / total) * 100);
-                  progressText = current >= total ? 'Completed 🎉' : `${current}/${total} Completed`;
-                }
+      <div className="relative z-10 flex-1 pl-[72px] flex flex-col h-screen overflow-hidden">
+        <Navbar subtitle="Target Companies" />
+        <div className="absolute inset-x-0 top-16 h-px bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
 
-                return (
-                  <motion.div 
-                    key={company._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    whileHover={{ y: -5, scale: 1.02 }}
-                    className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden hover:border-indigo-500/50 hover:shadow-[0_0_25px_rgba(79,70,229,0.12)] transition-all cursor-pointer flex flex-col relative"
-                    onClick={() => navigate(`/companies/${company.name}`)}
-                  >
-                    {/* Background visual glow */}
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/3 blur-2xl rounded-full"></div>
-                    
-                    <div className="p-6 flex-1 flex flex-col">
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="h-14 w-14 bg-white rounded-xl p-2 flex items-center justify-center shadow-md">
-                          <img src={company.logo} alt={company.name} className="max-h-full max-w-full object-contain" />
-                        </div>
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${
-                          company.difficulty === 'Hard' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                          company.difficulty === 'Medium' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
-                          'bg-green-500/10 text-green-400 border-green-500/20'
-                        }`}>
-                          {company.difficulty}
-                        </span>
-                      </div>
-                      
-                      <h3 className="text-xl font-bold text-white mb-1.5 flex items-center justify-between">
-                        {company.name}
-                        {simData && (
-                          <span className="text-[10px] text-indigo-400 font-medium font-sans">
-                            {lastRole}
-                          </span>
-                        )}
-                      </h3>
+        <main className="flex-1 overflow-y-auto no-scrollbar px-6 pb-16 pt-6">
+          <motion.div variants={container} initial="hidden" animate="show" className="mx-auto max-w-7xl space-y-6">
 
-                      {/* Recruitment Timeline progress */}
-                      <div className="mb-4">
-                        <div className="flex justify-between text-xs text-slate-400 mb-1">
-                          <span>Recruitment Simulation</span>
-                          <span className={simData ? 'text-indigo-400 font-semibold' : 'text-slate-500'}>{progressText}</span>
-                        </div>
-                        <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all duration-300" style={{ width: `${progressPct}%` }}></div>
-                        </div>
-                      </div>
+            {/* Header */}
+            <motion.div variants={fadeUp} className="space-y-1">
+              <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-amber-300 text-xs font-semibold mb-2">
+                <Building2 className="h-3.5 w-3.5" /> Company Prep Mode
+              </div>
+              <h1 className="text-2xl font-black text-white tracking-tight">Choose Your Target Company</h1>
+              <p className="text-zinc-500 text-sm">Practice their exact interview patterns. Simulate the real hiring pipeline.</p>
+            </motion.div>
 
-                      {/* Core placement statistics */}
-                      <div className="grid grid-cols-2 gap-3 text-xs border-t border-slate-800/80 pt-3.5 mb-4 mt-auto">
-                        <div>
-                          <span className="text-slate-500 block">CTC Package</span>
-                          <span className="text-slate-200 font-semibold font-mono">{company.package || '6 - 12 LPA'}</span>
+            {/* Search + Filter */}
+            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search companies…"
+                  className="w-full rounded-xl border border-white/[0.07] bg-white/[0.03] py-2.5 pl-9 pr-4 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-amber-500/40 focus:ring-1 focus:ring-amber-500/15 transition-all" />
+              </div>
+              <div className="flex gap-2">
+                {['All', 'Easy', 'Medium', 'Hard'].map(d => (
+                  <button key={d} onClick={() => setDiffFilter(d)} className={`rounded-xl px-3 py-2.5 text-xs font-semibold transition-all ${diffFilter === d ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/20' : 'border border-white/[0.07] bg-white/[0.03] text-zinc-400 hover:text-white hover:bg-white/[0.07]'}`}>{d}</button>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Companies Grid */}
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="h-64 rounded-2xl border border-white/[0.07] bg-white/[0.03] animate-pulse" />
+                ))}
+              </div>
+            ) : (
+              <motion.div variants={container} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {filtered.map((company, index) => {
+                  // Preserve original localStorage logic
+                  const lastRole   = localStorage.getItem(`last_role_${company.name}`) || '';
+                  const savedSim   = lastRole ? localStorage.getItem(`recruitment_sim_${company.name}_${lastRole}`) : null;
+                  const simData    = savedSim ? JSON.parse(savedSim) : null;
+                  const total      = company.rounds?.length || 4;
+                  const current    = simData?.currentRoundIndex || 0;
+                  const progressPct = simData ? Math.round((current / total) * 100) : 0;
+                  const progressText = simData ? (current >= total ? 'Completed 🎉' : `${current}/${total} rounds`) : 'Not started';
+                  const isCompleted = simData && current >= total;
+
+                  return (
+                    <motion.div
+                      key={company._id}
+                      variants={fadeUp}
+                      whileHover={{ y: -6, scale: 1.015 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => navigate(`/companies/${company.name}`)}
+                      className="group relative overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.03] cursor-pointer backdrop-blur-sm hover:border-amber-500/25 transition-all hover:shadow-xl hover:shadow-amber-500/5"
+                    >
+                      {/* Top glow line on hover */}
+                      <div className="absolute inset-x-0 top-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-r from-transparent via-amber-500/70 to-transparent" />
+                      {/* Corner radial glow */}
+                      <div className="absolute right-0 top-0 h-32 w-32 opacity-0 group-hover:opacity-100 transition-opacity duration-700 rounded-full blur-2xl" style={{ background: 'radial-gradient(circle, rgba(245,158,11,0.12) 0%, transparent 70%)' }} />
+
+                      <div className="relative z-10 p-5 flex flex-col h-full">
+                        {/* Logo + Difficulty */}
+                        <div className="flex items-start justify-between mb-4">
+                          <motion.div whileHover={{ scale: 1.08 }} className="h-14 w-14 rounded-xl border border-white/10 bg-white p-2 flex items-center justify-center shadow-lg overflow-hidden flex-shrink-0">
+                            <img src={company.logo} alt={company.name} className="max-h-full max-w-full object-contain" onError={e => { e.target.style.display='none'; e.target.parentNode.innerHTML = company.name.charAt(0); }} />
+                          </motion.div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {isCompleted && <span className="text-[10px] font-bold rounded-full bg-emerald-500/15 border border-emerald-500/20 text-emerald-400 px-2 py-0.5">Done ✓</span>}
+                            <span className={`text-[10px] font-bold rounded-full border px-2 py-0.5 ${DIFF_STYLES[company.difficulty] || DIFF_STYLES.Medium}`}>{company.difficulty}</span>
+                          </div>
                         </div>
-                        <div>
-                          <span className="text-slate-500 block">Selection Rate</span>
-                          <span className="text-slate-200 font-semibold font-mono">{company.selectionRate || '5.0%'}</span>
+
+                        {/* Name + Role */}
+                        <div className="mb-3">
+                          <h3 className="text-base font-bold text-white leading-tight">{company.name}</h3>
+                          {simData && lastRole && <p className="text-[11px] text-amber-400 font-medium mt-0.5">{lastRole}</p>}
                         </div>
-                        <div>
-                          <span className="text-slate-500 block">Eligibility</span>
-                          <span className="text-slate-200 font-semibold truncate block" title={company.eligibility || 'Graduates'}>
-                            {company.eligibility || 'Graduates'}
-                          </span>
+
+                        {/* Progress bar */}
+                        <div className="mb-4">
+                          <div className="flex justify-between text-[11px] mb-1.5">
+                            <span className="text-zinc-500">Simulation Progress</span>
+                            <span className={simData ? 'text-amber-400 font-semibold' : 'text-zinc-600'}>{progressText}</span>
+                          </div>
+                          <div className="h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${progressPct}%` }}
+                              transition={{ duration: 1, ease: [0.16,1,0.3,1], delay: index * 0.05 }}
+                              className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-500"
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <span className="text-slate-500 block">Est. Time</span>
-                          <span className="text-slate-200 font-semibold font-mono">{company.estimatedTime || '1 Week'}</span>
+
+                        {/* Stats grid */}
+                        <div className="grid grid-cols-2 gap-2.5 text-xs border-t border-white/[0.06] pt-3.5 mb-4">
+                          <div>
+                            <span className="text-zinc-500 block text-[10px] uppercase tracking-wider">CTC Package</span>
+                            <span className="text-zinc-200 font-bold font-mono">{company.package || '6–12 LPA'}</span>
+                          </div>
+                          <div>
+                            <span className="text-zinc-500 block text-[10px] uppercase tracking-wider">Selection Rate</span>
+                            <span className="text-zinc-200 font-bold font-mono">{company.selectionRate || '5.0%'}</span>
+                          </div>
+                          <div>
+                            <span className="text-zinc-500 block text-[10px] uppercase tracking-wider">Eligibility</span>
+                            <span className="text-zinc-200 font-bold truncate block">{company.eligibility || 'Graduates'}</span>
+                          </div>
+                          <div>
+                            <span className="text-zinc-500 block text-[10px] uppercase tracking-wider">Est. Time</span>
+                            <span className="text-zinc-200 font-bold font-mono">{company.estimatedTime || '1 Week'}</span>
+                          </div>
+                        </div>
+
+                        {/* Skills */}
+                        <div className="flex flex-wrap gap-1.5 mb-4">
+                          {company.skills?.slice(0, 3).map((skill, si) => (
+                            <span key={si} className="rounded-lg border border-white/[0.07] bg-white/[0.03] px-2 py-0.5 text-[10px] font-medium text-zinc-400">{skill}</span>
+                          ))}
+                          {company.skills?.length > 3 && (
+                            <span className="rounded-lg border border-white/[0.07] bg-white/[0.03] px-2 py-0.5 text-[10px] text-zinc-600">+{company.skills.length - 3}</span>
+                          )}
+                        </div>
+
+                        {/* CTA */}
+                        <div className="mt-auto flex items-center justify-between rounded-xl border border-amber-500/15 bg-amber-500/[0.05] px-3.5 py-2.5 group-hover:bg-amber-500/[0.1] transition-colors">
+                          <span className="text-xs font-bold text-amber-400">{simData ? 'Continue Simulation' : 'Enter Simulation Pipeline'}</span>
+                          <ChevronRight className="h-4 w-4 text-amber-400 group-hover:translate-x-1 transition-transform" />
                         </div>
                       </div>
-                      
-                      {/* Skills tags */}
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {company.skills.slice(0, 3).map((skill, idx) => (
-                          <span key={idx} className="bg-slate-950 text-slate-400 text-[10px] px-2 py-0.5 rounded border border-slate-800/60 font-medium">
-                            {skill}
-                          </span>
-                        ))}
-                        {company.skills.length > 3 && (
-                          <span className="bg-slate-950 text-slate-500 text-[10px] px-2 py-0.5 rounded border border-slate-800/60">
-                            +{company.skills.length - 3}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="bg-slate-800/20 p-4 border-t border-slate-800/80 flex justify-between items-center group">
-                      <span className="text-indigo-400 font-semibold text-xs group-hover:text-indigo-300 transition-colors">
-                        {simData ? 'Continue Simulation →' : 'Enter Simulation Pipeline →'}
-                      </span>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          )}
-        </motion.div>
+                    </motion.div>
+                  );
+                })}
+              </motion.div>
+            )}
+
+            {/* Empty state */}
+            {!loading && filtered.length === 0 && (
+              <motion.div variants={fadeUp} className="flex flex-col items-center justify-center py-20 text-center">
+                <motion.div animate={{ y: [0,-8,0] }} transition={{ duration: 3, repeat: Infinity }}>
+                  <Building2 className="h-14 w-14 text-zinc-700 mb-4" />
+                </motion.div>
+                <h3 className="text-base font-semibold text-white mb-1">No companies found</h3>
+                <p className="text-sm text-zinc-500">Try adjusting your search or filter</p>
+                <button onClick={() => { setSearch(''); setDiffFilter('All'); }} className="mt-4 text-xs text-amber-400 hover:text-amber-300 transition-colors">Clear filters</button>
+              </motion.div>
+            )}
+
+          </motion.div>
+        </main>
       </div>
     </div>
   );

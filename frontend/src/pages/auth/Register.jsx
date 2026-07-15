@@ -88,8 +88,7 @@ const Register = () => {
       {/* ── Left Panel ── */}
       <div
         ref={leftRef}
-        className="hidden lg:flex flex-1 flex-col justify-center px-14 relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, rgba(10,10,40,0.95) 0%, rgba(30,27,75,0.9) 100%)' }}
+        className="auth-left-panel hidden lg:flex flex-1 flex-col justify-center px-14 relative overflow-hidden"
       >
         <div className="absolute inset-0 grid-pattern opacity-40" />
         <div className="absolute top-0 right-0 w-80 h-80 rounded-full opacity-20 blur-3xl"
@@ -100,7 +99,7 @@ const Register = () => {
         <div className="relative z-10 max-w-md">
           <Link to="/" className="inline-flex items-center gap-2 mb-12">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
-              <FaBolt className="text-white" />
+              <FaBolt className="text-foreground" />
             </div>
             <span className="text-xl font-bold gradient-text" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>InterviewX</span>
           </Link>
@@ -110,17 +109,17 @@ const Register = () => {
             <span>Join 50,000+ Candidates</span>
           </div>
 
-          <h1 className="text-4xl xl:text-5xl font-black text-white mb-5 leading-tight" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
+          <h1 className="text-4xl xl:text-5xl font-black text-foreground mb-5 leading-tight" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
             Start Your Path to{' '}
             <span className="shimmer-text">Your Dream Job</span>
           </h1>
-          <p className="text-slate-400 text-base mb-10 leading-relaxed">
+          <p className="text-muted-foreground text-base mb-10 leading-relaxed">
             Everything you need to ace technical and behavioral interviews — all in one powerful platform.
           </p>
 
           <div className="space-y-3">
             {perks.map((perk, i) => (
-              <div key={i} className="flex items-center gap-3 text-slate-300 text-sm">
+              <div key={i} className="flex items-center gap-3 text-muted-foreground text-sm">
                 <FaCheckCircle className="text-emerald-400 flex-shrink-0" />
                 {perk}
               </div>
@@ -128,7 +127,7 @@ const Register = () => {
           </div>
 
           {/* Social proof */}
-          <div className="mt-10 glass-card rounded-2xl p-4 border border-white/5 flex items-center gap-4">
+          <div className="mt-10 bg-card border border-border shadow-sm rounded-2xl p-4 border border-border flex items-center gap-4">
             <div className="flex -space-x-2">
               {['👨‍💻','👩‍💼','🧑‍🎓','👩‍💻'].map((a, i) => (
                 <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-sm border-2 border-slate-900">
@@ -137,10 +136,10 @@ const Register = () => {
               ))}
             </div>
             <div>
-              <p className="text-white text-sm font-semibold">1,200+ joined this week</p>
+              <p className="text-foreground text-sm font-semibold">1,200+ joined this week</p>
               <div className="flex items-center gap-1">
                 {[1,2,3,4,5].map(s => <span key={s} className="text-yellow-400 text-xs">★</span>)}
-                <span className="text-slate-400 text-xs ml-1">4.9/5 rating</span>
+                <span className="text-muted-foreground text-xs ml-1">4.9/5 rating</span>
               </div>
             </div>
           </div>
@@ -148,28 +147,27 @@ const Register = () => {
       </div>
 
       {/* ── Right Panel ── */}
-      <div className="flex-1 h-full relative overflow-hidden" style={{ background: 'rgba(5,5,20,0.97)' }}>
-        <div className="absolute inset-0 pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(99,102,241,0.06) 0%, transparent 70%)' }} />
+      <div className="auth-right-panel flex-1 h-full relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none auth-radial-glow" />
 
         <div className="min-h-full w-full flex items-center justify-center p-4 lg:p-6">
           <div ref={rightRef} className="w-full max-w-md relative z-10">
           {/* Mobile logo */}
           <Link to="/" className="lg:hidden inline-flex items-center gap-2 mb-8">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-              <FaBolt className="text-white text-sm" />
+              <FaBolt className="text-foreground text-sm" />
             </div>
             <span className="text-lg font-bold gradient-text" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>InterviewX</span>
           </Link>
 
-          <div className="glass-card-bright rounded-3xl p-6 border border-indigo-500/15"
+          <div className="bg-card border border-border shadow-md rounded-3xl p-6 border border-indigo-500/15"
             style={{ boxShadow: '0 0 60px rgba(99,102,241,0.1), inset 0 1px 0 rgba(255,255,255,0.05)' }}>
 
             <div className="mb-4">
-              <h2 className="text-2xl font-black text-white mb-1" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
+              <h2 className="text-2xl font-black text-foreground mb-1" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
                 Create Your Account 🚀
               </h2>
-              <p className="text-slate-400 text-sm">Start practicing for free — no card required</p>
+              <p className="text-muted-foreground text-sm">Start practicing for free — no card required</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-3">
@@ -180,9 +178,9 @@ const Register = () => {
               )}
               {/* Name */}
               <div className="reg-field opacity-0">
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Full Name</label>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Full Name</label>
                 <div className="relative">
-                  <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm" />
+                  <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm" />
                   <input
                     type="text"
                     className="input-dark w-full rounded-xl pl-11 pr-4 py-2.5 text-sm"
@@ -196,9 +194,9 @@ const Register = () => {
 
               {/* Email */}
               <div className="reg-field opacity-0">
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Email Address</label>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Email Address</label>
                 <div className="relative">
-                  <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm" />
+                  <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm" />
                   <input
                     type="email"
                     className="input-dark w-full rounded-xl pl-11 pr-4 py-2.5 text-sm"
@@ -212,9 +210,9 @@ const Register = () => {
 
               {/* Password */}
               <div className="reg-field opacity-0">
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Password</label>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Password</label>
                 <div className="relative">
-                  <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm" />
+                  <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm" />
                   <input
                     type={showPass ? 'text' : 'password'}
                     className="input-dark w-full rounded-xl pl-11 pr-12 py-2.5 text-sm"
@@ -224,13 +222,13 @@ const Register = () => {
                     required
                   />
                   <button type="button" onClick={() => setShowPass(!showPass)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors">
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground transition-colors">
                     {showPass ? <FaEyeSlash /> : <FaEye />}
                   </button>
                 </div>
                 {password.length > 0 && (
                   <div className="mt-2 flex items-center gap-2">
-                    <div className="flex-1 h-1 rounded-full bg-slate-800 overflow-hidden">
+                    <div className="flex-1 h-1 rounded-full bg-card overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all duration-500"
                         style={{ width: `${(strengthLevel / 3) * 100}%`, background: strengthColors[strengthLevel] }}
@@ -245,9 +243,9 @@ const Register = () => {
 
               {/* Confirm Password */}
               <div className="reg-field opacity-0">
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Confirm Password</label>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Confirm Password</label>
                 <div className="relative">
-                  <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm" />
+                  <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm" />
                   <input
                     type={showPass ? 'text' : 'password'}
                     className="input-dark w-full rounded-xl pl-11 pr-4 py-2.5 text-sm"
@@ -265,10 +263,10 @@ const Register = () => {
               {/* Submit */}
               <div className="reg-field opacity-0 pt-2">
                 <button type="submit" disabled={loading}
-                  className="group w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white btn-primary glow-btn disabled:opacity-60 disabled:cursor-not-allowed">
+                  className="group w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-foreground btn-primary glow-btn disabled:opacity-60 disabled:cursor-not-allowed">
                   {loading ? (
                     <span className="flex items-center gap-2">
-                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span className="w-4 h-4 border-2 border-border border-t-white rounded-full animate-spin" />
                       Creating account...
                     </span>
                   ) : (
@@ -288,9 +286,9 @@ const Register = () => {
             {/* ── Google Sign-Up ── */}
             <div className="mt-4">
               <div className="relative flex items-center justify-center mb-3">
-                <div className="flex-1 border-t border-white/8" />
+                <div className="flex-1 border-t border-border" />
                 <span className="mx-3 text-xs text-slate-600 font-medium uppercase tracking-wider">or sign up with</span>
-                <div className="flex-1 border-t border-white/8" />
+                <div className="flex-1 border-t border-border" />
               </div>
               <GoogleAuthButton label="Sign up with Google" />
               <p className="mt-3 text-center text-slate-600 text-xs">
@@ -298,8 +296,8 @@ const Register = () => {
               </p>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-white/5 text-center">
-              <p className="text-slate-500 text-sm">
+            <div className="mt-4 pt-4 border-t border-border text-center">
+              <p className="text-muted-foreground text-sm">
                 Already have an account?{' '}
                 <Link to="/login" className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors">
                   Sign in →

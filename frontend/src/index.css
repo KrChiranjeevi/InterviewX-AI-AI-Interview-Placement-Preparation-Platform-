@@ -1,5 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
-
 
 
 :root {
@@ -7,14 +7,25 @@
   --primary-hover: #4f46e5;
   --secondary: #8b5cf6;
   --accent: #06b6d4;
-  --bg-dark: #0a0a1a;
-  --bg-darker: #050510;
-  --bg-card: rgba(15, 15, 40, 0.8);
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --border: rgba(99, 102, 241, 0.2);
-  --glow-primary: rgba(99, 102, 241, 0.4);
-  --glow-secondary: rgba(139, 92, 246, 0.4);
+  --bg-dark: #0a0a0f;
+  --bg-darker: #030308;
+  --bg-card: rgba(10, 10, 20, 0.4);
+  --bg-card-hover: rgba(20, 20, 35, 0.6);
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1aa;
+  --border: rgba(99, 102, 241, 0.15);
+  --border-highlight: rgba(139, 92, 246, 0.4);
+  --glow-primary: rgba(99, 102, 241, 0.5);
+  --glow-secondary: rgba(139, 92, 246, 0.5);
+  --glass: rgba(15, 15, 30, 0.25);
+  --glass-border: rgba(255, 255, 255, 0.08);
+
+  /* Tailwind CSS v4 Auto-Mapping Color Variables */
+  --color-foreground: #ffffff;
+  --color-muted-foreground: #a1a1aa;
+  --color-background: #0a0a0f;
+  --color-border: rgba(99, 102, 241, 0.15);
+  --color-card: rgba(10, 10, 20, 0.4);
 }
 
 * {
@@ -26,18 +37,30 @@ html {
 }
 
 body {
-  background-color: var(--bg-darker);
-  color: var(--text-primary);
+  background-color: #070711;
+  color: #ffffff;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   margin: 0;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #0a0a1a; }
-::-webkit-scrollbar-thumb { background: #6366f1; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #8b5cf6; }
+/* Premium scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.4); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(99,102,241,0.7); }
+
+/* No scrollbar utility */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Custom branded scrollbar for panels */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 2px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.3); border-radius: 2px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(99,102,241,0.5); }
 
 /* Glass card */
 .glass-card {
@@ -237,10 +260,17 @@ body {
   --border: rgba(99, 102, 241, 0.15);
   --glow-primary: rgba(99, 102, 241, 0.06);
   --glow-secondary: rgba(139, 92, 246, 0.06);
+
+  /* Tailwind CSS v4 Auto-Mapping Color Variables for Light Mode */
+  --color-foreground: #0f172a;
+  --color-muted-foreground: #475569;
+  --color-background: #ffffff;
+  --color-border: rgba(99, 102, 241, 0.12);
+  --color-card: #ffffff;
 }
 
 .light body {
-  background-color: #f1f5f9 !important;
+  background-color: #ffffff !important;
   color: #0f172a !important;
 }
 
@@ -250,7 +280,7 @@ body {
 .light .bg-slate-950\/50,
 .light .bg-slate-950\/30,
 .light .bg-slate-950\/40 {
-  background-color: #f1f5f9 !important;
+  background-color: #ffffff !important;
 }
 
 .light .bg-slate-900,
@@ -351,4 +381,448 @@ body {
 .light ::-webkit-scrollbar-track { background: #f1f5f9; }
 .light ::-webkit-scrollbar-thumb { background: #cbd5e1; }
 .light ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Premium UI Custom Classes */
+.premium-glass {
+  background: var(--glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+.premium-glass:hover {
+  background: rgba(25, 25, 45, 0.35);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.aurora-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.15), transparent 40%),
+              radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.15), transparent 40%);
+  filter: blur(60px);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.text-gradient {
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-image: linear-gradient(90deg, #fff, #a1a1aa);
+}
+
+.text-gradient-primary {
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-image: linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #06b6d4 100%);
+}
+
+
+/* ====================================================
+   SAAS PREMIUM LIGHT THEME (Notion/Linear/Stripe style)
+==================================================== */
+
+/* Global Reset for Light Mode */
+.light body {
+  background: #F5F7FA radial-gradient(circle at top right, rgba(124,58,237,0.03), transparent 40%) !important;
+  color: #111827 !important;
+}
+
+/* 1. Global Backgrounds (Remove all dark slates so the body background shows) */
+.light .bg-\[\#070711\],
+.light .bg-\[\#0a0a0f\],
+.light .bg-\[\#0a0a14\],
+.light .bg-\[\#0c0c16\],
+.light .bg-slate-950,
+.light .bg-slate-900,
+.light .bg-slate-800 {
+  background-color: transparent !important; 
+}
+
+/* 2. Navbar */
+.light .navbar-glass,
+.light header {
+  background-color: #FFFFFF !important;
+  height: 72px !important;
+  border-bottom: 1px solid #E5E7EB !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.03) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* 3. Hero Section (Beautiful soft gradients instead of dark background) */
+.light .from-\[\#0c0c1e\] {
+  background: linear-gradient(135deg, #F5F3FF 0%, #EFF6FF 100%) !important;
+  border: 1px solid #E5E7EB !important;
+  box-shadow: 0 10px 30px rgba(124, 58, 237, 0.05) !important;
+  border-radius: 32px !important; /* Extra rounded for hero */
+}
+.light .from-indigo-900\/30 {
+  display: none !important; /* Remove dark hero overlay */
+}
+
+/* 4. Cards (Solid white, crisp borders, soft shadows) */
+.light .bg-white\/\[0\.02\],
+.light .bg-white\/\[0\.03\],
+.light .bg-white\/\[0\.04\],
+.light .bg-white\/\[0\.05\],
+.light .bg-white\/\[0\.07\],
+.light .glass-card,
+.light .glass-card-bright {
+  background-color: #FFFFFF !important;
+  border: 1px solid #E5E7EB !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+  border-radius: 24px !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Card Hover */
+.light .group:hover > .bg-white\/\[0\.03\],
+.light .glass-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08) !important;
+  border-color: rgba(124, 58, 237, 0.2) !important;
+}
+
+/* Secondary small containers (like tags or inner cards) */
+.light .bg-white\/5,
+.light .bg-white\/10 {
+  background-color: #FFFFFF !important;
+  border: 1px solid #E5E7EB !important;
+  color: #4B5563 !important;
+}
+
+/* Clean up Borders globally */
+.light .border-white\/\[0\.07\],
+.light .border-white\/\[0\.05\],
+.light .border-white\/10,
+.light .border-white\/5,
+.light .border-slate-800 {
+  border-color: #E5E7EB !important;
+}
+
+/* 5. Typography (Perfect Hierarchy) */
+.light .text-white,
+.light .text-slate-100,
+.light .text-slate-200,
+.light .text-zinc-100,
+.light .text-zinc-200 {
+  color: #111827 !important; /* Primary Text */
+}
+
+.light .text-slate-300,
+.light .text-zinc-300 {
+  color: #4B5563 !important; /* Secondary Text */
+}
+
+.light .text-slate-400,
+.light .text-slate-500,
+.light .text-zinc-400,
+.light .text-zinc-500 {
+  color: #6B7280 !important; /* Muted Text */
+}
+
+/* Preserve Button Text */
+.light .btn-primary {
+  color: #ffffff !important;
+}
+.light .btn-primary * {
+  color: #ffffff !important;
+}
+
+/* Secondary Button (was white/5, now white with hover) */
+.light .bg-white\/5.hover\:bg-white\/10:hover {
+  background-color: #F3F4F6 !important;
+}
+
+/* 6. Search Bar */
+.light .input-dark,
+.light input {
+  background-color: #FFFFFF !important;
+  border: 1px solid #E5E7EB !important;
+  color: #111827 !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02) !important;
+}
+.light .input-dark::placeholder,
+.light input::placeholder {
+  color: #9CA3AF !important;
+}
+.light .input-dark:focus,
+.light input:focus {
+  border-color: #7C3AED !important;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15) !important;
+}
+
+/* 7. Global Cleanups */
+/* Remove all blur globally for absolute crispness */
+.light .backdrop-blur-sm,
+.light .backdrop-blur-md,
+.light .backdrop-blur-lg {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+/* Remove muddy gradients */
+.light .blur-\[120px\],
+.light .mix-blend-overlay,
+.light .bg-indigo-500\/10,
+.light .bg-purple-500\/10,
+.light .bg-indigo-900\/30,
+.light .bg-purple-900\/15 {
+  display: none !important;
+}
+
+/* Fix stat cards specific icon backgrounds */
+.light .bg-indigo-500\/20 {
+  background-color: rgba(124, 58, 237, 0.1) !important;
+}
+.light .text-indigo-400 {
+  color: #7C3AED !important;
+}
+
+/* 8. Sidebar Preservation */
+.light aside {
+  background-color: #F9FAFB !important; /* Very soft gray matching SaaS styling */
+  border-right: 1px solid #E5E7EB !important;
+}
+.light aside .group:has(.bg-gradient-to-r) svg,
+.light aside .group:has(.bg-gradient-to-r) span {
+  color: #7C3AED !important;
+}
+.light aside .group:has(.bg-gradient-to-r) .bg-gradient-to-r {
+  background: rgba(124, 58, 237, 0.08) !important;
+  border-color: rgba(124, 58, 237, 0.2) !important;
+}
+
+/* Custom Table fixes if any */
+.light table th {
+  background-color: #F9FAFB !important;
+  color: #4B5563 !important;
+  border-bottom: 1px solid #E5E7EB !important;
+}
+.light table td {
+  border-bottom: 1px solid #E5E7EB !important;
+}
+.light table tr:hover td {
+  background-color: #F3F4F6 !important;
+}
+
+
+/* ====================================================
+   LIGHT MODE (PREMIUM SAAS STYLING)
+==================================================== */
+.light body {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+/* 1. Global Background Colors */
+.light .bg-\[\#070711\],
+.light .bg-\[\#0a0a0f\],
+.light .bg-\[\#0a0a14\],
+.light .bg-\[\#070711\]\/80,
+.light .bg-\[\#0a0a14\]\/95,
+.light .bg-\[\#0a0a14\]\/97,
+.light .bg-slate-950,
+.light .bg-slate-900,
+.light .bg-slate-800 {
+  background-color: #ffffff !important;
+}
+
+/* Global Vignette Overlay for dark mode pages */
+.vignette-overlay {
+  background: radial-gradient(ellipse at center, transparent 35%, rgba(7,7,17,0.95) 100%);
+}
+
+.light .vignette-overlay,
+.light [style*="rgba(7, 7, 17"],
+.light [style*="rgba(7,7,17"] {
+  display: none !important;
+  background: none !important;
+}
+
+@keyframes float-blob {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+  50% { transform: translate(-50%, -50%) scale(1.15); opacity: 0.5; }
+}
+.animate-blob {
+  animation: float-blob 12s ease-in-out infinite;
+}
+/* 2. Global Cards */
+.light .bg-white\/\[0\.02\],
+.light .bg-white\/\[0\.03\],
+.light .bg-white\/\[0\.04\],
+.light .bg-white\/\[0\.05\],
+.light .bg-white\/\[0\.06\],
+.light .bg-white\/\[0\.07\],
+.light .bg-white\/5,
+.light .bg-white\/10,
+.light .glass-card,
+.light .glass-card-bright {
+  background-color: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.12) !important;
+  box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.05), 0 8px 10px -6px rgba(99, 102, 241, 0.05) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Clean up Borders globally */
+.light .border-white\/\[0\.06\],
+.light .border-white\/\[0\.07\],
+.light .border-white\/\[0\.08\],
+.light .border-white\/\[0\.05\],
+.light .border-white\/10,
+.light .border-white\/5,
+.light .border-slate-800 {
+  border-color: rgba(99, 102, 241, 0.12) !important;
+}
+
+/* Hover lift for cards */
+.light .group:hover > .bg-white\/\[0\.03\],
+.light .feature-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 20px 40px rgba(99, 102, 241, 0.1) !important;
+  border-color: rgba(99, 102, 241, 0.25) !important;
+  transition: all 0.3s ease;
+}
+
+/* 3. Text Colors */
+.light .text-white,
+.light .text-slate-100,
+.light .text-slate-200,
+.light .text-slate-300,
+.light .text-zinc-100,
+.light .text-zinc-200,
+.light .text-zinc-300 {
+  color: #0f172a !important;
+}
+
+.light .text-slate-400,
+.light .text-slate-500,
+.light .text-zinc-400,
+.light .text-zinc-500,
+.light .text-zinc-600 {
+  color: #475569 !important;
+}
+
+/* Keep brand gradient text visible */
+.light .gradient-text {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #0891b2 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+/* Preserve Button Text */
+.light .btn-primary,
+.light .btn-primary * {
+  color: #ffffff !important;
+}
+
+/* 4. Navbar & Search */
+.light .navbar-glass,
+.light nav,
+.light header {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border-bottom: 1px solid rgba(99, 102, 241, 0.08) !important;
+  box-shadow: 0 4px 20px -2px rgba(99, 102, 241, 0.03) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+}
+
+.light .input-dark {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: none !important;
+  color: #0f172a !important;
+}
+.light .input-dark::placeholder {
+  color: #94a3b8 !important;
+}
+.light .input-dark:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+}
+
+/* 5. Hero Section Gradients & Global Blurs */
+.light .hero-bg {
+  background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99, 102, 241, 0.05) 0%, transparent 60%),
+              #ffffff !important;
+}
+.light .from-\[\#0c0c1e\] {
+  --tw-gradient-from: #ffffff var(--tw-gradient-from-position) !important;
+}
+.light .to-\[\#090912\] {
+  --tw-gradient-to: #ffffff var(--tw-gradient-to-position) !important;
+}
+
+/* Remove muddy backgrounds */
+.light .bg-indigo-900\/30,
+.light .bg-purple-900\/15,
+.light .bg-indigo-500\/10,
+.light .bg-purple-500\/10 {
+  background: transparent !important;
+}
+.light .blur-\[120px\] {
+  display: none !important;
+}
+.light .mix-blend-overlay,
+.light .opacity-\[0\.015\] {
+  display: none !important;
+}
+
+/* Disable generic backdrop blur */
+.light .backdrop-blur-sm,
+.light .backdrop-blur-md,
+.light .backdrop-blur-lg,
+.light .backdrop-blur-2xl {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* 6. Auth Screens Custom Overrides */
+.auth-left-panel {
+  background: linear-gradient(135deg, rgba(10,10,40,0.95) 0%, rgba(30,27,75,0.9) 100%);
+}
+.light .auth-left-panel {
+  background: linear-gradient(135deg, #f5f3ff 0%, #eff6ff 100%) !important;
+  border-right: 1px solid rgba(99, 102, 241, 0.08) !important;
+}
+
+.auth-right-panel {
+  background-color: rgba(5,5,20,0.97) !important;
+}
+.light .auth-right-panel {
+  background-color: #ffffff !important;
+}
+
+.auth-radial-glow {
+  background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(99,102,241,0.06) 0%, transparent 70%);
+}
+.light .auth-radial-glow {
+  display: none !important;
+}
+
+/* 7. Sidebar Overrides */
+.light aside {
+  background-color: #f8fafc !important;
+  border-right: 1px solid rgba(99, 102, 241, 0.08) !important;
+}
+.light aside * {
+  color: #475569 !important;
+}
+.light aside .text-white,
+.light aside .font-bold {
+  color: #0f172a !important;
+}
+.light aside a.group:hover {
+  background-color: rgba(99, 102, 241, 0.05) !important;
+}
 

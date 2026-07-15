@@ -18,6 +18,7 @@ const CodingHub = lazy(() => import('./pages/CodingHub'));
 const CodingTopicPage = lazy(() => import('./pages/CodingTopicPage'));
 const CodingEditor = lazy(() => import('./pages/CodingEditor'));
 const AssessmentRoom = lazy(() => import('./pages/AssessmentRoom'));
+const AssessmentReport = lazy(() => import('./pages/AssessmentReport'));
 const ReportsDashboard = lazy(() => import('./pages/ReportsDashboard'));
 const ReportDetail = lazy(() => import('./pages/ReportDetail'));
 const RoadmapPage = lazy(() => import('./pages/RoadmapPage'));
@@ -37,17 +38,31 @@ function App() {
   useEffect(() => {
     const applyTheme = () => {
       try {
-        const userInfo = localStorage.getItem('userInfo');
-        if (userInfo) {
-          const user = JSON.parse(userInfo);
-          const themeMode = user?.settings?.appearance?.themeMode || user?.theme || 'dark';
-          let activeTheme = themeMode;
-          if (themeMode === 'system') {
-            activeTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-          }
-          if (activeTheme === 'light') {
+        const localTheme = localStorage.getItem('theme');
+        if (localTheme) {
+          if (localTheme === 'light') {
             document.documentElement.classList.add('light');
             document.documentElement.classList.remove('dark');
+          } else {
+            document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light');
+          }
+        } else {
+          const userInfo = localStorage.getItem('userInfo');
+          if (userInfo) {
+            const user = JSON.parse(userInfo);
+            const themeMode = user?.settings?.appearance?.themeMode || user?.theme || 'dark';
+            let activeTheme = themeMode;
+            if (themeMode === 'system') {
+              activeTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+            if (activeTheme === 'light') {
+              document.documentElement.classList.add('light');
+              document.documentElement.classList.remove('dark');
+            } else {
+              document.documentElement.classList.add('dark');
+              document.documentElement.classList.remove('light');
+            }
           } else {
             document.documentElement.classList.add('dark');
             document.documentElement.classList.remove('light');
@@ -104,10 +119,18 @@ function App() {
             } 
           />
           <Route 
-            path="/assessment/:category" 
+            path="/assessment/:module" 
             element={
               <ProtectedRoute>
                 <AssessmentRoom />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/assessment/report/:id" 
+            element={
+              <ProtectedRoute>
+                <AssessmentReport />
               </ProtectedRoute>
             } 
           />
