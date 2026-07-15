@@ -224,7 +224,7 @@ const AssessmentRoom = () => {
           <AlertCircle className="w-12 h-12 text-slate-400 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">No Questions Found</h2>
           <p className="text-slate-500 max-w-md mx-auto mb-6">We couldn't find any questions for the {category} module. Please contact support if this is an error.</p>
-          <button onClick={() => navigate('/dashboard')} className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700">Return to Dashboard</button>
+          <button onClick={() => navigate('/coding')} className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700">Return to Home Page</button>
         </div>
       </div>
     );
