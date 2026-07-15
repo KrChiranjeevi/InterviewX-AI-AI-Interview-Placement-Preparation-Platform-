@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Trophy, Target, Clock, Zap, CheckCircle2, XCircle, 
-  MinusCircle, BrainCircuit, ChevronDown, Sparkles, AlertCircle, ArrowLeft, BarChart3, Info
+  MinusCircle, BrainCircuit, ChevronDown, Sparkles, AlertCircle, ArrowLeft, BarChart3, Info, TrendingUp
 } from 'lucide-react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
