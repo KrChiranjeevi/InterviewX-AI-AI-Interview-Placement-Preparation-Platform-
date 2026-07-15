@@ -1,5 +1,6 @@
 const AssessmentQuestion = require('../models/AssessmentQuestion');
 const AssessmentAttempt = require('../models/AssessmentAttempt');
+const { generateAndSaveQuestions } = require('../services/aiQuestionGenerator');
 
 // @desc    Get questions for a specific assessment module
 // @route   GET /api/assessments/:module
@@ -19,17 +20,7 @@ const getQuestions = async (req, res) => {
       attempt.responses.forEach(r => seenQuestionIds.push(r.questionId));
     });
 
-    let baseQuery = {};
-    
-    // Exact mapping to prevent mixing
-    if (moduleName === 'aptitude') {
-      baseQuery.module = 'quant';
-    } else if (moduleName === 'logic') {
-      baseQuery.module = 'reasoning';
-    } else {
-      baseQuery.module = moduleName;
-    }
-    
+    let baseQuery = { module: moduleName };
     if (difficulty) baseQuery.difficulty = difficulty;
 
     // 2. Intelligent Aggregation Pipeline
@@ -78,10 +69,21 @@ const getQuestions = async (req, res) => {
 
     questions = await fetchQuestionsWithExclusion(seenQuestionIds);
 
-    // 3. Fallback Mechanism: If we ran out of unseen questions (e.g. user practiced a lot)
+    // 3. Fallback Mechanism: If we ran out of unseen questions, generate new ones via AI
     if (questions.length < limit) {
-      console.log(`[Assessment] Not enough unseen questions. Falling back to full pool for user ${req.user._id}`);
-      questions = await fetchQuestionsWithExclusion([]);
+      console.log(`[Assessment] Not enough unseen questions for ${moduleName}. Triggering AI Generation...`);
+      // Generate enough questions to fill the gap (or just a batch of 20)
+      const generated = await generateAndSaveQuestions(moduleName, 20);
+      if (generated && generated.length > 0) {
+         // Re-fetch to include newly generated questions
+         questions = await fetchQuestionsWithExclusion(seenQuestionIds);
+      }
+      
+      // If STILL not enough (e.g. AI failed), fallback to repeating old questions
+      if (questions.length < limit) {
+        console.log(`[Assessment] AI generation failed or insufficient. Falling back to full pool for user ${req.user._id}`);
+        questions = await fetchQuestionsWithExclusion([]);
+      }
     }
 
     if (!questions || questions.length === 0) {
@@ -147,7 +149,9 @@ const submitAssessment = async (req, res) => {
         timeSpent: timeSpent || 0,
         difficulty: question.difficulty,
         subCategory: question.subCategory,
-        explanation: question.explanation || syntheticExplanation
+        explanation: question.explanation || syntheticExplanation,
+        stepByStep: question.stepByStep || [],
+        references: question.references || []
       });
     }
 
@@ -157,6 +161,39 @@ const submitAssessment = async (req, res) => {
     // Calculate accuracy (correct / attempted)
     const attempted = correctAnswers + incorrectAnswers;
     const accuracy = attempted > 0 ? Math.round((correctAnswers / attempted) * 100) : 0;
+
+    // Advanced Analytics: Topic-wise Performance
+    const topicStats = {};
+    evaluatedResponses.forEach(r => {
+      const topic = r.subCategory || 'General';
+      if (!topicStats[topic]) topicStats[topic] = { total: 0, correct: 0 };
+      topicStats[topic].total++;
+      if (r.isCorrect) topicStats[topic].correct++;
+    });
+
+    const topicWisePerformance = Object.keys(topicStats).map(topic => {
+      const { total, correct } = topicStats[topic];
+      return {
+        topic,
+        total,
+        correct,
+        accuracy: total > 0 ? Math.round((correct / total) * 100) : 0
+      };
+    });
+
+    // Detect Strengths and Weak Areas
+    const strengths = [];
+    const weakAreas = [];
+    topicWisePerformance.forEach(t => {
+      if (t.total >= 1) { // Normally need more questions for statistical significance, but keeping it simple
+        if (t.accuracy >= 75) strengths.push(t.topic);
+        else if (t.accuracy <= 50) weakAreas.push(t.topic);
+      }
+    });
+
+    const estimatedInterviewReadiness = Math.round(accuracy * 0.8 + score * 0.2); // Simple heuristic
+    const expectedCompanyFit = estimatedInterviewReadiness > 80 ? ['Google', 'Amazon', 'Meta'] : 
+                               estimatedInterviewReadiness > 60 ? ['TCS', 'Infosys', 'Wipro', 'Accenture'] : [];
 
     const attempt = await AssessmentAttempt.create({
       userId: req.user._id,
@@ -170,7 +207,12 @@ const submitAssessment = async (req, res) => {
       correctAnswers,
       incorrectAnswers,
       skippedQuestions,
-      responses: evaluatedResponses
+      responses: evaluatedResponses,
+      topicWisePerformance,
+      strengths,
+      weakAreas,
+      estimatedInterviewReadiness,
+      expectedCompanyFit
     });
 
     res.status(201).json({

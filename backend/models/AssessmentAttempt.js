@@ -10,7 +10,6 @@ const assessmentAttemptSchema = new mongoose.Schema({
   module: {
     type: String,
     required: true,
-    enum: ['aptitude', 'quant', 'reasoning', 'verbal'],
   },
   company: {
     type: String,
@@ -60,8 +59,31 @@ const assessmentAttemptSchema = new mongoose.Schema({
     timeSpent: Number,
     difficulty: String,
     subCategory: String,
-    explanation: String
+    explanation: String,
+    stepByStep: [String],
+    references: [String]
   }],
+  topicWisePerformance: [{
+    topic: String,
+    total: Number,
+    correct: Number,
+    accuracy: Number
+  }],
+  strengths: {
+    type: [String],
+    default: [],
+  },
+  weakAreas: {
+    type: [String],
+    default: [],
+  },
+  estimatedInterviewReadiness: {
+    type: Number,
+  },
+  expectedCompanyFit: {
+    type: [String],
+    default: [],
+  },
   aiFeedback: String
 }, {
   timestamps: true,

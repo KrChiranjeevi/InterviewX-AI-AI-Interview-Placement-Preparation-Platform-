@@ -4,7 +4,6 @@ const assessmentQuestionSchema = new mongoose.Schema({
   module: {
     type: String,
     required: true,
-    enum: ['aptitude', 'quant', 'reasoning', 'verbal'],
     index: true,
   },
   subCategory: {
@@ -30,6 +29,17 @@ const assessmentQuestionSchema = new mongoose.Schema({
     default: 'Medium',
   },
   companyTags: {
+    type: [String],
+    default: [],
+  },
+  explanation: {
+    type: String,
+  },
+  stepByStep: {
+    type: [String],
+    default: [],
+  },
+  references: {
     type: [String],
     default: [],
   }

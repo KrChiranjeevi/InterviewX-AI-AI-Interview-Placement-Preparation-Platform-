@@ -167,8 +167,7 @@ const CodingHub = () => {
               {filtered.map((cat, i) => {
                 const pct = cat.total > 0 ? Math.round((cat.solved / cat.total) * 100) : 0;
                 const circumference = 2 * Math.PI * 20;
-                const isAssessment = ['aptitude', 'quant', 'reasoning', 'verbal'].includes(cat.id);
-                const href = isAssessment ? `/assessment/${cat.id}` : `/coding/${cat.id}`;
+                const href = `/assessment/${cat.id}`;
 
                 return (
                   <motion.div

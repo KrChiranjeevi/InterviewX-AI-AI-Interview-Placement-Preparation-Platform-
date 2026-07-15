@@ -241,7 +241,7 @@ const AssessmentReport = () => {
                   </div>
                 </div>
 
-                <div className="mt-8 bg-blue-50 dark:bg-blue-500/5 rounded-xl p-5 border border-blue-100 dark:border-blue-500/10">
+                  <div className="mt-8 bg-blue-50 dark:bg-blue-500/5 rounded-xl p-5 border border-blue-100 dark:border-blue-500/10">
                    <div className="flex gap-3">
                      <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
                      <div>
@@ -251,10 +251,91 @@ const AssessmentReport = () => {
                        </p>
                      </div>
                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Advanced Analytics Row */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                {/* Interview Readiness Meter */}
+                {report.estimatedInterviewReadiness !== undefined && (
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center">
+                    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">Interview Readiness</h3>
+                    <div className="relative w-32 h-32 flex items-center justify-center">
+                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-100 dark:text-slate-800" />
+                        <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" 
+                          strokeDasharray={`${2 * Math.PI * 40}`} 
+                          strokeDashoffset={`${2 * Math.PI * 40 * (1 - report.estimatedInterviewReadiness / 100)}`}
+                          strokeLinecap="round"
+                          className={report.estimatedInterviewReadiness >= 80 ? 'text-emerald-500' : report.estimatedInterviewReadiness >= 50 ? 'text-amber-500' : 'text-red-500'} 
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-3xl font-black text-slate-800 dark:text-white">{report.estimatedInterviewReadiness}%</span>
+                      </div>
+                    </div>
+                    {report.expectedCompanyFit?.length > 0 && (
+                      <div className="mt-6">
+                        <span className="text-xs font-semibold text-slate-500 mb-2 block">Expected Company Fit</span>
+                        <div className="flex flex-wrap justify-center gap-2">
+                          {report.expectedCompanyFit.map((comp, i) => (
+                            <span key={i} className="px-3 py-1 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 text-xs font-bold rounded-md border border-indigo-100 dark:border-indigo-500/20">{comp}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Strengths & Weaknesses */}
+                <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-6">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center">
+                        <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      <h3 className="text-lg font-bold text-slate-800 dark:text-white">Your Strengths</h3>
+                    </div>
+                    {report.strengths?.length > 0 ? (
+                      <ul className="space-y-2">
+                        {report.strengths.map((str, i) => (
+                          <li key={i} className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                            {str}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-slate-500 italic">Complete more questions accurately to identify strengths.</p>
+                    )}
+                  </div>
+                  
+                  <div className="w-px bg-slate-100 dark:bg-slate-800 hidden md:block"></div>
+                  
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-8 h-8 rounded-full bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
+                        <Target className="w-4 h-4 text-red-600 dark:text-red-400" />
+                      </div>
+                      <h3 className="text-lg font-bold text-slate-800 dark:text-white">Areas to Improve</h3>
+                    </div>
+                    {report.weakAreas?.length > 0 ? (
+                      <ul className="space-y-2">
+                        {report.weakAreas.map((weak, i) => (
+                          <li key={i} className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
+                            <XCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                            {weak}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-slate-500 italic">No significant weak areas detected yet!</p>
+                    )}
+                  </div>
                 </div>
               </div>
-              
-            </div>
           </motion.div>
         ) : (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
