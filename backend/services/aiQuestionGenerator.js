@@ -2,7 +2,7 @@ const { GoogleGenerativeAI, SchemaType } = require("@google/generative-ai");
 const AssessmentQuestion = require('../models/AssessmentQuestion');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getModel({ model: "gemini-1.5-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 /**
  * Generates high-quality placement assessment questions using Gemini
