@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-
+import Sidebar from '../components/layout/Sidebar';
+import Navbar from '../components/layout/Navbar';
 
 import { motion } from 'framer-motion';
 import { FaArrowLeft, FaSearch, FaCheckCircle, FaCircle, FaBuilding, FaFilter } from 'react-icons/fa';
@@ -80,11 +81,10 @@ const CodingTopicPage = () => {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      
-      <div className="flex-1 ml-64 flex flex-col h-screen overflow-hidden">
-        
-
-        <main className="flex-1 overflow-y-auto p-8">
+      <Sidebar />
+      <div className="relative z-10 flex-1 pl-0 md:pl-[72px] flex flex-col h-screen overflow-hidden">
+        <Navbar subtitle={`${cat.name} Category`} />
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 no-scrollbar">
           {/* Breadcrumb */}
           <button onClick={() => navigate('/coding')} className="flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm mb-6 transition-colors">
             <FaArrowLeft /> Back to Practice Hub

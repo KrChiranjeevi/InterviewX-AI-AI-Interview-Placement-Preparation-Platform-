@@ -145,7 +145,7 @@ const HEATMAP_DATA = [
 
       <Sidebar />
 
-      <div className="relative z-10 flex-1 pl-[72px] flex flex-col h-screen overflow-hidden">
+      <div className="relative z-10 flex-1 pl-0 md:pl-[72px] flex flex-col h-screen overflow-hidden">
         <Navbar subtitle="Interview Performance Analytics" />
         <div className="absolute inset-x-0 top-16 h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent" />
         <main className="flex-1 overflow-y-auto no-scrollbar px-6 pb-16 pt-6">

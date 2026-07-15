@@ -41,9 +41,28 @@ const Sidebar = () => {
   const [expanded, setExpanded] = useState(false);
   const [hoveredIdx, setHoveredIdx] = useState(null);
   const [mouseY, setMouseY] = useState(0);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const sidebarRef = useRef(null);
 
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    const handleToggle = () => setMobileOpen(prev => !prev);
+    window.addEventListener('toggle-sidebar', handleToggle);
+
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+      window.removeEventListener('toggle-sidebar', handleToggle);
+    };
+  }, []);
+
   const handleMouseMove = (e) => {
+    if (isMobile) return;
     const rect = sidebarRef.current?.getBoundingClientRect();
     if (rect) setMouseY(e.clientY - rect.top);
   };
@@ -53,16 +72,31 @@ const Sidebar = () => {
     `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'U')}&background=6366f1&color=fff&bold=true`;
 
   return (
-    <motion.aside
-      ref={sidebarRef}
-      onMouseEnter={() => setExpanded(true)}
-      onMouseLeave={() => { setExpanded(false); setHoveredIdx(null); }}
-      onMouseMove={handleMouseMove}
-      animate={{ width: expanded ? 260 : 72 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className="fixed left-0 top-0 z-50 flex h-screen flex-col overflow-hidden border-r border-white/[0.06] bg-[#070711] select-none"
-      style={{ boxShadow: expanded ? '4px 0 60px rgba(99,102,241,0.12)' : '2px 0 20px rgba(0,0,0,0.4)' }}
-    >
+    <>
+      {/* Mobile Drawer Backdrop */}
+      {isMobile && mobileOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      <motion.aside
+        ref={sidebarRef}
+        onMouseEnter={() => !isMobile && setExpanded(true)}
+        onMouseLeave={() => {
+          if (!isMobile) {
+            setExpanded(false);
+            setHoveredIdx(null);
+          }
+        }}
+        onMouseMove={handleMouseMove}
+        animate={{ width: isMobile ? 260 : (expanded ? 260 : 72) }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        className={`fixed left-0 top-0 z-50 flex h-screen flex-col overflow-hidden border-r border-white/[0.06] bg-[#070711] select-none transition-transform duration-300 md:transition-none
+          ${isMobile ? (mobileOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}`}
+        style={{ boxShadow: (isMobile && mobileOpen) || (!isMobile && expanded) ? '4px 0 60px rgba(99,102,241,0.12)' : '2px 0 20px rgba(0,0,0,0.4)' }}
+      >
       {/* Ambient glow that follows mouse */}
       <motion.div
         className="pointer-events-none absolute left-0 w-full"
@@ -241,6 +275,7 @@ const Sidebar = () => {
 
 
     </motion.aside>
+    </>
   );
 };
 

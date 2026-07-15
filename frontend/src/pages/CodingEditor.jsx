@@ -120,7 +120,7 @@ const CodingEditor = () => {
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       
-      <div className="flex-1 ml-64 flex flex-col h-screen overflow-hidden">
+      <div className="flex-1 ml-0 flex flex-col h-screen overflow-hidden">
 
         {/* Top Bar */}
         <div className="flex-shrink-0 h-14 bg-card border-b border-border flex items-center justify-between px-4 gap-4">

@@ -6,8 +6,10 @@ import {
   Bell, Sparkles, User, LogOut, Settings, CreditCard,
   Award, Clock, Flame, Search, X, Mic, ChevronDown,
   Trophy, FileText, Map, BarChart3, CheckCircle2,
-  AlertCircle, Zap, Command, Moon, Sun
+  AlertCircle, Zap, Command, Moon, Sun, Menu
 } from 'lucide-react';
+
+// SEARCH_SUGGESTIONS etc. (lines 12-83 are kept unchanged)
 
 const SEARCH_SUGGESTIONS = [
   { icon: Mic,       label: 'Start a mock interview',     hint: 'AI Powered', to: '/interview/setup' },
@@ -90,11 +92,22 @@ const Navbar = ({ title, subtitle }) => {
 
       <div className="relative z-10 flex h-full items-center justify-between px-6 gap-4">
         {/* LEFT — Title */}
-        <div className="min-w-0 flex-shrink-0">
-          <h1 className="text-base font-semibold text-white truncate leading-tight">
-            {title || `${getGreeting()}, ${user?.name?.split(' ')[0] || 'there'} 👋`}
-          </h1>
-          {subtitle && <p className="text-xs text-zinc-500 truncate">{subtitle}</p>}
+        {/* LEFT — Title & Hamburger */}
+        <div className="min-w-0 flex-shrink-0 flex items-center gap-3">
+          <button 
+            onClick={() => window.dispatchEvent(new CustomEvent('toggle-sidebar'))}
+            className="flex md:hidden items-center justify-center p-2 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors"
+            aria-label="Toggle Sidebar"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          
+          <div>
+            <h1 className="text-base font-semibold text-white truncate leading-tight">
+              {title || `${getGreeting()}, ${user?.name?.split(' ')[0] || 'there'} 👋`}
+            </h1>
+            {subtitle && <p className="text-xs text-zinc-500 truncate">{subtitle}</p>}
+          </div>
         </div>
 
         {/* CENTER — Universal Search */}

@@ -371,7 +371,7 @@ const Dashboard = () => {
       <Sidebar />
 
       {/* ── Main ── */}
-      <div className="relative z-10 flex-1 pl-[72px] flex flex-col">
+      <div className="relative z-10 flex-1 pl-0 md:pl-[72px] flex flex-col">
         <Navbar subtitle={`${fmt(time)} · ${stats?.totalInterviews || 0} sessions completed`} />
 
         <main className="flex-1 overflow-y-auto no-scrollbar px-4 md:px-6 pb-16 pt-4">

@@ -178,7 +178,7 @@ const ReportDetail = () => {
         <Sidebar />
       </div>
       
-      <div className="flex-1 ml-0 lg:ml-64 flex flex-col h-screen overflow-hidden">
+      <div className="flex-1 pl-0 md:pl-[72px] flex flex-col h-screen overflow-hidden">
         <div className="print-hidden">
           <Navbar subtitle={`Report for ${report.interviewId?.role || 'Interview'}`} />
         </div>

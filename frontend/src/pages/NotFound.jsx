@@ -1,13 +1,13 @@
 import React from 'react';
-
-
+import Sidebar from '../components/layout/Sidebar';
+import Navbar from '../components/layout/Navbar';
 
 const NotFound = () => {
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      
-      <div className="flex-1 ml-64 flex flex-col h-screen overflow-hidden">
-        
+      <Sidebar />
+      <div className="relative z-10 flex-1 pl-0 md:pl-[72px] flex flex-col h-screen overflow-hidden">
+        <Navbar title="404 - Not Found" />
         <main className="flex-1 overflow-y-auto p-8 flex items-center justify-center">
           <div className="text-center">
             <h1 className="text-9xl font-black text-indigo-500/20">404</h1>

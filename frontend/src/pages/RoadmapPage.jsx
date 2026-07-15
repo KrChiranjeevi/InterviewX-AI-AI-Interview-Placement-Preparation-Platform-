@@ -163,7 +163,7 @@ const RoadmapPage = () => {
 
       <Sidebar />
 
-      <div className="relative z-10 flex-1 pl-[72px] flex flex-col h-screen overflow-hidden print:pl-0 print:h-auto print:overflow-visible">
+      <div className="relative z-10 flex-1 pl-0 md:pl-[72px] flex flex-col h-screen overflow-hidden print:pl-0 print:h-auto print:overflow-visible">
         <div className="print:hidden">
           <Navbar subtitle="Learning Path & Progress" />
         </div>

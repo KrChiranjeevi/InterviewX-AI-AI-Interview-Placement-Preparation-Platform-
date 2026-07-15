@@ -154,7 +154,7 @@ const InterviewSetup = () => {
 
       <Sidebar />
 
-      <div className="relative z-10 flex-1 pl-[72px] flex flex-col h-screen overflow-hidden">
+      <div className="relative z-10 flex-1 pl-0 md:pl-[72px] flex flex-col h-screen overflow-hidden">
         <Navbar title="Configure Your Interview" subtitle="Set up your AI-powered mock session" />
 
         <div className="flex-1 flex flex-col overflow-hidden">

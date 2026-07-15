@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import Sidebar from '../components/layout/Sidebar';
+import Navbar from '../components/layout/Navbar';
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -414,15 +416,16 @@ const CompanyDetail = () => {
   );
 
   return (
-    <div className="flex bg-slate-950 text-slate-200 min-h-screen font-sans">
-      
-      
-      <div className="flex-1 ml-64 p-8 overflow-y-auto h-screen">
-        <motion.div 
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-6xl mx-auto pb-16"
-        >
+    <div className="flex bg-slate-950 text-slate-200 min-h-screen font-sans overflow-hidden">
+      <Sidebar />
+      <div className="relative z-10 flex-1 pl-0 md:pl-[72px] flex flex-col h-screen overflow-hidden">
+        <Navbar subtitle={`${company.name} Interview Preparation`} />
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 no-scrollbar">
+          <motion.div 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-6xl mx-auto pb-16"
+          >
           <button 
             onClick={() => navigate('/companies')}
             className="flex items-center text-slate-400 hover:text-white mb-8 transition-colors text-sm font-medium"
@@ -854,6 +857,7 @@ const CompanyDetail = () => {
             )}
           </AnimatePresence>
         </motion.div>
+        </div>
       </div>
     </div>
   );

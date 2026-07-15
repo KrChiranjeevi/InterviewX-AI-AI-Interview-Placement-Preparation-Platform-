@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-
-
+import Sidebar from '../components/layout/Sidebar';
+import Navbar from '../components/layout/Navbar';
 import { getProfile, updateProfile } from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -69,8 +69,9 @@ const ProfilePage = () => {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden font-sans">
-      
-      <div className="flex-1 ml-[72px] lg:ml-64 flex flex-col h-screen overflow-hidden relative">
+      <Sidebar />
+      <div className="flex-1 pl-0 md:pl-[72px] flex flex-col h-screen overflow-hidden relative">
+        <Navbar title="My Profile" />
         {/* Background Effects */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/10 blur-[120px]" />

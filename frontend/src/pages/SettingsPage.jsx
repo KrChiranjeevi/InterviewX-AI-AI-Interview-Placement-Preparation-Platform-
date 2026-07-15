@@ -153,7 +153,7 @@ const SettingsPage = () => {
 
       <Sidebar />
 
-      <div className="relative z-10 flex-1 pl-[72px] flex flex-col h-screen">
+      <div className="relative z-10 flex-1 pl-0 md:pl-[72px] flex flex-col h-screen">
         <Navbar subtitle="Settings & Preferences" />
         <div className="absolute inset-x-0 top-16 h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
 

@@ -73,7 +73,7 @@ const CodingInterview = () => {
     <div className="flex bg-background text-slate-200 min-h-screen font-sans overflow-hidden h-screen">
       
       
-      <div className="flex-1 ml-64 flex flex-col md:flex-row h-full">
+      <div className="flex-1 ml-0 flex flex-col md:flex-row h-full">
         {/* Left Panel: Problem Description & AI Feedback */}
         <div className="w-full md:w-1/3 border-r border-border flex flex-col h-full overflow-y-auto bg-card">
           <div className="p-6 border-b border-border">
