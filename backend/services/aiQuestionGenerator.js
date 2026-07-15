@@ -90,7 +90,7 @@ OUTPUT EXACTLY AS A VALID JSON OBJECT WITH A SINGLE KEY "questions" CONTAINING T
         module: moduleName.toLowerCase(),
         subCategory: q.subCategory || moduleName,
         difficulty: q.difficulty || 'Medium',
-        questionText: q.questionText,
+        question: q.questionText,
         options: q.options || [],
         correctAnswer: q.correctOption || (q.options ? q.options[0] : ''),
         explanation: q.explanation || 'No explanation provided.',
