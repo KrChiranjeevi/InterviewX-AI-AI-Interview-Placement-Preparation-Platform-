@@ -15,7 +15,7 @@ const Landing = lazy(() => import('./pages/Landing'));
 const CompanyList = lazy(() => import('./pages/CompanyList'));
 const CompanyDetail = lazy(() => import('./pages/CompanyDetail'));
 const CodingHub = lazy(() => import('./pages/CodingHub'));
-const CodingTopicPage = lazy(() => import('./pages/CodingTopicPage'));
+const CodingProblemList = lazy(() => import('./pages/CodingProblemList'));
 const CodingEditor = lazy(() => import('./pages/CodingEditor'));
 const AssessmentRoom = lazy(() => import('./pages/AssessmentRoom'));
 const AssessmentReport = lazy(() => import('./pages/AssessmentReport'));
@@ -26,6 +26,7 @@ const CommunityPage = lazy(() => import('./pages/CommunityPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+const CompanyCodingQuestionsPage = lazy(() => import('./pages/CompanyCodingQuestionsPage'));
 
 // Loading Fallback
 const LoadingFallback = () => (
@@ -167,10 +168,10 @@ function App() {
             } 
           />
           <Route 
-            path="/coding/:category" 
+            path="/coding/list/:category" 
             element={
               <ProtectedRoute>
-                <CodingTopicPage />
+                <CodingProblemList />
               </ProtectedRoute>
             } 
           />
@@ -179,6 +180,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <CodingEditor />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/coding/company/:companyName" 
+            element={
+              <ProtectedRoute>
+                <CompanyCodingQuestionsPage />
               </ProtectedRoute>
             } 
           />

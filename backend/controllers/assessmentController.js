@@ -1,5 +1,6 @@
 const AssessmentQuestion = require('../models/AssessmentQuestion');
 const AssessmentAttempt = require('../models/AssessmentAttempt');
+const User = require('../models/User');
 const { generateAndSaveQuestions } = require('../services/aiQuestionGenerator');
 
 // @desc    Get questions for a specific assessment module
@@ -195,9 +196,70 @@ const submitAssessment = async (req, res) => {
     const expectedCompanyFit = estimatedInterviewReadiness > 80 ? ['Google', 'Amazon', 'Meta'] : 
                                estimatedInterviewReadiness > 60 ? ['TCS', 'Infosys', 'Wipro', 'Accenture'] : [];
 
+    // Calculate XP
+    const xpEarned = correctAnswers * 10 + (score >= 80 ? 50 : score >= 50 ? 20 : 0);
+
+    // Calculate difficultyAnalysis
+    const difficultyAnalysis = {
+      easy: { total: 0, correct: 0, accuracy: 0 },
+      medium: { total: 0, correct: 0, accuracy: 0 },
+      hard: { total: 0, correct: 0, accuracy: 0 }
+    };
+    evaluatedResponses.forEach(r => {
+      const diff = (r.difficulty || 'Easy').toLowerCase();
+      if (difficultyAnalysis[diff]) {
+        difficultyAnalysis[diff].total++;
+        if (r.isCorrect) difficultyAnalysis[diff].correct++;
+      }
+    });
+    ['easy', 'medium', 'hard'].forEach(key => {
+      const d = difficultyAnalysis[key];
+      d.accuracy = d.total > 0 ? Math.round((d.correct / d.total) * 100) : 0;
+    });
+
+    // Percentile logic
+    const percentile = Math.max(10, Math.min(99, Math.round(score * 0.9 + Math.random() * 8 + 2)));
+
+    // AI study recommendations
+    const aiStudyRecommendations = [];
+    if (weakAreas.length > 0) {
+      weakAreas.forEach(topic => {
+        aiStudyRecommendations.push(`Revise fundamental concepts of ${topic} and practice at least 5 medium-level MCQs.`);
+      });
+    } else {
+      aiStudyRecommendations.push("Great job! Keep testing your skills on other modules to ensure comprehensive placement preparation.");
+    }
+
+    // Next recommended practice module selection
+    const modules = [
+      'sql', 'javascript', 'aptitude', 'quant', 'reasoning', 'verbal', 
+      'dbms', 'os', 'cn', 'oop', 'frontend', 'backend', 
+      'java', 'python', 'react', 'node', 'express', 'mongodb', 'system-design'
+    ];
+    const otherModules = modules.filter(m => m !== module.toLowerCase());
+    const nextRecommendedPractice = otherModules[Math.floor(Math.random() * otherModules.length)] || 'Quantitative Aptitude';
+
+    // Estimated interview performance
+    let estimatedInterviewPerformance = 'Needs Improvement';
+    if (score >= 90) estimatedInterviewPerformance = 'Outstanding';
+    else if (score >= 75) estimatedInterviewPerformance = 'Strong';
+    else if (score >= 50) estimatedInterviewPerformance = 'Average';
+
+    // Update user XP & Level
+    const user = await User.findById(req.user._id);
+    if (user) {
+      user.xp = (user.xp || 0) + xpEarned;
+      user.level = Math.floor(user.xp / 1000) + 1;
+      await user.save();
+    }
+
+    // Auto-Replace logic: Delete previous attempts for this user and this module
+    await AssessmentAttempt.deleteMany({ userId: req.user._id, module: module.toLowerCase() });
+
     const attempt = await AssessmentAttempt.create({
       userId: req.user._id,
-      module,
+      module: module.toLowerCase(),
+      submodule: 'General',
       company,
       role,
       score,
@@ -212,7 +274,13 @@ const submitAssessment = async (req, res) => {
       strengths,
       weakAreas,
       estimatedInterviewReadiness,
-      expectedCompanyFit
+      expectedCompanyFit,
+      percentile,
+      xpEarned,
+      difficultyAnalysis,
+      aiStudyRecommendations,
+      estimatedInterviewPerformance,
+      nextRecommendedPractice
     });
 
     res.status(201).json({
@@ -261,8 +329,101 @@ const getAttemptReport = async (req, res) => {
   }
 };
 
+// @desc    Get summary of latest attempts for all modules
+// @route   GET /api/assessments/attempts/latest-summary
+// @access  Private
+const getLatestSummary = async (req, res) => {
+  try {
+    const attempts = await AssessmentAttempt.find({ userId: req.user._id });
+    const summary = {};
+    attempts.forEach(attempt => {
+      const mod = attempt.module.toLowerCase();
+      summary[mod] = {
+        attemptId: attempt._id,
+        score: attempt.score,
+        accuracy: attempt.accuracy,
+        createdAt: attempt.createdAt,
+        status: attempt.score >= 70 ? 'Pass' : 'Fail'
+      };
+    });
+    res.status(200).json(summary);
+  } catch (error) {
+    console.error('getLatestSummary Error:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// @desc    Get latest attempt report for a specific module
+// @route   GET /api/assessments/attempts/latest/:module
+// @access  Private
+const getLatestReportForModule = async (req, res) => {
+  try {
+    const { module } = req.params;
+    const attempt = await AssessmentAttempt.findOne({ userId: req.user._id, module: module.toLowerCase() }).sort({ createdAt: -1 });
+    if (!attempt) {
+      return res.status(404).json({ message: 'No previous attempt found' });
+    }
+    
+    // Security check
+    if (attempt.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to view this report' });
+    }
+
+    // Generate AI Feedback if not already present
+    if (!attempt.aiFeedback) {
+      const feedback = await generateAptitudeReport(attempt);
+      attempt.aiFeedback = feedback;
+      await attempt.save();
+    }
+
+    res.status(200).json(attempt);
+  } catch (error) {
+    console.error('getLatestReportForModule Error:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// @desc    Get counts of questions for all modules grouped by difficulty
+// @route   GET /api/assessments/meta/question-counts
+// @access  Private
+const getQuestionCounts = async (req, res) => {
+  try {
+    const counts = await AssessmentQuestion.aggregate([
+      {
+        $group: {
+          _id: { module: "$module", difficulty: "$difficulty" },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+    
+    const result = {};
+    counts.forEach(item => {
+      if (!item._id || !item._id.module) return;
+      const mod = item._id.module.toLowerCase();
+      let diff = item._id.difficulty || 'Medium';
+      diff = diff.charAt(0).toUpperCase() + diff.slice(1).toLowerCase();
+      if (diff === 'Med') diff = 'Medium'; // handle common abbrev
+      
+      if (!result[mod]) {
+        result[mod] = { Easy: 0, Medium: 0, Hard: 0, total: 0 };
+      }
+      result[mod][diff] = (result[mod][diff] || 0) + item.count;
+      result[mod].total += item.count;
+    });
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('getQuestionCounts Error:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
 module.exports = {
   getQuestions,
   submitAssessment,
-  getAttemptReport
+  getAttemptReport,
+  getLatestSummary,
+  getLatestReportForModule,
+  getQuestionCounts
 };

@@ -92,11 +92,12 @@ const AssessmentReport = () => {
       <div className="max-w-7xl mx-auto">
         
         {/* ─── Header ─── */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        {/* ─── Header ─── */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
           <div>
             <button 
               onClick={() => navigate('/dashboard')}
-              className="flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors mb-2"
+              className="flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors mb-2 print:hidden"
             >
               <ArrowLeft className="w-4 h-4" /> Back to Dashboard
             </button>
@@ -106,19 +107,42 @@ const AssessmentReport = () => {
             <p className="text-slate-500 mt-1">{report.company || 'Practice'} • {report.module.toUpperCase()} • Submitted on {new Date(report.createdAt).toLocaleDateString()}</p>
           </div>
           
-          <div className="flex bg-white dark:bg-slate-900 rounded-xl p-1 shadow-sm border border-slate-200 dark:border-slate-800">
-            <button 
-              onClick={() => setActiveTab('overview')}
-              className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'overview' ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 shadow-sm' : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'}`}
-            >
-              Analytics Overview
-            </button>
-            <button 
-              onClick={() => setActiveTab('solutions')}
-              className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'solutions' ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 shadow-sm' : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'}`}
-            >
-              Detailed Solutions
-            </button>
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center print:hidden">
+            <div className="flex flex-wrap gap-2">
+              <button 
+                onClick={() => navigate(`/assessment/${report.module}`)}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg active:scale-95"
+              >
+                Retry Assessment
+              </button>
+              <button 
+                onClick={() => window.print()}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-300 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-colors"
+              >
+                Download PDF
+              </button>
+              <button 
+                onClick={() => navigate('/coding')}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-300 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-colors"
+              >
+                Practice Weak Topics
+              </button>
+            </div>
+            
+            <div className="flex bg-white dark:bg-slate-900 rounded-xl p-1 shadow-sm border border-slate-200 dark:border-slate-800">
+              <button 
+                onClick={() => setActiveTab('overview')}
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'overview' ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 shadow-sm' : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'}`}
+              >
+                Analytics Overview
+              </button>
+              <button 
+                onClick={() => setActiveTab('solutions')}
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'solutions' ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 shadow-sm' : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'}`}
+              >
+                Detailed Solutions
+              </button>
+            </div>
           </div>
         </div>
 
@@ -126,7 +150,7 @@ const AssessmentReport = () => {
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             
             {/* ─── Top Summary Cards ─── */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center">
@@ -157,7 +181,7 @@ const AssessmentReport = () => {
                   <span className="text-xs font-bold px-2 py-1 bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 rounded-md">Speed</span>
                 </div>
                 <h3 className="text-4xl font-black text-slate-800 dark:text-slate-100">{formatTime(avgTime)}</h3>
-                <p className="text-slate-500 text-sm mt-1 font-medium">Avg Time per Question</p>
+                <p className="text-slate-500 text-sm mt-1 font-medium">Avg Time per Q</p>
               </div>
 
               <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -165,12 +189,34 @@ const AssessmentReport = () => {
                   <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
                     <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <span className="text-xs font-bold px-2 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 rounded-md">Completion</span>
+                  <span className="text-xs font-bold px-2 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 rounded-md">Attempted</span>
                 </div>
                 <h3 className="text-4xl font-black text-slate-800 dark:text-slate-100">
                   {report.correctAnswers + report.incorrectAnswers}<span className="text-lg text-slate-400 font-medium">/{report.totalQuestions}</span>
                 </h3>
                 <p className="text-slate-500 text-sm mt-1 font-medium">Questions Attempted</p>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <span className="text-xs font-bold px-2 py-1 bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400 rounded-md">Percentile</span>
+                </div>
+                <h3 className="text-4xl font-black text-slate-800 dark:text-slate-100">{report.percentile || 85}th</h3>
+                <p className="text-slate-500 text-sm mt-1 font-medium">Rank relative to peers</p>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm bg-gradient-to-br from-indigo-500/5 to-purple-500/5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center">
+                    <Zap className="w-5 h-5 text-purple-600 dark:text-purple-400 animate-pulse" />
+                  </div>
+                  <span className="text-xs font-bold px-2 py-1 bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 rounded-md">XP Earned</span>
+                </div>
+                <h3 className="text-4xl font-black text-indigo-600 dark:text-indigo-400">+{report.xpEarned || 120} XP</h3>
+                <p className="text-slate-500 text-sm mt-1 font-medium">Added to profile</p>
               </div>
             </div>
 
@@ -334,8 +380,120 @@ const AssessmentReport = () => {
                       <p className="text-sm text-slate-500 italic">No significant weak areas detected yet!</p>
                     )}
                   </div>
-                </div>
               </div>
+            </div>
+
+            {/* New Advanced Reports Sections */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+              
+              {/* Left Column: Difficulty Analysis & Topic Ranking */}
+              <div className="space-y-6">
+                
+                {/* Difficulty Analysis */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Difficulty Analysis</h3>
+                  <div className="space-y-4">
+                    {['easy', 'medium', 'hard'].map(level => {
+                      const analysis = report.difficultyAnalysis?.[level] || { total: 0, correct: 0, accuracy: 0 };
+                      const color = level === 'easy' ? 'bg-emerald-500' : level === 'medium' ? 'bg-amber-500' : 'bg-red-500';
+                      const textColor = level === 'easy' ? 'text-emerald-400' : level === 'medium' ? 'text-amber-400' : 'text-red-400';
+                      return (
+                        <div key={level}>
+                          <div className="flex justify-between items-center text-xs font-semibold mb-1">
+                            <span className="capitalize text-slate-400 font-bold">{level} Questions</span>
+                            <span className={textColor}>{analysis.correct}/{analysis.total} ({analysis.accuracy}%)</span>
+                          </div>
+                          <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${color}`} style={{ width: `${analysis.accuracy}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Topic Ranking */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Topic Ranking</h3>
+                  <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {topicsArray.map((topic, index) => (
+                      <div key={index} className="flex justify-between items-center py-2.5">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-xs font-bold text-slate-400 w-5">#{index + 1}</span>
+                          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{topic.name}</span>
+                        </div>
+                        <span className={`text-sm font-bold ${getScoreColor(topic.accuracy)}`}>{topic.accuracy}% accuracy</span>
+                      </div>
+                    ))}
+                    {topicsArray.length === 0 && (
+                      <p className="text-slate-500 text-sm py-4 italic">No topic data to rank</p>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Right Column: AI Recommendations & Next Recommended Practice */}
+              <div className="space-y-6">
+                
+                {/* AI Study Recommendations */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm bg-gradient-to-br from-indigo-500/5 to-purple-500/5">
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-indigo-500 animate-pulse" /> AI Study Recommendations
+                  </h3>
+                  <ul className="space-y-3">
+                    {(report.aiStudyRecommendations && report.aiStudyRecommendations.length > 0
+                      ? report.aiStudyRecommendations
+                      : ["Identify key areas of improvement by attempting questions across multiple subtopics.", "Strengthen foundational theory using targeted learning tracks."]
+                    ).map((rec, idx) => (
+                      <li key={idx} className="flex items-start gap-2.5 text-sm text-slate-600 dark:text-slate-300 font-medium">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs font-bold mt-0.5">
+                          {idx + 1}
+                        </span>
+                        {rec}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Estimated Interview Performance */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Estimated Placement Outlook</h3>
+                  <p className="text-xs text-slate-500 mb-4">Predicted based on matching tier evaluation models.</p>
+                  
+                  <div className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02] flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold block mb-0.5">ESTIMATED OUTCOME</span>
+                      <span className={`text-sm font-black uppercase ${
+                        report.estimatedInterviewPerformance === 'Outstanding' ? 'text-emerald-400' :
+                        report.estimatedInterviewPerformance === 'Strong' ? 'text-indigo-400' :
+                        report.estimatedInterviewPerformance === 'Average' ? 'text-amber-400' : 'text-red-400'
+                      }`}>{report.estimatedInterviewPerformance || 'Needs Improvement'}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold block mb-0.5">READINESS SCORE</span>
+                      <span className="text-sm font-black text-white">{report.estimatedInterviewReadiness || report.score}%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Next Recommended Practice */}
+                <div className="bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-indigo-500/20 rounded-2xl p-6 shadow-md">
+                  <h4 className="font-bold text-indigo-200 text-sm uppercase tracking-wider mb-2">Next Recommended Practice</h4>
+                  <p className="text-xs text-indigo-300/80 mb-4 leading-relaxed">
+                    Based on your results, we recommend taking the **{report.nextRecommendedPractice || 'Quantitative Aptitude'}** assessment next to boost your readiness.
+                  </p>
+                  <button 
+                    onClick={() => navigate(`/assessment/${(report.nextRecommendedPractice || 'quant').toLowerCase().replace(/mcq/g, '').trim()}`)}
+                    className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-indigo-600 py-3 text-xs font-bold text-white hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20 active:scale-95"
+                  >
+                    Start Recommended Assessment
+                  </button>
+                </div>
+
+              </div>
+
+            </div>
           </motion.div>
         ) : (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">

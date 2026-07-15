@@ -1,43 +1,54 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-
 import { motion, AnimatePresence } from 'framer-motion';
 import Editor from '@monaco-editor/react';
-import { FaPlay, FaCheck, FaLightbulb, FaRobot, FaArrowLeft, FaUndo, FaSpinner, FaCheckCircle, FaTimesCircle, FaChevronDown, FaChevronUp, FaBuilding, FaTag, FaCode, FaQuestionCircle } from 'react-icons/fa';
-import { getQuestionById, ALL_QUESTIONS } from '../data/questionBank';
-import { Link } from 'react-router-dom';
+import { 
+  FiPlay, FiCheck, FiChevronLeft, FiSettings, FiMenu, FiMinimize2, FiMaximize2, 
+  FiClock, FiAlertCircle, FiTerminal, FiList, FiStar, FiFileText, FiRefreshCw, 
+  FiSliders, FiMessageSquare, FiBookOpen, FiHelpCircle, FiCode, FiMaximize, FiMinimize,
+  FiBook
+} from 'react-icons/fi';
 import api from '../services/api';
-
-const getProgress = () => { try { return JSON.parse(localStorage.getItem('coding_progress') || '{}'); } catch { return {}; } };
-const saveProgress = (id, status) => {
-  const p = getProgress();
-  p[id] = status;
-  localStorage.setItem('coding_progress', JSON.stringify(p));
-};
-
-const diffColor = { Easy: 'text-green-400 bg-green-400/10 border-green-400/20', Medium: 'text-amber-400 bg-amber-400/10 border-amber-400/20', Hard: 'text-red-400 bg-red-400/10 border-red-400/20' };
 
 const LANGUAGES = [
   { id: 'javascript', label: 'JavaScript' },
-  { id: 'python', label: 'Python' },
+  { id: 'python', label: 'Python 3' },
   { id: 'java', label: 'Java' },
   { id: 'cpp', label: 'C++' },
+  { id: 'c', label: 'C' },
+  { id: 'csharp', label: 'C#' },
   { id: 'sql', label: 'SQL' },
 ];
 
 const CodingEditor = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const question = getQuestionById(id);
+  const editorRef = useRef(null);
+  
+  const [problem, setProblem] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [language, setLanguage] = useState('javascript');
   const [code, setCode] = useState('');
-  const [tab, setTab] = useState('description'); // description | hints | analysis
-  const [analyzing, setAnalyzing] = useState(false);
-  const [feedback, setFeedback] = useState(null);
-  const [hintsOpen, setHintsOpen] = useState(false);
-  const [solved, setSolved] = useState(!!getProgress()[id]);
+  const [theme, setTheme] = useState('vs-dark');
+  const [fontSize, setFontSize] = useState(14);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  
+  // UI Panels & Console States
+  const [activeTab, setActiveTab] = useState('description'); // description | hints | editorial | discussion
+  const [consoleOpen, setConsoleOpen] = useState(false);
+  const [consoleTab, setConsoleTab] = useState('testcase'); // testcase | result
+  
+  // Execution States
+  const [running, setRunning] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [executionResult, setExecutionResult] = useState(null);
+  const [executionMode, setExecutionMode] = useState(''); // 'run' or 'submit'
+  
+  // Custom Test Case Inputs
+  const [customInput, setCustomInput] = useState('');
+  const [activeHintIndex, setActiveHintIndex] = useState(-1);
 
-  // Parse recruitment simulation parameters
+  // Recruitment Sim Params
   const params = new URLSearchParams(window.location.search);
   const isSim = params.get('sim') === 'true';
   const companyName = params.get('company') || '';
@@ -45,458 +56,661 @@ const CodingEditor = () => {
   const roundIndex = parseInt(params.get('roundIndex') || '0', 10);
 
   useEffect(() => {
-    if (question) {
-      const starter = question.starterCode;
-      setCode(typeof starter === 'string' ? starter : starter[language] || `// Write your ${language} solution here\n`);
-    }
-  }, [question, language]);
+    fetchProblem();
+  }, [id]);
 
-  const similarQuestions = question 
-    ? ALL_QUESTIONS.filter(q => q.id !== question.id && q.topic === question.topic).slice(0, 5)
-    : [];
+  const fetchProblem = async () => {
+    try {
+      setLoading(true);
+      const { data } = await api.get(`/coding/problems/${id}`);
+      setProblem(data);
+      
+      let defaultLang = 'javascript';
+      if (data.topics && data.topics.some(t => t.toLowerCase() === 'sql')) {
+        defaultLang = 'sql';
+      } else if (data.topics && data.topics.some(t => t.toLowerCase() === 'python')) {
+        defaultLang = 'python';
+      }
+      setLanguage(defaultLang);
+      
+      if (data.starterCode && data.starterCode[defaultLang]) {
+        setCode(data.starterCode[defaultLang]);
+      } else {
+        setCode(`// Write your ${defaultLang} code here\n`);
+      }
+      
+      // Auto-populate custom input from first example if available
+      if (data.examples && data.examples.length > 0) {
+        setCustomInput(data.examples[0].input);
+      }
+    } catch (error) {
+      console.error('Failed to fetch problem', error);
+      // Fallback fallback
+      setProblem({
+        _id: '1',
+        title: 'Two Sum',
+        difficulty: 'Easy',
+        description: 'Given an array of integers <code>nums</code> and an integer <code>target</code>, return indices of the two numbers such that they add up to <code>target</code>.',
+        examples: [
+          { input: 'nums = [2,7,11,15], target = 9', output: '[0,1]', explanation: 'Because nums[0] + nums[1] == 9, we return [0, 1].' }
+        ],
+        constraints: ['2 <= nums.length <= 10^4', '-10^9 <= nums[i] <= 10^9', '-10^9 <= target <= 10^9'],
+        hints: ['Try using a hash map to look up targets in O(1) time.', 'Verify boundary cases like negative numbers and empty lists.'],
+        starterCode: { javascript: 'function twoSum(nums, target) {\n  // Write your code here\n}' }
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLanguageChange = (e) => {
+    const lang = e.target.value;
+    setLanguage(lang);
+    if (problem?.starterCode && problem.starterCode[lang]) {
+      setCode(problem.starterCode[lang]);
+    }
+  };
 
   const handleRun = async () => {
-    setAnalyzing(true);
-    setFeedback(null);
-    setTab('analysis');
+    setRunning(true);
+    setConsoleOpen(true);
+    setConsoleTab('result');
+    setExecutionResult(null);
+    setExecutionMode('run');
+    
     try {
-      const res = await api.post('/coding/run', { problem: question.title, code, language });
-      setFeedback(res.data);
-    } catch { setFeedback({ score: 0, feedback: 'Failed to run. Check your connection.', simulatedOutput: 'Error', mistakes: [], optimizationTips: [], timeComplexity: 'N/A', spaceComplexity: 'N/A' }); }
-    finally { setAnalyzing(false); }
+      const { data } = await api.post('/coding/run', { 
+        problemId: problem._id,
+        code, 
+        language, 
+        customInput 
+      });
+      setExecutionResult(data);
+    } catch (error) {
+      setExecutionResult({ 
+        feedback: 'Execution Failed or Server Connection Error', 
+        score: 0, 
+        submission: { 
+          status: 'Runtime Error', 
+          passedTestCases: 0, 
+          totalTestCases: 2, 
+          executionTime: 0, 
+          memoryUsed: 0 
+        } 
+      });
+    } finally {
+      setRunning(false);
+    }
   };
 
   const handleSubmit = async () => {
-    setAnalyzing(true);
-    setFeedback(null);
-    setTab('analysis');
+    setSubmitting(true);
+    setConsoleOpen(true);
+    setConsoleTab('result');
+    setExecutionResult(null);
+    setExecutionMode('submit');
+    
     try {
-      const res = await api.post('/coding/submit', { problem: question.title, code, language });
-      setFeedback(res.data);
-      const score = res.data.score || 0;
-      if (score >= 70) {
-        saveProgress(id, true);
-        setSolved(true);
-      }
-
-      // Check if this was a recruitment simulation round
-      if (isSim && score >= 60) {
+      const { data } = await api.post('/coding/submit', { 
+        problemId: problem._id, 
+        code, 
+        language 
+      });
+      setExecutionResult(data);
+      
+      // Recruitment Simulation Logging
+      if (isSim && data.score >= 60) {
         const simKey = `recruitment_sim_${companyName}_${role}`;
         let simData = JSON.parse(localStorage.getItem(simKey)) || { currentRoundIndex: 0, scores: {} };
-        simData.scores[roundIndex] = score;
+        simData.scores[roundIndex] = data.score;
         simData.currentRoundIndex = Math.max(simData.currentRoundIndex, roundIndex + 1);
         localStorage.setItem(simKey, JSON.stringify(simData));
       }
-    } catch { setFeedback({ score: 0, feedback: 'Submission failed. Check your connection.', simulatedOutput: 'Error', mistakes: [], optimizationTips: [], timeComplexity: 'N/A', spaceComplexity: 'N/A' }); }
-    finally { setAnalyzing(false); }
+    } catch (error) {
+      setExecutionResult({ 
+        feedback: 'Submission Failed or Server Connection Error', 
+        score: 0, 
+        submission: { 
+          status: 'Compile Error', 
+          passedTestCases: 0, 
+          totalTestCases: 15, 
+          executionTime: 0, 
+          memoryUsed: 0 
+        } 
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleReset = () => {
-    if (!question) return;
-    const starter = question.starterCode;
-    setCode(typeof starter === 'string' ? starter : starter[language] || `// Write your ${language} solution here\n`);
-    setFeedback(null);
+  const formatCode = () => {
+    // Basic JS code formatting simulation. Real formatters require bulky deps.
+    if (editorRef.current) {
+      editorRef.current.trigger('anyString', 'editor.action.formatDocument');
+    }
   };
 
-  const handleAIHint = async (level) => {
-    setTab('analysis');
-    setAnalyzing(true);
-    setFeedback(null);
-    try {
-      const res = await api.post('/coding/hint', { problem: question.title, description: question.description, hints: question.hints, level });
-      setFeedback({ type: 'hint', feedback: res.data.hint, score: null, simulatedOutput: null });
-    } catch { setFeedback({ type: 'hint', feedback: 'AI hint not available. Try again.', score: null }); }
-    finally { setAnalyzing(false); }
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
   };
 
-  if (!question) return (
-    <div className="flex h-screen bg-background items-center justify-center text-foreground flex-col gap-4">
-      <div className="text-4xl">😕</div>
-      <p>Question not found.</p>
-      <button onClick={() => navigate('/coding')} className="text-indigo-400 hover:underline">Back to Hub</button>
-    </div>
-  );
+  const getDifficultyColor = (diff) => {
+    switch (diff) {
+      case 'Easy': return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+      case 'Medium': return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
+      case 'Hard': return 'text-rose-400 bg-rose-500/10 border-rose-500/20';
+      default: return 'text-slate-400 bg-slate-500/10 border-slate-500/20';
+    }
+  };
+
+  const getStatusColor = (status) => {
+    if (status === 'Accepted') return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+    if (status === 'Wrong Answer') return 'text-rose-400 bg-rose-500/10 border-rose-500/20';
+    if (status === 'Time Limit Exceeded' || status === 'Memory Limit Exceeded') return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
+    return 'text-red-400 bg-red-500/10 border-red-500/20';
+  };
+
+  if (loading || !problem) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0c] flex items-center justify-center">
+        <div className="animate-spin w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className={`h-screen flex flex-col bg-[#0d0d11] text-slate-300 font-sans overflow-hidden ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}>
       
-      <div className="flex-1 ml-0 flex flex-col h-screen overflow-hidden">
-
-        {/* Top Bar */}
-        <div className="flex-shrink-0 h-14 bg-card border-b border-border flex items-center justify-between px-4 gap-4">
-          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm transition-colors">
-            <FaArrowLeft /> Back
+      {/* Top Professional Code-Workspace Header */}
+      <div className="h-14 bg-[#141418] border-b border-white/5 flex items-center justify-between px-4 shrink-0 relative z-20">
+        <div className="flex items-center space-x-4">
+          <button 
+            onClick={() => navigate(-1)} 
+            className="flex items-center space-x-1.5 text-xs font-bold text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-xl border border-white/5 transition-all"
+          >
+            <FiChevronLeft className="w-4 h-4" />
+            <span>Problem List</span>
           </button>
-          <div className="flex items-center gap-3 flex-1">
-            <h1 className="text-foreground font-semibold text-sm truncate">{question.title}</h1>
-            <span className={`text-xs px-2.5 py-0.5 rounded-full border font-medium flex-shrink-0 ${diffColor[question.difficulty]}`}>{question.difficulty}</span>
-            {solved && <span className="text-xs text-green-400 flex items-center gap-1"><FaCheckCircle /> Solved</span>}
-          </div>
-          <div className="flex items-center gap-2">
-            <select value={language} onChange={e => setLanguage(e.target.value)}
-              className="bg-card border border-slate-700 text-muted-foreground rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500">
-              {LANGUAGES.map(l => <option key={l.id} value={l.id}>{l.label}</option>)}
-            </select>
-            <button onClick={handleReset} title="Reset Code"
-              className="p-2 bg-card hover:bg-slate-700 text-muted-foreground rounded-lg text-sm transition-colors">
-              <FaUndo />
-            </button>
-            <button onClick={() => handleAIHint(1)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600/20 border border-purple-500/30 hover:bg-purple-600/30 text-purple-300 rounded-lg text-xs transition-colors">
-              <FaLightbulb /> Hint 1
-            </button>
-            <button onClick={() => handleAIHint(2)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600/20 border border-purple-500/30 hover:bg-purple-600/30 text-purple-300 rounded-lg text-xs transition-colors">
-              <FaLightbulb /> Hint 2
-            </button>
-            <button onClick={() => handleAIHint(3)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600/20 border border-purple-500/30 hover:bg-purple-600/30 text-purple-300 rounded-lg text-xs transition-colors">
-              <FaLightbulb /> Hint 3
-            </button>
-            <button onClick={handleRun} disabled={analyzing}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-foreground rounded-lg text-xs font-medium transition-colors disabled:opacity-50">
-              {analyzing ? <FaSpinner className="animate-spin" /> : <FaPlay />} Run
-            </button>
-            <button onClick={handleSubmit} disabled={analyzing}
-              className="flex items-center gap-1.5 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-foreground rounded-lg text-xs font-medium transition-colors disabled:opacity-50">
-              {analyzing ? <FaSpinner className="animate-spin" /> : <FaCheck />} Submit
-            </button>
+          
+          <div className="flex items-center space-x-2.5">
+            <span className="font-bold text-white max-w-[200px] sm:max-w-[400px] truncate">{problem.title}</span>
+            <span className={`text-[10px] px-2.5 py-0.5 rounded-lg border font-extrabold uppercase tracking-wider ${getDifficultyColor(problem.difficulty)}`}>
+              {problem.difficulty}
+            </span>
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* LEFT PANEL — Problem & Feedback */}
-          <div className="w-[42%] flex flex-col border-r border-border overflow-hidden">
-            {/* Tab Switcher */}
-            <div className="flex-shrink-0 flex border-b border-border bg-card">
-              {['description', 'hints', 'analysis'].map(t => (
-                <button key={t} onClick={() => setTab(t)}
-                  className={`px-5 py-3 text-xs font-semibold capitalize transition-colors border-b-2 ${tab === t ? 'text-indigo-400 border-indigo-400 bg-card/50' : 'text-muted-foreground border-transparent hover:text-foreground'}`}>
-                  {t === 'analysis' ? '🤖 AI Analysis' : t === 'hints' ? '💡 Hints' : '📋 Problem'}
-                </button>
-              ))}
-            </div>
+        {/* Global IDE Action Controls */}
+        <div className="flex items-center space-x-3">
+          <button 
+            onClick={handleRun}
+            disabled={running || submitting}
+            className="flex items-center space-x-1 px-4 py-1.5 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-bold border border-white/5 transition disabled:opacity-50 hover:scale-105 active:scale-95"
+          >
+            {running ? (
+              <span className="animate-spin mr-1 h-3.5 w-3.5 border-2 border-indigo-500 border-t-transparent rounded-full" />
+            ) : (
+              <FiPlay className="w-3 h-3 text-indigo-400 fill-indigo-400/20" />
+            )} 
+            <span>Run</span>
+          </button>
+          
+          <button 
+            onClick={handleSubmit}
+            disabled={running || submitting}
+            className="flex items-center space-x-1 px-4 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white rounded-xl text-xs font-bold transition disabled:opacity-50 hover:scale-105 active:scale-95 shadow-md shadow-emerald-500/10"
+          >
+            {submitting ? (
+              <span className="animate-spin mr-1 h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full" />
+            ) : (
+              <FiCheck className="w-3.5 h-3.5" />
+            )} 
+            <span>Submit</span>
+          </button>
+        </div>
+      </div>
 
-            {/* Tab Content */}
-            <div className="flex-1 overflow-y-auto">
-              <AnimatePresence mode="wait">
-                {tab === 'description' && (
-                  <motion.div key="desc" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-6 space-y-6">
-                    {/* Company Tags */}
-                    {question.companies?.length > 0 && (
-                      <div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2"><FaBuilding /> Asked by</div>
-                        <div className="flex flex-wrap gap-2">
-                          {question.companies.map(c => (
-                            <span key={c} className="text-xs bg-blue-500/10 border border-blue-500/20 text-blue-300 px-2.5 py-1 rounded-full">{c}</span>
-                          ))}
-                        </div>
+      {/* Main Split Screen Editor Framework */}
+      <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
+        
+        {/* Left Interactive Documentation Workspace Panel */}
+        <div className="border-b lg:border-b-0 lg:border-r border-white/5 flex flex-col bg-[#111115] w-full lg:w-[45%] shrink-0">
+          
+          {/* Glassmorphic tab selection row */}
+          <div className="flex h-11 border-b border-white/5 bg-[#141418] shrink-0 overflow-x-auto whitespace-nowrap scrollbar-none">
+            <button 
+              onClick={() => setActiveTab('description')}
+              className={`flex items-center space-x-1.5 px-4 text-xs font-bold transition-all relative ${
+                activeTab === 'description' ? 'text-indigo-400 bg-[#111115]' : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <FiFileText className="w-3.5 h-3.5" />
+              <span>Description</span>
+              {activeTab === 'description' && (
+                <motion.div layoutId="activeTabUnderline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500" />
+              )}
+            </button>
+            
+            <button 
+              onClick={() => setActiveTab('hints')}
+              className={`flex items-center space-x-1.5 px-4 text-xs font-bold transition-all relative ${
+                activeTab === 'hints' ? 'text-indigo-400 bg-[#111115]' : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <FiHelpCircle className="w-3.5 h-3.5" />
+              <span>Hints</span>
+              {activeTab === 'hints' && (
+                <motion.div layoutId="activeTabUnderline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500" />
+              )}
+            </button>
+
+            <button 
+              onClick={() => setActiveTab('editorial')}
+              className={`flex items-center space-x-1.5 px-4 text-xs font-bold transition-all relative ${
+                activeTab === 'editorial' ? 'text-indigo-400 bg-[#111115]' : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <FiBookOpen className="w-3.5 h-3.5" />
+              <span>Editorial (AI)</span>
+              {activeTab === 'editorial' && (
+                <motion.div layoutId="activeTabUnderline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500" />
+              )}
+            </button>
+
+            <button 
+              onClick={() => setActiveTab('discussion')}
+              className={`flex items-center space-x-1.5 px-4 text-xs font-bold transition-all relative ${
+                activeTab === 'discussion' ? 'text-indigo-400 bg-[#111115]' : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <FiMessageSquare className="w-3.5 h-3.5" />
+              <span>Discussion</span>
+              {activeTab === 'discussion' && (
+                <motion.div layoutId="activeTabUnderline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500" />
+              )}
+            </button>
+          </div>
+
+          {/* Interactive Documentation Content Area */}
+          <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-[#0f0f13] space-y-6">
+            
+            <AnimatePresence mode="wait">
+              {activeTab === 'description' && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 5 }} 
+                  animate={{ opacity: 1, y: 0 }} 
+                  exit={{ opacity: 0, y: -5 }} 
+                  className="space-y-6"
+                >
+                  {/* Rich Render Description */}
+                  <div className="text-[14.5px] leading-relaxed text-slate-300 font-normal">
+                    <div dangerouslySetInnerHTML={{ __html: problem.description }} />
+                  </div>
+                  
+                  {/* Examples Cards */}
+                  {problem.examples && problem.examples.map((ex, i) => (
+                    <div key={i} className="space-y-2">
+                      <span className="text-sm font-bold text-white">Example {i + 1}:</span>
+                      <div className="bg-[#141419] border border-white/5 rounded-2xl p-4 font-mono text-xs text-indigo-300 whitespace-pre-wrap break-all leading-relaxed relative">
+                        <div className="absolute top-3 right-3 text-[9px] text-slate-600 uppercase font-black tracking-widest pointer-events-none">Sample</div>
+                        <span className="font-bold text-slate-500">Input: </span>{ex.input}{'\n'}
+                        <span className="font-bold text-slate-500">Output: </span>{ex.output}{'\n'}
+                        {ex.explanation && (
+                          <><span className="font-bold text-slate-500">Explanation: </span>{ex.explanation}</>
+                        )}
                       </div>
-                    )}
-
-                    {/* Description */}
-                    <div>
-                      <h3 className="text-sm font-bold text-foreground mb-3">Problem Statement</h3>
-                      <div className="text-muted-foreground text-sm whitespace-pre-wrap leading-relaxed">{question.description}</div>
                     </div>
+                  ))}
+                  
+                  {/* Constraints Section */}
+                  {problem.constraints && problem.constraints.length > 0 && (
+                    <div className="space-y-2">
+                      <span className="text-sm font-bold text-white">Constraints:</span>
+                      <ul className="space-y-1.5 pl-1.5 text-xs text-slate-400 font-mono">
+                        {problem.constraints.map((c, i) => (
+                          <li key={i} className="flex items-center space-x-2">
+                            <span className="w-1.5 h-1.5 bg-slate-600 rounded-full" />
+                            <code className="bg-[#18181d] px-2 py-0.5 rounded-lg border border-white/5 text-indigo-200">{c}</code>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
-                    {/* Examples */}
-                    <div>
-                      <h3 className="text-sm font-bold text-foreground mb-3">Examples</h3>
-                      <div className="space-y-3">
-                        {question.examples.map((ex, idx) => (
-                          <div key={idx} className="bg-card border border-border rounded-xl p-4 font-mono text-xs">
-                            <div className="text-muted-foreground mb-1">Input:</div>
-                            <div className="text-green-400 mb-2">{ex.input}</div>
-                            <div className="text-muted-foreground mb-1">Output:</div>
-                            <div className="text-indigo-300">{ex.output}</div>
-                            {ex.explanation && <div className="text-muted-foreground mt-2 text-[11px]">Explanation: {ex.explanation}</div>}
-                          </div>
+                  {/* Asked Companies */}
+                  {problem.companies && problem.companies.length > 0 && (
+                    <div className="space-y-2 pt-4 border-t border-white/5">
+                      <span className="text-[11px] uppercase font-black text-slate-500 tracking-wider">Top Companies Asking This</span>
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {problem.companies.map(c => (
+                          <span key={c} className="text-xs bg-white/5 border border-white/5 text-slate-300 font-semibold px-2.5 py-1 rounded-xl">
+                            {c}
+                          </span>
                         ))}
                       </div>
                     </div>
+                  )}
+                </motion.div>
+              )}
 
-                    {/* Constraints */}
-                    {question.constraints?.length > 0 && (
-                      <div>
-                        <h3 className="text-sm font-bold text-foreground mb-3">Constraints</h3>
-                        <ul className="space-y-1">
-                          {question.constraints.map((c, i) => (
-                            <li key={i} className="text-muted-foreground text-xs font-mono flex gap-2">
-                              <span className="text-indigo-400">•</span>{c}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {/* Expected Complexity */}
-                    <div className="flex gap-4">
-                      <div className="flex-1 bg-card border border-border rounded-xl p-4 text-center">
-                        <div className="text-xs text-muted-foreground mb-1">Expected Time</div>
-                        <div className="font-mono text-indigo-300 text-sm">{question.expectedComplexity?.time}</div>
-                      </div>
-                      <div className="flex-1 bg-card border border-border rounded-xl p-4 text-center">
-                        <div className="text-xs text-muted-foreground mb-1">Expected Space</div>
-                        <div className="font-mono text-purple-300 text-sm">{question.expectedComplexity?.space}</div>
-                      </div>
-                    </div>
-
-                    {/* Topic Tags */}
-                    {question.topicTags && (
-                      <div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2"><FaTag /> Topics</div>
-                        <div className="flex flex-wrap gap-1">
-                          {question.topicTags.map(t => (
-                            <span key={t} className="text-xs bg-card text-muted-foreground border border-slate-700 px-2 py-0.5 rounded-full">{t}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Similar Questions */}
-                    {similarQuestions.length > 0 && (
-                      <div className="pt-6 border-t border-border">
-                        <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2"><FaCode /> Practice Similar Questions</h3>
-                        <div className="space-y-2">
-                          {similarQuestions.map(sq => (
-                            <Link key={sq.id} to={`/coding/problem/${sq.id}`} 
-                              className="flex items-center justify-between p-3 bg-card border border-border rounded-xl hover:bg-card transition-colors group">
-                              <span className="text-sm text-muted-foreground group-hover:text-indigo-400 transition-colors">{sq.title}</span>
-                              <span className={`text-[10px] px-2 py-0.5 rounded-full border ${diffColor[sq.difficulty]}`}>{sq.difficulty}</span>
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-
-                {tab === 'hints' && (
-                  <motion.div key="hints" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-6">
-                    <div className="flex items-center gap-2 mb-4">
-                      <FaLightbulb className="text-amber-400" />
-                      <h3 className="text-foreground font-bold">Hints</h3>
-                    </div>
+              {activeTab === 'hints' && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 5 }} 
+                  animate={{ opacity: 1, y: 0 }} 
+                  exit={{ opacity: 0, y: -5 }} 
+                  className="space-y-4"
+                >
+                  <h3 className="text-lg font-bold text-white mb-2 flex items-center">
+                    <FiHelpCircle className="mr-2 text-indigo-400" /> Need a hint?
+                  </h3>
+                  
+                  {!problem.hints || problem.hints.length === 0 ? (
+                    <p className="text-slate-500 text-sm">No hints available for this problem yet. Try finding alternative paths!</p>
+                  ) : (
                     <div className="space-y-3">
-                      {question.hints?.map((hint, i) => (
-                        <div key={i} className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4">
-                          <span className="text-amber-400 font-bold text-xs block mb-1">Hint {i + 1}</span>
-                          <p className="text-muted-foreground text-sm">{hint}</p>
+                      {problem.hints.map((hint, i) => (
+                        <div 
+                          key={i} 
+                          className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 cursor-pointer hover:bg-white/[0.04] transition-all"
+                          onClick={() => setActiveHintIndex(activeHintIndex === i ? -1 : i)}
+                        >
+                          <div className="flex justify-between items-center text-xs font-bold uppercase tracking-wider text-slate-400 select-none">
+                            <span>Hint {i + 1}</span>
+                            <span className="text-indigo-400">{activeHintIndex === i ? 'Hide' : 'Reveal'}</span>
+                          </div>
+                          <AnimatePresence>
+                            {activeHintIndex === i && (
+                              <motion.p 
+                                initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                                animate={{ height: 'auto', opacity: 1, marginTop: 8 }}
+                                exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                                className="text-sm text-slate-300 font-normal leading-relaxed border-t border-white/5 pt-2 whitespace-pre-wrap"
+                              >
+                                {hint}
+                              </motion.p>
+                            )}
+                          </AnimatePresence>
                         </div>
                       ))}
                     </div>
-                    <div className="mt-6 p-4 bg-card border border-border rounded-xl">
-                      <h4 className="text-foreground font-semibold text-sm mb-2">💡 AI-Generated Approach</h4>
-                      <p className="text-muted-foreground text-xs">Click "AI Hint" in the top bar to get a personalized hint from AI based on your current code.</p>
+                  )}
+                </motion.div>
+              )}
+
+              {activeTab === 'editorial' && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 5 }} 
+                  animate={{ opacity: 1, y: 0 }} 
+                  exit={{ opacity: 0, y: -5 }} 
+                  className="space-y-4"
+                >
+                  <div className="bg-[#141419] border border-white/5 rounded-3xl p-6 text-center text-slate-400 flex flex-col items-center justify-center space-y-4">
+                    <span className="text-4xl text-indigo-400">🤖</span>
+                    <h3 className="text-white font-bold text-lg">AI Editorial Analysis</h3>
+                    <p className="text-sm max-w-sm">Write and submit code to evaluate optimal approaches, runtime feedback, Big-O metrics, and automated tips.</p>
+                    <button 
+                      onClick={handleSubmit} 
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 font-bold text-xs text-white rounded-xl transition"
+                    >
+                      Run Submission Analysis
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {activeTab === 'discussion' && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 5 }} 
+                  animate={{ opacity: 1, y: 0 }} 
+                  exit={{ opacity: 0, y: -5 }} 
+                  className="space-y-4"
+                >
+                  <h3 className="text-white font-bold text-base flex items-center">
+                    <FiMessageSquare className="mr-2 text-indigo-400" /> Community Discussion
+                  </h3>
+                  
+                  {/* Mock Chat boards */}
+                  <div className="space-y-3">
+                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-bold text-white">coder_42</span>
+                        <span className="text-slate-500">2 hours ago</span>
+                      </div>
+                      <p className="text-sm text-slate-300">Using a map cuts the runtime complexity down from O(N^2) to O(N). Really helpful hint!</p>
                     </div>
-                  </motion.div>
-                )}
-
-                {tab === 'analysis' && (
-                  <motion.div key="analysis" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-6">
-                    <div className="flex items-center gap-2 mb-4">
-                      <FaRobot className="text-indigo-400 text-lg" />
-                      <h3 className="text-foreground font-bold">AI Analysis</h3>
+                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-bold text-white">dev_ninja</span>
+                        <span className="text-slate-500">1 day ago</span>
+                      </div>
+                      <p className="text-sm text-slate-300">Make sure to check constraints, inputs can contain negative integers. Double check array values before indexing.</p>
                     </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-                    {analyzing && (
-                      <div className="flex flex-col items-center justify-center py-16 gap-4">
-                        <div className="relative w-16 h-16">
-                          <div className="absolute inset-0 border-4 border-indigo-500/20 rounded-full" />
-                          <div className="absolute inset-0 border-4 border-indigo-500 rounded-full border-t-transparent animate-spin" />
-                          <div className="absolute inset-0 flex items-center justify-center text-2xl">🤖</div>
-                        </div>
-                        <p className="text-indigo-400 text-sm animate-pulse">Analyzing your code...</p>
-                      </div>
-                    )}
+          </div>
+        </div>
 
-                    {!analyzing && !feedback && (
-                      <div className="text-center py-16 text-muted-foreground text-sm">
-                        <div className="text-5xl mb-4">🤖</div>
-                        <p>Run or Submit your code to get AI feedback.</p>
-                      </div>
-                    )}
-
-                    {!analyzing && feedback && (
-                      <div className="space-y-4">
-                        {/* Hint mode */}
-                        {feedback.type === 'hint' && (
-                          <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-5">
-                            <div className="flex items-center gap-2 text-amber-400 font-bold mb-3"><FaLightbulb /> AI Hint</div>
-                            <p className="text-muted-foreground text-sm leading-relaxed">{feedback.feedback}</p>
-                          </div>
-                        )}
-
-                        {/* Submission Result */}
-                        {feedback.score !== null && feedback.score !== undefined && (
-                          <div className={`rounded-xl p-5 border ${feedback.score >= 80 ? 'bg-green-500/5 border-green-500/20' : 'bg-red-500/5 border-red-500/20'}`}>
-                            <div className="flex items-center justify-between mb-4">
-                              <div className="flex flex-col">
-                                <span className="font-bold text-foreground flex items-center gap-2 text-xl mb-1">
-                                  {feedback.score >= 80 ? <FaCheckCircle className="text-green-400" /> : <FaTimesCircle className="text-red-400" />}
-                                  {feedback.score >= 80 ? <span className="text-green-400">Accepted</span> : <span className="text-red-400">Wrong Answer</span>}
-                                </span>
-                                <span className="text-muted-foreground text-sm flex gap-2">
-                                  <span>Testcases Passed: <strong>{feedback.testCasesPassed || (feedback.score >= 80 ? "15/15" : "3/15")}</strong></span>
-                                </span>
-                              </div>
-                              <div className="flex gap-4 text-center">
-                                <div className="bg-card/50 rounded-lg p-2 min-w-[80px]">
-                                  <div className="text-xs text-muted-foreground mb-1">Runtime</div>
-                                  <div className="font-mono text-sm font-bold text-foreground">{feedback.runtime || "45 ms"}</div>
-                                </div>
-                                <div className="bg-card/50 rounded-lg p-2 min-w-[80px]">
-                                  <div className="text-xs text-muted-foreground mb-1">Memory</div>
-                                  <div className="font-mono text-sm font-bold text-foreground">{feedback.memoryUsed || "41.2 MB"}</div>
-                                </div>
-                              </div>
-                            </div>
-                            <p className="text-muted-foreground text-sm leading-relaxed border-t border-border pt-3 mt-3">{feedback.feedback}</p>
-
-                            {/* Simulation Continue button */}
-                            {isSim && (
-                              <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => navigate(`/companies/${companyName}?role=${encodeURIComponent(role)}&simComplete=true&round=${roundIndex}&score=${feedback.score}`)}
-                                className={`w-full mt-4 font-bold py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 text-sm ${
-                                  feedback.score >= 60 
-                                    ? 'bg-emerald-650 hover:bg-emerald-600 text-foreground shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_20px_rgba(16,185,129,0.5)]'
-                                    : 'bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30'
-                                }`}
-                              >
-                                {feedback.score >= 60 ? (
-                                  <>
-                                    <FaCheckCircle /> Unlock Next Simulation Stage
-                                  </>
-                                ) : (
-                                  <>
-                                    <FaTimesCircle /> Return to Timeline & Recommendations
-                                  </>
-                                )}
-                              </motion.button>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Simulated Output */}
-                        {feedback.simulatedOutput && (
-                          <div className="bg-card border border-border rounded-xl p-4">
-                            <div className="text-xs text-muted-foreground mb-2 font-semibold uppercase tracking-wider">Console Output</div>
-                            <pre className="font-mono text-sm text-muted-foreground whitespace-pre-wrap">{feedback.simulatedOutput}</pre>
-                          </div>
-                        )}
-
-                        {/* Complexity */}
-                        {(feedback.timeComplexity || feedback.spaceComplexity) && (
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-card border border-border rounded-xl p-4 text-center">
-                              <div className="text-xs text-muted-foreground mb-1">Time Complexity</div>
-                              <div className="font-mono text-indigo-300 font-bold">{feedback.timeComplexity}</div>
-                            </div>
-                            <div className="bg-card border border-border rounded-xl p-4 text-center">
-                              <div className="text-xs text-muted-foreground mb-1">Space Complexity</div>
-                              <div className="font-mono text-purple-300 font-bold">{feedback.spaceComplexity}</div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Code Review */}
-                        {feedback.codeReview && (
-                          <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4">
-                            <div className="text-blue-400 font-bold text-sm mb-3">📋 Professional Code Review</div>
-                            <div className="space-y-3">
-                              {feedback.codeReview.codeQuality && (
-                                <div><span className="text-xs text-muted-foreground block uppercase tracking-wider mb-0.5">Code Quality</span><div className="text-sm text-muted-foreground">{feedback.codeReview.codeQuality}</div></div>
-                              )}
-                              {feedback.codeReview.readability && (
-                                <div><span className="text-xs text-muted-foreground block uppercase tracking-wider mb-0.5">Readability</span><div className="text-sm text-muted-foreground">{feedback.codeReview.readability}</div></div>
-                              )}
-                              {feedback.codeReview.variableNaming && (
-                                <div><span className="text-xs text-muted-foreground block uppercase tracking-wider mb-0.5">Variable Naming</span><div className="text-sm text-muted-foreground">{feedback.codeReview.variableNaming}</div></div>
-                              )}
-                              {feedback.codeReview.edgeCases && (
-                                <div><span className="text-xs text-muted-foreground block uppercase tracking-wider mb-0.5">Edge Case Handling</span><div className="text-sm text-muted-foreground">{feedback.codeReview.edgeCases}</div></div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Mistakes */}
-                        {feedback.mistakes?.length > 0 && (
-                          <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4">
-                            <div className="text-red-400 font-bold text-sm mb-3">⚠️ Issues Found</div>
-                            <ul className="space-y-2">
-                              {feedback.mistakes.map((m, i) => (
-                                <li key={i} className="text-muted-foreground text-sm flex gap-2"><span className="text-red-400 flex-shrink-0">•</span>{m}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {/* Optimization Tips */}
-                        {feedback.optimizationTips?.length > 0 && (
-                          <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-xl p-4">
-                            <div className="text-indigo-400 font-bold text-sm mb-3">🚀 Optimization Suggestions</div>
-                            <ul className="space-y-2">
-                              {feedback.optimizationTips.map((t, i) => (
-                                <li key={i} className="text-muted-foreground text-sm flex gap-2"><span className="text-indigo-400 flex-shrink-0">•</span>{t}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {/* Follow-up Questions */}
-                        {feedback.followUpQuestions?.length > 0 && (
-                          <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4">
-                            <div className="text-emerald-400 font-bold text-sm mb-3 flex items-center gap-2"><FaQuestionCircle /> Interview Follow-up Questions</div>
-                            <p className="text-xs text-muted-foreground mb-3">How would you answer these if the interviewer asked?</p>
-                            <ul className="space-y-3">
-                              {feedback.followUpQuestions.map((q, i) => (
-                                <li key={i} className="text-muted-foreground text-sm p-3 bg-card border border-border rounded-lg">{q}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+        {/* Right Editor IDE Panel & Bottom Console */}
+        <div className="flex-1 flex flex-col min-w-0 w-full relative">
+          
+          {/* Customizable Monaco Editor Controls Header */}
+          <div className="flex h-11 border-b border-white/5 bg-[#141418] items-center px-4 justify-between shrink-0 relative z-10">
+            <div className="flex items-center space-x-3">
+              {/* Custom SELECT Dropdown Container */}
+              <div className="relative">
+                <select 
+                  value={language}
+                  onChange={handleLanguageChange}
+                  className="bg-white/5 border border-white/5 text-slate-200 text-xs font-bold rounded-xl px-3 py-1.5 focus:outline-none cursor-pointer appearance-none pr-8 hover:bg-white/10 transition-colors"
+                >
+                  {LANGUAGES.map(lang => (
+                    <option key={lang.id} value={lang.id} className="bg-[#141416]">{lang.label}</option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 text-[10px]">▼</div>
+              </div>
+              
+              {/* Font selector */}
+              <div className="relative">
+                <select 
+                  value={fontSize}
+                  onChange={(e) => setFontSize(parseInt(e.target.value))}
+                  className="bg-white/5 border border-white/5 text-slate-200 text-xs font-bold rounded-xl px-2 py-1.5 focus:outline-none cursor-pointer appearance-none pr-6 hover:bg-white/10 transition-colors"
+                >
+                  <option value={12} className="bg-[#141416]">12px</option>
+                  <option value={14} className="bg-[#141416]">14px</option>
+                  <option value={16} className="bg-[#141416]">16px</option>
+                  <option value={18} className="bg-[#141416]">18px</option>
+                </select>
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 text-[8px]">▼</div>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <button 
+                onClick={formatCode}
+                title="Format Document"
+                className="p-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all"
+              >
+                <FiCode className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={() => {
+                  setCode(problem.starterCode[language] || `// Write your ${language} code here\n`);
+                  setExecutionResult(null);
+                  setConsoleOpen(false);
+                }}
+                title="Reset starter template"
+                className="p-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all"
+              >
+                <FiRefreshCw className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={toggleFullscreen}
+                title="Toggle Fullscreen"
+                className="p-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all"
+              >
+                {isFullscreen ? <FiMinimize className="w-4 h-4" /> : <FiMaximize className="w-4 h-4" />}
+              </button>
             </div>
           </div>
 
-          {/* RIGHT PANEL — Monaco Editor */}
-          <div className="flex-1 flex flex-col bg-background overflow-hidden">
-            <div className="flex-1">
-              <Editor
-                height="100%"
-                language={language === 'cpp' ? 'cpp' : language}
-                theme="vs-dark"
-                value={code}
-                onChange={v => setCode(v)}
-                options={{
-                  minimap: { enabled: false },
-                  fontSize: 14,
-                  padding: { top: 16, bottom: 16 },
-                  scrollBeyondLastLine: false,
-                  fontFamily: '"Fira Code", "JetBrains Mono", monospace',
-                  fontLigatures: true,
-                  lineNumbers: 'on',
-                  renderLineHighlight: 'line',
-                  automaticLayout: true,
-                }}
-              />
-            </div>
+          {/* Monaco Editor Container */}
+          <div className={`flex-1 relative ${consoleOpen ? 'h-[50%]' : 'h-full'}`}>
+            <Editor
+              height="100%"
+              language={language === 'c++' || language === 'cpp' ? 'cpp' : language === 'c' ? 'c' : language === 'csharp' ? 'csharp' : language}
+              theme={theme}
+              value={code}
+              onChange={(value) => setCode(value)}
+              onMount={(editor) => {
+                editorRef.current = editor;
+              }}
+              options={{
+                minimap: { enabled: false },
+                fontSize: fontSize,
+                fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                lineHeight: 24,
+                padding: { top: 16 },
+                scrollBeyondLastLine: false,
+                smoothScrolling: true,
+                cursorBlinking: "smooth",
+                cursorSmoothCaretAnimation: "on",
+                formatOnPaste: true,
+                suggestOnTriggerCharacters: true,
+                acceptSuggestionOnEnter: "on"
+              }}
+            />
+          </div>
 
-            {/* Bottom Status Bar */}
-            <div className="flex-shrink-0 h-7 bg-indigo-600 flex items-center px-4 gap-4 text-xs text-muted-foreground">
-              <span>📝 {language.toUpperCase()}</span>
-              <span>•</span>
-              <span>InterviewX AI Coding Editor</span>
-              <span className="ml-auto">Lines: {code.split('\n').length}</span>
+          {/* Bottom Custom Redesigned Console */}
+          <div className={`border-t border-white/5 bg-[#0f0f13] flex flex-col transition-all duration-300 relative z-10 ${
+            consoleOpen ? 'h-[50%] min-h-[300px]' : 'h-11 overflow-hidden'
+          }`}>
+            
+            {/* Console Header Bar */}
+            <div 
+              className="h-11 bg-[#141418] border-b border-white/5 flex items-center justify-between px-4 cursor-pointer select-none shrink-0"
+              onClick={() => setConsoleOpen(!consoleOpen)}
+            >
+              <div className="flex items-center space-x-4">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Console</span>
+                
+                {consoleOpen && (
+                  <div className="flex items-center space-x-1 border-l border-white/5 pl-4" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => setConsoleTab('testcase')}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                        consoleTab === 'testcase' ? 'bg-white/5 text-white' : 'text-slate-500 hover:text-slate-300'
+                      }`}
+                    >
+                      Testcase Inputs
+                    </button>
+                    
+                    {executionResult && (
+                      <button
+                        onClick={() => setConsoleTab('result')}
+                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                          consoleTab === 'result' ? 'bg-white/5 text-white' : 'text-slate-500 hover:text-slate-300'
+                        }`}
+                      >
+                        <span>Result</span>
+                        <span className={`w-1.5 h-1.5 rounded-full ${
+                          executionResult.submission?.status === 'Accepted' ? 'bg-emerald-500' : 'bg-rose-500'
+                        }`} />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              <button className="text-slate-400 hover:text-white transition-transform">
+                {consoleOpen ? '▼' : '▲'}
+              </button>
+            </div>
+            
+            {/* Console Body Content Panels */}
+            <div className="flex-1 overflow-y-auto p-5 custom-scrollbar bg-[#0f0f13] relative">
+              
+              {consoleTab === 'testcase' && (
+                <div className="h-full flex flex-col space-y-4">
+                   <div className="space-y-1.5">
+                     <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Testcase Standard Input (stdin):</p>
+                     <textarea 
+                        value={customInput}
+                        onChange={(e) => setConsoleOpen(true) || setCustomInput(e.target.value)}
+                        className="w-full h-32 bg-[#141419] border border-white/5 rounded-2xl p-3 text-sm text-indigo-200 font-mono focus:outline-none focus:border-indigo-500 leading-relaxed"
+                        placeholder="Enter parameters for custom input evaluation..."
+                     />
+                   </div>
+                   <p className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">Run inputs to simulate outputs. Click Submit for complete AI analysis.</p>
+                </div>
+              )}
+
+              {consoleTab === 'result' && executionResult && (
+                <div className="space-y-6">
+                  
+                  {/* Results summary header */}
+                  <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between pb-4 border-b border-white/5">
+                    <div>
+                      <span className={`text-xs px-3 py-1 rounded-lg font-bold border uppercase tracking-wider ${getStatusColor(executionResult.submission?.status)}`}>
+                        {executionResult.submission?.status || 'Evaluated'}
+                      </span>
+                      <p className="text-slate-500 text-[10px] uppercase font-black tracking-widest mt-2">{executionMode === 'run' ? 'Simulated Dry Run' : 'Final AI Grading'}</p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-6 text-xs text-slate-400 font-mono">
+                      <div>
+                        <span className="block text-slate-500 font-bold uppercase text-[9px] tracking-widest">Test cases</span>
+                        <span className="text-white font-extrabold text-sm">{executionResult.submission?.passedTestCases} / {executionResult.submission?.totalTestCases}</span>
+                      </div>
+                      <div>
+                        <span className="block text-slate-500 font-bold uppercase text-[9px] tracking-widest">Execution Time</span>
+                        <span className="text-white font-extrabold text-sm">{executionResult.submission?.executionTime} ms</span>
+                      </div>
+                      <div>
+                        <span className="block text-slate-500 font-bold uppercase text-[9px] tracking-widest">Memory</span>
+                        <span className="text-white font-extrabold text-sm">{executionResult.submission?.memoryUsed} MB</span>
+                      </div>
+                      {executionMode === 'submit' && (
+                        <div>
+                          <span className="block text-slate-500 font-bold uppercase text-[9px] tracking-widest">Score</span>
+                          <span className={`font-black text-sm ${executionResult.score >= 80 ? 'text-emerald-400' : 'text-rose-400'}`}>{executionResult.score}/100</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* AI review feedback blocks */}
+                  <div className="space-y-4">
+                    
+                    {/* Simulated Output (Dry Run only) */}
+                    {executionResult.simulatedOutput && (
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] text-slate-500 font-black uppercase tracking-wider">Simulated Output Log:</span>
+                        <div className="bg-[#141419] p-4 border border-white/5 rounded-2xl font-mono text-xs text-emerald-300 whitespace-pre-wrap break-all leading-relaxed">
+                          {executionResult.simulatedOutput}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Editorial analysis feedback text */}
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] text-slate-500 font-black uppercase tracking-wider flex items-center">
+                        <span className="text-indigo-400 mr-1.5">🤖</span> AI Review Feedback:
+                      </span>
+                      <div className="prose prose-invert prose-sm max-w-none text-slate-300 text-sm whitespace-pre-wrap font-sans leading-relaxed bg-[#141419] border border-white/5 p-4 rounded-2xl">
+                        {executionResult.feedback}
+                      </div>
+                    </div>
+
+                  </div>
+
+                </div>
+              )}
             </div>
           </div>
         </div>

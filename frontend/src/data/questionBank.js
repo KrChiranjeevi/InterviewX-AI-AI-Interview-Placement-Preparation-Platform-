@@ -14,8 +14,35 @@ const starterTemplates = {
 
 export const CATEGORIES = [
   {
+    id: 'dsa',
+    name: 'Coding Practice',
+    icon: '🧠',
+    color: 'from-indigo-500 to-purple-600',
+    borderColor: 'border-indigo-500/30',
+    description: 'Arrays, Trees, Graphs, Dynamic Programming. Real coding problems for FAANG interviews.',
+    subtopics: ['Arrays', 'Strings', 'Linked List', 'Stack', 'Queue', 'HashMap', 'Trees', 'Graph', 'Greedy', 'DP', 'Two Pointer'],
+  },
+  {
+    id: 'sql',
+    name: 'SQL (MCQ)',
+    icon: '🗄️',
+    color: 'from-blue-500 to-cyan-600',
+    borderColor: 'border-blue-500/30',
+    description: 'SELECT, JOINs, GROUP BY, Window Functions, CTEs. Essential database theory.',
+    subtopics: ['SELECT Queries', 'JOINs', 'Subqueries', 'Grouping & Aggregation', 'Window Functions', 'CTEs'],
+  },
+  {
+    id: 'javascript',
+    name: 'JavaScript (MCQ)',
+    icon: '⚡',
+    color: 'from-yellow-400 to-amber-500',
+    borderColor: 'border-yellow-500/30',
+    description: 'Closures, promises, async/await, DOM manipulation. Theoretical concepts and outputs.',
+    subtopics: ['Closures', 'Promises', 'Event Loops', 'Array Methods', 'Objects', 'DOM'],
+  },
+  {
     id: 'aptitude',
-    name: 'Aptitude',
+    name: 'Aptitude (MCQ)',
     icon: '🧩',
     color: 'from-purple-500 to-indigo-600',
     borderColor: 'border-purple-500/30',
@@ -24,7 +51,7 @@ export const CATEGORIES = [
   },
   {
     id: 'quant',
-    name: 'Quantitative Aptitude',
+    name: 'Quantitative Aptitude (MCQ)',
     icon: '📊',
     color: 'from-amber-500 to-yellow-600',
     borderColor: 'border-amber-500/30',
@@ -33,7 +60,7 @@ export const CATEGORIES = [
   },
   {
     id: 'reasoning',
-    name: 'Logical Reasoning',
+    name: 'Logical Reasoning (MCQ)',
     icon: '🤔',
     color: 'from-indigo-500 to-sky-600',
     borderColor: 'border-indigo-500/30',
@@ -42,7 +69,7 @@ export const CATEGORIES = [
   },
   {
     id: 'verbal',
-    name: 'Verbal Ability',
+    name: 'Verbal Ability (MCQ)',
     icon: '✍️',
     color: 'from-teal-500 to-emerald-600',
     borderColor: 'border-teal-500/30',
@@ -50,26 +77,8 @@ export const CATEGORIES = [
     subtopics: ['Synonyms & Antonyms', 'Sentence Correction', 'Reading Comprehension', 'Idioms & Phrases', 'Grammar Rules']
   },
   {
-    id: 'dsa',
-    name: 'Data Structures & Algorithms',
-    icon: '🧠',
-    color: 'from-indigo-500 to-purple-600',
-    borderColor: 'border-indigo-500/30',
-    description: 'Arrays, Trees, Graphs, Dynamic Programming, and more. Core topic for FAANG interviews.',
-    subtopics: ['Arrays', 'Strings', 'Linked List', 'Stack', 'Queue', 'HashMap', 'HashSet', 'Trees', 'BST', 'Heap', 'Trie', 'Graph', 'Greedy', 'Dynamic Programming', 'Backtracking', 'Sliding Window', 'Two Pointer', 'Bit Manipulation', 'Binary Search', 'Recursion', 'Sorting', 'Searching'],
-  },
-  {
-    id: 'sql',
-    name: 'SQL',
-    icon: '🗄️',
-    color: 'from-blue-500 to-cyan-600',
-    borderColor: 'border-blue-500/30',
-    description: 'SELECT, JOINs, GROUP BY, Window Functions, CTEs. Essential for data roles.',
-    subtopics: ['SELECT Queries', 'JOINs', 'Subqueries', 'Grouping & Aggregation', 'Window Functions', 'CTEs', 'Index Optimization'],
-  },
-  {
     id: 'dbms',
-    name: 'DBMS',
+    name: 'DBMS (MCQ)',
     icon: '📦',
     color: 'from-teal-500 to-green-600',
     borderColor: 'border-teal-500/30',
@@ -78,7 +87,7 @@ export const CATEGORIES = [
   },
   {
     id: 'os',
-    name: 'Operating System',
+    name: 'Operating System (MCQ)',
     icon: '💻',
     color: 'from-orange-500 to-red-600',
     borderColor: 'border-orange-500/30',
@@ -87,7 +96,7 @@ export const CATEGORIES = [
   },
   {
     id: 'cn',
-    name: 'Computer Networks',
+    name: 'Computer Networks (MCQ)',
     icon: '🌐',
     color: 'from-sky-500 to-blue-600',
     borderColor: 'border-sky-500/30',
@@ -96,7 +105,7 @@ export const CATEGORIES = [
   },
   {
     id: 'oop',
-    name: 'OOP Concepts',
+    name: 'OOP Concepts (MCQ)',
     icon: '🏗️',
     color: 'from-violet-500 to-purple-600',
     borderColor: 'border-violet-500/30',
@@ -105,7 +114,7 @@ export const CATEGORIES = [
   },
   {
     id: 'frontend',
-    name: 'Frontend Development',
+    name: 'Frontend Development (MCQ)',
     icon: '🎨',
     color: 'from-pink-500 to-rose-600',
     borderColor: 'border-pink-500/30',
@@ -114,7 +123,7 @@ export const CATEGORIES = [
   },
   {
     id: 'backend',
-    name: 'Backend Development',
+    name: 'Backend Development (MCQ)',
     icon: '⚙️',
     color: 'from-amber-500 to-orange-600',
     borderColor: 'border-amber-500/30',
@@ -123,7 +132,7 @@ export const CATEGORIES = [
   },
   {
     id: 'java',
-    name: 'Java',
+    name: 'Java (MCQ)',
     icon: '☕',
     color: 'from-red-500 to-orange-600',
     borderColor: 'border-red-500/30',
@@ -132,7 +141,7 @@ export const CATEGORIES = [
   },
   {
     id: 'python',
-    name: 'Python',
+    name: 'Python (MCQ)',
     icon: '🐍',
     color: 'from-yellow-500 to-green-600',
     borderColor: 'border-yellow-500/30',
@@ -140,17 +149,8 @@ export const CATEGORIES = [
     subtopics: ['GIL Lock', 'Decorators', 'Generators & Iterators', 'List Comprehensions', 'Pandas & Data Science', 'Django Frameworks'],
   },
   {
-    id: 'javascript',
-    name: 'JavaScript',
-    icon: '⚡',
-    color: 'from-yellow-400 to-amber-500',
-    borderColor: 'border-yellow-500/30',
-    description: 'ES6+, closures, promises, async/await, event loop. Deep JS knowledge.',
-    subtopics: ['Scope & Closures', 'Prototypal Chains', 'Promises & Async', 'Event Loops', 'Modules ES6', 'V8 Engines'],
-  },
-  {
     id: 'react',
-    name: 'React',
+    name: 'React (MCQ)',
     icon: '⚛️',
     color: 'from-cyan-400 to-blue-500',
     borderColor: 'border-cyan-500/30',
@@ -159,7 +159,7 @@ export const CATEGORIES = [
   },
   {
     id: 'node',
-    name: 'Node.js',
+    name: 'Node.js (MCQ)',
     icon: '🟢',
     color: 'from-green-600 to-emerald-700',
     borderColor: 'border-green-600/30',
@@ -168,7 +168,7 @@ export const CATEGORIES = [
   },
   {
     id: 'express',
-    name: 'Express.js',
+    name: 'Express.js (MCQ)',
     icon: '🛤️',
     color: 'from-slate-600 to-zinc-700',
     borderColor: 'border-slate-600/30',
@@ -177,7 +177,7 @@ export const CATEGORIES = [
   },
   {
     id: 'mongodb',
-    name: 'MongoDB',
+    name: 'MongoDB (MCQ)',
     icon: '🍃',
     color: 'from-emerald-500 to-green-600',
     borderColor: 'border-emerald-500/30',
@@ -186,7 +186,7 @@ export const CATEGORIES = [
   },
   {
     id: 'system-design',
-    name: 'System Design',
+    name: 'System Design (MCQ)',
     icon: '🏛️',
     color: 'from-slate-500 to-gray-600',
     borderColor: 'border-slate-500/30',
@@ -195,7 +195,7 @@ export const CATEGORIES = [
   },
   {
     id: 'debugging',
-    name: 'Debugging Challenges',
+    name: 'Debugging Challenges (MCQ)',
     icon: '🐛',
     color: 'from-red-500 to-rose-600',
     borderColor: 'border-red-500/30',
@@ -204,7 +204,7 @@ export const CATEGORIES = [
   },
   {
     id: 'mixed',
-    name: 'Mixed Interview',
+    name: 'Mixed Interview (MCQ)',
     icon: '🎯',
     color: 'from-green-500 to-emerald-600',
     borderColor: 'border-green-500/30',

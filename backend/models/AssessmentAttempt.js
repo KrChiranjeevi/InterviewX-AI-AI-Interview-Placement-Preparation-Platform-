@@ -84,7 +84,48 @@ const assessmentAttemptSchema = new mongoose.Schema({
     type: [String],
     default: [],
   },
-  aiFeedback: String
+  aiFeedback: String,
+  submodule: {
+    type: String,
+    default: 'General'
+  },
+  percentile: {
+    type: Number,
+    default: 0
+  },
+  xpEarned: {
+    type: Number,
+    default: 0
+  },
+  difficultyAnalysis: {
+    easy: {
+      total: { type: Number, default: 0 },
+      correct: { type: Number, default: 0 },
+      accuracy: { type: Number, default: 0 }
+    },
+    medium: {
+      total: { type: Number, default: 0 },
+      correct: { type: Number, default: 0 },
+      accuracy: { type: Number, default: 0 }
+    },
+    hard: {
+      total: { type: Number, default: 0 },
+      correct: { type: Number, default: 0 },
+      accuracy: { type: Number, default: 0 }
+    }
+  },
+  aiStudyRecommendations: {
+    type: [String],
+    default: []
+  },
+  estimatedInterviewPerformance: {
+    type: String,
+    default: 'Needs Improvement'
+  },
+  nextRecommendedPractice: {
+    type: String,
+    default: 'Quantitative Aptitude'
+  }
 }, {
   timestamps: true,
 });

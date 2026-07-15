@@ -1,12 +1,14 @@
-import { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import api from '../services/api';
 
 
 import { motion } from 'framer-motion';
 import Sidebar from '../components/layout/Sidebar';
 import Navbar from '../components/layout/Navbar';
 import { FaSearch, FaChevronRight, FaFire, FaCode, FaTrophy, FaLock } from 'react-icons/fa';
-import { Terminal, Zap, Target, Code2, CheckCircle2, TrendingUp, ChevronRight } from 'lucide-react';
+import { Terminal, Zap, Target, Code2, CheckCircle2, TrendingUp, ChevronRight, Award, Flame, Trophy, Sparkles, Star } from 'lucide-react';
 import { CATEGORIES, getDifficultyCounts, ALL_QUESTIONS } from '../data/questionBank';
 
 const fadeUp = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
@@ -46,17 +48,77 @@ function AnimCounter({ to, suffix = '' }) {
 }
 
 const CodingHub = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
+  const [latestReportsSummary, setLatestReportsSummary] = useState({});
+  const [profile, setProfile] = useState(null);
+  const [codingStats, setCodingStats] = useState(null);
+  const [metaCounts, setMetaCounts] = useState({});
   const progress = getProgress();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [summaryRes, profileRes, codingStatsRes, metaCountsRes] = await Promise.all([
+          api.get('/assessments/attempts/latest-summary'),
+          api.get('/profile'),
+          api.get('/coding/stats').catch(() => ({ data: null })),
+          api.get('/assessments/meta/question-counts').catch(() => ({ data: {} }))
+        ]);
+        setLatestReportsSummary(summaryRes.data);
+        if (profileRes.data) setProfile(profileRes.data);
+        if (codingStatsRes.data) setCodingStats(codingStatsRes.data);
+        if (metaCountsRes.data) setMetaCounts(metaCountsRes.data);
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleViewPreviousReport = async (catId) => {
+    try {
+      const res = await api.get(`/assessments/attempts/latest/${catId}`);
+      navigate(`/assessment/report/${res.data._id}`);
+    } catch (err) {
+      if (err.response?.status === 404) {
+        toast.error(`No previous attempt found for this module.`);
+      } else {
+        toast.error(`Error loading previous report.`);
+      }
+    }
+  };
 
   const categoryStats = useMemo(() => {
     return CATEGORIES.map(cat => {
-      const counts = getDifficultyCounts(cat.id);
-      const solved = Object.keys(progress).filter(id => id.startsWith(cat.id + '-') && progress[id]).length;
+      let counts;
+      if (cat.id === 'dsa') {
+        counts = codingStats?.totals ? {
+          Easy: codingStats.totals.Easy,
+          Medium: codingStats.totals.Medium,
+          Hard: codingStats.totals.Hard,
+          total: codingStats.totals.Easy + codingStats.totals.Medium + codingStats.totals.Hard
+        } : getDifficultyCounts(cat.id);
+      } else {
+        counts = metaCounts[cat.id] ? {
+          Easy: metaCounts[cat.id].Easy || 0,
+          Medium: metaCounts[cat.id].Medium || 0,
+          Hard: metaCounts[cat.id].Hard || 0,
+          total: metaCounts[cat.id].total || 0
+        } : getDifficultyCounts(cat.id);
+      }
+      
+      let solved = 0;
+      if (cat.id === 'dsa') {
+        solved = codingStats?.solved?.count || 0;
+      } else {
+        solved = Object.keys(progress).filter(id => id.startsWith(cat.id + '-') && progress[id]).length;
+      }
+
       return { ...cat, ...counts, solved };
     });
-  }, []);
+  }, [codingStats, metaCounts, progress]);
 
   const filtered = categoryStats.filter(cat => {
     const matchSearch = cat.name.toLowerCase().includes(search.toLowerCase());
@@ -99,49 +161,132 @@ const CodingHub = () => {
               <p className="text-zinc-500 text-sm mt-1">Practice real interview problems across every topic. AI hints available.</p>
             </motion.div>
 
-            {/* Stats Row */}
-            <motion.div variants={container} className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { label: 'Total Questions', value: totalQ,      icon: Code2,       color: 'from-indigo-500 to-purple-600',  glow: 'rgba(99,102,241,0.3)' },
-                { label: 'Solved',          value: totalSolved, icon: CheckCircle2, color: 'from-emerald-500 to-teal-500',  glow: 'rgba(16,185,129,0.3)' },
-                { label: 'Categories',      value: CATEGORIES.length, icon: Target, color: 'from-amber-500 to-orange-500',  glow: 'rgba(245,158,11,0.3)' },
-                { label: 'Accuracy',        value: totalSolved > 0 ? `${Math.round((totalSolved / totalQ) * 100)}%` : '0%', icon: TrendingUp, color: 'from-cyan-500 to-blue-500', glow: 'rgba(6,182,212,0.3)' },
-              ].map((s, i) => {
-                const Icon = s.icon;
-                return (
-                  <motion.div key={i} variants={fadeUp} whileHover={{ y: -4, scale: 1.02 }} className="group relative overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.03] p-5 backdrop-blur-sm">
-                    <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full blur-xl opacity-20 group-hover:opacity-30 transition-opacity bg-gradient-to-br" style={{ background: s.glow }} />
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className={`flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br ${s.color}`} style={{ boxShadow: `0 4px 12px ${s.glow}` }}>
-                        <Icon className="h-4 w-4 text-white" />
+            {/* Dynamic Premium Dashboard Header */}
+            {(() => {
+              const scoresArray = Object.values(latestReportsSummary).map(s => s.score);
+              const readinessIndex = scoresArray.length > 0 ? Math.round(scoresArray.reduce((a, b) => a + b, 0) / scoresArray.length) : 65;
+              const userLevel = profile?.level || 1;
+              const currentXp = profile?.xp || 120;
+              const nextLevelXp = userLevel * 500;
+              const xpPercent = Math.min(100, Math.round((currentXp / nextLevelXp) * 100));
+
+              return (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                  {/* Left Panel: Profile Placement Intelligence */}
+                  <motion.div 
+                    variants={fadeUp} 
+                    className="lg:col-span-2 relative overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.02] p-6 backdrop-blur-md flex flex-col md:flex-row gap-6 items-center"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-indigo-500/5 to-purple-500/5 pointer-events-none" />
+                    
+                    {/* Dynamic Circle Readiness Indicator */}
+                    <div className="relative w-28 h-28 flex-shrink-0 flex items-center justify-center">
+                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-white/[0.04]" />
+                        <motion.circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="6" fill="transparent" 
+                          strokeDasharray={`${2 * Math.PI * 40}`} 
+                          initial={{ strokeDashoffset: 2 * Math.PI * 40 }}
+                          animate={{ strokeDashoffset: 2 * Math.PI * 40 * (1 - readinessIndex / 100) }}
+                          transition={{ duration: 1.5, ease: "easeOut" }}
+                          strokeLinecap="round"
+                          className="text-emerald-400" 
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-2xl font-black text-white">{readinessIndex}%</span>
+                        <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Readiness</span>
                       </div>
                     </div>
-                    <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">{s.label}</p>
-                    <p className="text-2xl font-black text-white">
-                      {typeof s.value === 'number' ? <AnimCounter to={s.value} /> : s.value}
-                    </p>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
 
-            {/* Overall progress bar */}
-            <motion.div variants={fadeUp} className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4 backdrop-blur-sm">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-semibold text-white flex items-center gap-2"><Zap className="h-4 w-4 text-emerald-400" />Overall Progress</span>
-                <span className="text-sm font-bold text-emerald-400">{totalSolved}/{totalQ} Solved ({totalQ > 0 ? Math.round((totalSolved/totalQ)*100) : 0}%)</span>
-              </div>
-              <div className="h-2.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${totalQ > 0 ? (totalSolved/totalQ)*100 : 0}%` }}
-                  transition={{ duration: 1.5, ease: [0.16,1,0.3,1] }}
-                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 relative"
-                >
-                  <div className="absolute inset-0 bg-white/20 rounded-full animate-pulse" />
-                </motion.div>
-              </div>
-            </motion.div>
+                    {/* Developer Info & XP progress */}
+                    <div className="flex-1 space-y-3 w-full">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h2 className="text-xl font-bold text-white tracking-tight">Welcome Back, {profile?.username || 'Candidate'}!</h2>
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center gap-1">
+                            <Award className="h-3 w-3" /> Level {userLevel} Developer
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-500 mt-1">Your profile readiness index is computed dynamically from completed MCQ Assessments.</p>
+                      </div>
+
+                      {/* XP Bar */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-[11px] font-semibold">
+                          <span className="text-zinc-400">Experience Points (XP)</span>
+                          <span className="text-indigo-400">{currentXp} / {nextLevelXp} XP ({xpPercent}%)</span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-white/[0.06] overflow-hidden relative">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${xpPercent}%` }}
+                            transition={{ duration: 1.2, ease: "easeOut" }}
+                            className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500" 
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Right Panel: Streak and Contest Rating */}
+                  <motion.div 
+                    variants={fadeUp} 
+                    className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.02] p-6 backdrop-blur-md flex flex-col justify-between gap-4"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 to-transparent pointer-events-none" />
+                    
+                    {/* Upper Stats details */}
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-0.5">Placement Rating</span>
+                        <div className="flex items-center gap-1.5">
+                          <Trophy className="h-4.5 w-4.5 text-amber-400" />
+                          <span className="text-xl font-black text-white">
+                            {1450 + (codingStats?.solved?.count || 0) * 12 + (profile?.streakCount || 0) * 5}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-0.5">Active Streak</span>
+                        <div className="flex items-center justify-end gap-1">
+                          <Flame className="h-5 w-5 text-orange-500 animate-bounce" />
+                          <span className="text-xl font-black text-white">{profile?.streakCount || 0} Days</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Streak Weekly Visual Tracker */}
+                    <div className="space-y-2">
+                      <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block">Daily Active Tracker</span>
+                      <div className="flex justify-between gap-1.5">
+                        {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => {
+                          const todayIndex = new Date().getDay(); // 0 is Sunday, 1 is Monday, etc.
+                          // Adjust Sunday index to 6, and Mon-Sat to 0-5
+                          const adjustedToday = todayIndex === 0 ? 6 : todayIndex - 1;
+                          
+                          // Current day is highlighted or active if streak exists
+                          const isActive = index <= adjustedToday && (profile?.streakCount || 0) > 0;
+                          const isCurrent = index === adjustedToday;
+
+                          return (
+                            <div key={index} className="flex-1 flex flex-col items-center gap-1.5">
+                              <div className={`h-6 w-full rounded-md flex items-center justify-center text-[10px] font-black transition-all ${
+                                isCurrent ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' : 
+                                isActive ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 
+                                'bg-white/[0.03] text-zinc-600 border border-white/[0.04]'
+                              }`}>
+                                {day}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+              );
+            })()}
 
             {/* Search + Filter */}
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3">
@@ -167,7 +312,8 @@ const CodingHub = () => {
               {filtered.map((cat, i) => {
                 const pct = cat.total > 0 ? Math.round((cat.solved / cat.total) * 100) : 0;
                 const circumference = 2 * Math.PI * 20;
-                const href = `/assessment/${cat.id}`;
+                const isCodingEnv = ['dsa'].includes(cat.id);
+                const href = isCodingEnv ? `/coding/list/all` : `/assessment/${cat.id}`;
 
                 return (
                   <motion.div
@@ -239,11 +385,62 @@ const CodingHub = () => {
                         />
                       </div>
 
+                      {/* Last Attempt Info (Only for MCQ cards) */}
+                      {!isCodingEnv && (
+                        <div className="mb-4 rounded-xl border border-white/[0.04] bg-white/[0.01] p-3 text-[11px] space-y-1.5 backdrop-blur-md">
+                          {latestReportsSummary[cat.id] ? (
+                            <>
+                              <div className="flex justify-between items-center text-zinc-400">
+                                <span>Last Attempt:</span>
+                                <span className="font-bold text-white">
+                                  {new Date(latestReportsSummary[cat.id].createdAt).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center text-zinc-400">
+                                <span>Score:</span>
+                                <span className={`font-bold ${latestReportsSummary[cat.id].score >= 80 ? 'text-emerald-400' : latestReportsSummary[cat.id].score >= 50 ? 'text-amber-400' : 'text-red-400'}`}>
+                                  {latestReportsSummary[cat.id].score}%
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center text-zinc-400">
+                                <span>Accuracy:</span>
+                                <span className="font-bold text-white">
+                                  {latestReportsSummary[cat.id].accuracy}%
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center text-zinc-400">
+                                <span>Status:</span>
+                                <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${latestReportsSummary[cat.id].score >= 70 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
+                                  {latestReportsSummary[cat.id].score >= 70 ? 'Pass' : 'Fail'}
+                                </span>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="text-zinc-500 italic text-center py-1 font-medium">
+                              No previous attempt
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {/* CTA */}
                       <Link to={href} className={`flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold text-white bg-gradient-to-r ${cat.color} hover:opacity-90 transition-opacity shadow-lg group/btn`}>
                         Start Practice
                         <ChevronRight className="h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
                       </Link>
+
+                      {/* Previous Test Result Button */}
+                      {!isCodingEnv && (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleViewPreviousReport(cat.id);
+                          }}
+                          className="mt-2 flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 py-2.5 text-xs font-semibold text-zinc-300 hover:bg-white/10 hover:text-white transition-all w-full active:scale-95"
+                        >
+                          Previous Test Result
+                        </button>
+                      )}
                     </div>
                   </motion.div>
                 );
