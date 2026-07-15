@@ -1,11 +1,14 @@
-const { GoogleGenerativeAI, SchemaType } = require("@google/generative-ai");
+const { OpenAI } = require('openai');
 const AssessmentQuestion = require('../models/AssessmentQuestion');
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const groq = new OpenAI({ 
+  apiKey: process.env.GROQ_API_KEY, 
+  baseURL: "https://api.groq.com/openai/v1" 
+});
 
 /**
- * Generates high-quality placement assessment questions using Gemini
+ * Generates high-quality placement assessment questions using AI
  * and saves them directly to the database.
  * 
  * @param {string} moduleName - The category/module name (e.g., 'react', 'dsa', 'quant')
@@ -14,106 +17,95 @@ const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
  */
 const generateAndSaveQuestions = async (moduleName, count = 20) => {
   try {
-    console.log(`[AI Generator] Generating ${count} new questions for module: ${moduleName}...`);
+    let allInserted = [];
+    const batchSize = 10;
+    const batches = Math.ceil(count / batchSize);
 
-    const schema = {
-      type: SchemaType.ARRAY,
-      description: "List of multiple choice questions.",
-      items: {
-        type: SchemaType.OBJECT,
-        properties: {
-          subCategory: {
-            type: SchemaType.STRING,
-            description: "Specific topic within the module (e.g., 'Hooks', 'Arrays', 'Time & Work')"
-          },
-          question: {
-            type: SchemaType.STRING,
-            description: "The main question text"
-          },
-          options: {
-            type: SchemaType.ARRAY,
-            description: "Exactly 4 options for the multiple choice question",
-            items: { type: SchemaType.STRING }
-          },
-          correctAnswer: {
-            type: SchemaType.STRING,
-            description: "The correct option (must exactly match one of the options)"
-          },
-          difficulty: {
-            type: SchemaType.STRING,
-            description: "Difficulty level: 'Easy', 'Medium', or 'Hard'"
-          },
-          companyTags: {
-            type: SchemaType.ARRAY,
-            description: "Array of companies that ask this type of question (e.g. ['Google', 'Amazon'])",
-            items: { type: SchemaType.STRING }
-          },
-          explanation: {
-            type: SchemaType.STRING,
-            description: "Detailed explanation of why the correct answer is right and why others are wrong."
-          },
-          stepByStep: {
-            type: SchemaType.ARRAY,
-            description: "Array of strings showing the step-by-step mathematical or logical solution if applicable.",
-            items: { type: SchemaType.STRING }
-          },
-          references: {
-            type: SchemaType.ARRAY,
-            description: "Array of reference URLs or topic names for further learning.",
-            items: { type: SchemaType.STRING }
-          }
-        },
-        required: ["subCategory", "question", "options", "correctAnswer", "difficulty", "companyTags", "explanation", "stepByStep", "references"]
+    for (let b = 0; b < batches; b++) {
+      const currentCount = (b === batches - 1) ? (count - (b * batchSize)) : batchSize;
+      const prompt = `You are an expert technical interviewer and placement exam creator for top-tier tech companies.
+Your task is to generate exactly ${currentCount} highly-challenging, realistic multiple-choice questions for the "${moduleName}" module.
+
+Requirements for each question:
+1. questionText: The actual question (can include code snippets or scenarios).
+2. options: An array of EXACTLY 4 strings representing the possible answers.
+3. correctOption: The exact string from the options array that is correct.
+4. difficulty: Strictly "Easy", "Medium", or "Hard". Ensure a mix (e.g., 30% Easy, 40% Medium, 30% Hard).
+5. subCategory: The specific topic within ${moduleName} (e.g., for React: "Hooks", "Context API", "Virtual DOM"; for quant: "Time & Work", "Probability").
+6. explanation: A detailed, step-by-step HTML-formatted explanation of WHY the answer is correct and others are wrong. (Be very careful to escape double quotes correctly).
+7. timeExpected: Integer (seconds) a candidate should take (e.g., 60, 90, 120).
+
+OUTPUT EXACTLY AS A VALID JSON OBJECT WITH A SINGLE KEY "questions" CONTAINING THE ARRAY OF QUESTION OBJECTS. DO NOT WRAP IN MARKDOWN.`;
+
+      let textResponse = "";
+      try {
+        // 1. Try Groq directly since it's the fastest and we know OpenAI/Gemini are having issues
+        const response = await groq.chat.completions.create({
+          model: "llama-3.3-70b-versatile",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.7,
+          max_tokens: 8000,
+          response_format: { type: "json_object" },
+        });
+        textResponse = response.choices[0].message.content;
+      } catch (err) {
+        console.log(`[AI Generator] Groq failed, trying OpenAI:`, err.message);
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.7,
+          max_tokens: 8000,
+          response_format: { type: "json_object" },
+        });
+        textResponse = response.choices[0].message.content;
       }
-    };
 
-    const prompt = `You are a strict technical interviewer and question curator for top tech companies (Google, Amazon, Meta, TCS, Infosys, etc).
-Your task is to generate exactly ${count} completely unique, extremely high-quality multiple choice questions for the module: "${moduleName}".
+      // Clean up JSON string
+      let jsonStr = textResponse.trim();
+      const match = jsonStr.match(/\{[\s\S]*\}/);
+      if (match) {
+        jsonStr = match[0];
+      }
 
-Requirements:
-1. Module Isolation: DO NOT generate questions outside of the "${moduleName}" module.
-2. Difficulty Mix: Provide a mix of Easy, Medium, and Hard questions (mostly Medium and Hard for top tech companies).
-3. Options: Provide exactly 4 options. Only one option can be correct.
-4. Correct Answer: Ensure the correctAnswer exactly matches one of the options.
-5. Quality: Avoid generic questions. Use code snippets (where appropriate), realistic scenarios, and tricky edge cases typical in real placements.
-6. Subcategory: Assign a highly specific subcategory (e.g. for React: 'Custom Hooks', for SQL: 'Joins', for DSA: 'Dynamic Programming').
-7. Step-by-step: Provide a logical breakdown of how to arrive at the answer.
-8. NEVER repeat questions. Make them extremely varied.`;
+      let questionsData = [];
+      try {
+        const parsed = JSON.parse(jsonStr);
+        questionsData = parsed.questions || [];
+      } catch (parseError) {
+        console.error(`[AI Generator] Failed to parse JSON batch ${b+1}:`, parseError.message);
+        // Fallback cleanup: replace unescaped newlines inside strings
+        try {
+          const sanitized = jsonStr.replace(/[\n\r\t]/g, ' ');
+          const parsed = JSON.parse(sanitized);
+          questionsData = parsed.questions || [];
+        } catch (e2) {
+          console.error(`[AI Generator] Critical parse failure for batch ${b+1}. Skipping.`);
+          continue; 
+        }
+      }
 
-    const result = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.8,
-        responseMimeType: "application/json",
-        responseSchema: schema,
-      },
-    });
+      if (!Array.isArray(questionsData) || questionsData.length === 0) continue;
 
-    const responseText = result.response.text();
-    let questionsData = [];
-    try {
-      questionsData = JSON.parse(responseText);
-    } catch (parseErr) {
-      console.error("[AI Generator] Failed to parse Gemini response as JSON:", parseErr);
-      return [];
+      const formattedQuestions = questionsData.map(q => ({
+        module: moduleName.toLowerCase(),
+        subCategory: q.subCategory || moduleName,
+        difficulty: q.difficulty || 'Medium',
+        questionText: q.questionText,
+        options: q.options || [],
+        correctAnswer: q.correctOption || (q.options ? q.options[0] : ''),
+        explanation: q.explanation || 'No explanation provided.',
+        timeExpected: q.timeExpected || 60,
+      }));
+
+      const inserted = await AssessmentQuestion.insertMany(formattedQuestions);
+      allInserted = allInserted.concat(inserted);
     }
-
-    // Prepare for DB insert
-    const documents = questionsData.map(q => ({
-      ...q,
-      module: moduleName
-    }));
-
-    if (documents.length > 0) {
-      const inserted = await AssessmentQuestion.insertMany(documents);
-      console.log(`[AI Generator] Successfully inserted ${inserted.length} questions for ${moduleName}`);
-      return inserted;
-    }
-
-    return [];
+    
+    console.log(`[AI Generator] Successfully generated and saved ${allInserted.length} questions for ${moduleName}.`);
+    return allInserted;
 
   } catch (error) {
-    console.error("[AI Generator] Error generating questions:", error);
+    console.error(`[AI Generator] Error generating questions:`, error);
     return [];
   }
 };
