@@ -47,7 +47,7 @@ Our comprehensive suite of tools includes:
 
 ---
 
-## ✨ Features
+## ✨ Core Features
 
 | Module | Description |
 | :--- | :--- |
@@ -59,6 +59,25 @@ Our comprehensive suite of tools includes:
 | 📊 **Advanced Analytics** | Generates detailed post-interview reports with accuracy, communication, technical, and confidence scores. |
 | 🗺️ **AI Career Roadmap** | Auto-generates weekly milestones and study paths based on your interview weaknesses and performance gaps. |
 | ⚙️ **User Control Center** | Premium SaaS-style Settings module with GSAP animations, theme toggle, AI preferences, and account health monitoring. |
+
+---
+
+## 🚀 Recent Production-Grade Upgrades
+
+### 1. Dynamic MCQ Pool Auto-Replenishing
+- **Non-Repeating Logic:** The system stores the full assessment history of attempts instead of wiping scores, guaranteeing that question generation excludes previously answered questions.
+- **Skipped Questions Preservation:** If a user skips a question during an assessment without selecting an option, it remains in the active question bank to naturally appear in future sessions.
+- **Auto-Recycling Worker:** Each module (Logical, Quant, Verbal, DBMS, Java, Python, etc.) maintains a pool of 650 unique, category-specific MCQs. When a user runs out of unseen questions in a pool, the backend automatically triggers a background worker to generate 650 brand-new questions via AI, continuously replenishing the DB.
+- **Padded Tests:** If the DB is temporarily low on questions, the engine replicates and creates unique ObjectID padding to ensure every test always serves exactly **35 questions** as required for a full mock placement format.
+
+### 2. Multi-API Reliability & Offline Safety Nets
+- **Upgraded OpenRouter Models:** Fixed API errors by integrating active free OpenRouter models (`meta-llama/llama-3.3-70b-instruct:free`, `google/gemma-2-9b-it:free`, etc.) to replace deprecated endpoints.
+- **Offline Question Fallbacks:** Created [fallbackQuestions.js](file:///c:/Summer%20Vaction/interviewpreprationaibot-main/InterviewX-AI/backend/utils/fallbackQuestions.js) inside the backend. If external APIs hit rate limits or fail during a live mock interview, the system seamlessly serves realistic, role-specific questions rather than breaking the UI.
+
+### 3. Comprehensive Layout Responsiveness
+- **Live Interview Room (`LiveInterview.jsx`):** Redesigned with media queries to hide non-essential elements on mobile/tablet viewports (AI thinking logs, network indicators, fullscreen controls) and collapse "Pause" and "End" actions to compact icons. Stacks panels vertically (`flex-col md:flex-row`) to support smooth scrolling.
+- **Coding Workspace (`CodingEditor.jsx`):** Shrunk header options to icon buttons on mobile to prevent the "Run" and "Submit" buttons from being cut off. Uses responsive heights (`h-[40vh]` / `h-[60vh]`) for stacked panels.
+- **Assessment Room (`AssessmentRoom.jsx`):** Responsive grid palette stacks cleanly on small screens, and control footer buttons convert to icon-only viewports to prevent overflow.
 
 ---
 
@@ -84,6 +103,7 @@ Our comprehensive suite of tools includes:
 
 ### AI Services
 - **Google Gemini API** (or OpenAI/Groq) for adaptive questioning and deep feedback generation
+- **OpenRouter API** for fallback models
 
 ---
 
@@ -98,13 +118,13 @@ InterviewX-AI/
 │   ├── models/           # Mongoose schemas (User, Report, Assessment, etc.)
 │   ├── routes/           # Express API endpoints
 │   ├── services/         # External service integrations (AI Service)
-│   ├── utils/            # Helper functions (JWT generators)
+│   ├── utils/            # Helper functions and fallback question banks
 │   └── server.js         # Backend entry point
 │
 └── frontend/
     ├── public/           # Static assets
     ├── src/
-    │   ├── assets/       # Images, icons, logos
+    │   ├── src/assets/   # Images, icons, logos
     │   ├── components/   # Reusable UI elements (Navbar, Sidebar, Modals)
     │   ├── context/      # React Context (AuthContext)
     │   ├── data/         # Mock data and Company simulation patterns
@@ -158,7 +178,7 @@ npm run dev
 ### 6. Install Frontend Dependencies
 Open a new terminal and navigate to the frontend directory:
 ```bash
-cd frontend
+cd ../frontend
 npm install
 ```
 
@@ -185,8 +205,6 @@ Navigate to `http://localhost:5173` in your browser.
 
 ## 🧩 API Modules
 
-The backend is modularized into dedicated route services:
-
 - **Authentication (`/api/auth`):** Handles user registration, login, and JWT validation.
 - **Interview (`/api/interviews`):** Manages live interview sessions and adaptive question generation.
 - **Resume (`/api/resume`):** Handles file uploads (PDF/DOCX) and returns AI-parsed ATS feedback.
@@ -196,27 +214,6 @@ The backend is modularized into dedicated route services:
 - **Reports (`/api/reports`):** Aggregates data to generate explainable, transparent post-interview reports.
 - **Roadmap (`/api/roadmap`):** Generates personalized career study milestones.
 - **Community (`/api/community`):** Manages user posts, experiences, and social interactions.
-
----
-
-## 🧠 AI Features
-
-InterviewX utilizes cutting-edge Large Language Models (LLMs) to power its core features:
-
-- **Interview Evaluation:** The AI evaluates responses in real-time, checking for technical accuracy, communication quality, and confidence, scoring them dynamically.
-- **Resume Analysis:** Extracts key entities, compares them against standard job roles, identifies missing skills, and calculates a realistic ATS score.
-- **Coding Review:** Not just compilation—the AI reviews Big-O complexity (Time/Space), code cleanliness, and suggests algorithmic optimizations.
-- **Company Simulation:** Generates scenario-based questions matching the exact culture and leadership principles of companies (e.g., Amazon Leadership Principles).
-- **Career Guidance:** Translates performance gaps from your reports into a structured, week-by-week personalized learning roadmap.
-
----
-
-## 🚀 Future Improvements
-
-- [ ] **Voice Recognition (STT):** Full voice-to-text integration for entirely hands-free behavioral interviews.
-- [ ] **Video Proctoring:** AI-driven facial emotion analysis and proctoring during mock exams.
-- [ ] **Dockerization:** Containerized deployment using Docker and Docker Compose.
-- [ ] **Multi-Language Support:** Interviewing in non-English languages for regional placement prep.
 
 ---
 
@@ -230,8 +227,6 @@ We welcome contributions! To contribute:
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-Please read our contribution guidelines before submitting.
-
 ---
 
 ## 📜 License
@@ -242,8 +237,8 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ## 👤 Author
 
-- **GitHub:** (https://github.com/KrChiranjeevi)
-- **LinkedIn:** (https://www.linkedin.com/in/krchiranjeevi/](https://www.linkedin.com/in/kumar-chiranjeevi-782b77297/)
+- **GitHub:** [KrChiranjeevi](https://github.com/KrChiranjeevi)
+- **LinkedIn:** [Kumar Chiranjeevi](https://www.linkedin.com/in/kumar-chiranjeevi-782b77297/)
 - **Email:** krchiranjeevi28@gmail.com
 
 ---
