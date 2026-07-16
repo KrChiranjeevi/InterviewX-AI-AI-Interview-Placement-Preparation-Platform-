@@ -845,7 +845,7 @@ const LiveInterview = () => {
         </div>
 
         {/* Center: Interview info */}
-        <div className="flex items-center gap-2.5 absolute left-1/2 -translate-x-1/2">
+        <div className="hidden md:flex items-center gap-2.5 absolute left-1/2 -translate-x-1/2">
           <div className="text-center">
             <p className="text-slate-900 dark:text-white text-sm font-semibold leading-tight">{interview.role}</p>
             <p className="text-slate-500 text-[11px]">{interview.company || 'Mock Interview'}</p>
@@ -900,7 +900,7 @@ const LiveInterview = () => {
           </button>
 
           {/* AI status */}
-          <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[10px] font-medium ${
+          <div className={`hidden md:flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[10px] font-medium ${
             isAIThinking ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-600 dark:text-amber-400' :
             aiSpeaking   ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400' :
                           'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
@@ -912,7 +912,7 @@ const LiveInterview = () => {
           </div>
 
           {/* Network */}
-          <div className="flex items-center gap-1 px-2 py-1 rounded-lg border bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/50">
+          <div className="hidden md:flex items-center gap-1 px-2 py-1 rounded-lg border bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/50">
             <Wifi className="w-3 h-3 text-emerald-500 dark:text-emerald-400" />
             <Shield className="w-3 h-3 text-emerald-500 dark:text-emerald-400" />
           </div>
@@ -920,7 +920,7 @@ const LiveInterview = () => {
           {/* Fullscreen */}
           <button
             onClick={handleFullscreen}
-            className="w-8 h-8 rounded-lg flex items-center justify-center border bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/50 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all"
+            className="hidden sm:flex w-8 h-8 rounded-lg flex items-center justify-center border bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/50 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all"
             title="F"
           >
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
@@ -935,7 +935,7 @@ const LiveInterview = () => {
             }`}
           >
             {isPaused ? <FaPlay className="text-xs text-emerald-500 dark:text-emerald-400" /> : <FaPause className="text-xs" />}
-            {isPaused ? 'Resume' : 'Pause'}
+            <span className="hidden sm:inline">{isPaused ? 'Resume' : 'Pause'}</span>
           </button>
 
           {/* End */}
@@ -943,7 +943,7 @@ const LiveInterview = () => {
             onClick={endInterview}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 hover:bg-red-500 hover:text-white text-xs font-medium transition-all"
           >
-            <FaStopCircle className="text-xs" /> End
+            <FaStopCircle className="text-xs" /> <span className="hidden sm:inline">End</span>
           </button>
         </div>
       </div>
@@ -951,14 +951,14 @@ const LiveInterview = () => {
       {/* ════════════════════════════════════════════════════════════════════
           MAIN CONTENT
           ════════════════════════════════════════════════════════════════════ */}
-      <div className="flex-1 flex gap-3 p-3 overflow-hidden min-h-0">
+      <div className="flex-1 flex flex-col md:flex-row gap-3 p-3 overflow-y-auto md:overflow-hidden min-h-0">
 
         {/* ══════════════════════════════════════════
             LEFT PANEL: AI Interviewer + Question
             ══════════════════════════════════════════ */}
-        <div className="w-[38%] flex flex-col gap-3 min-h-0 flex-shrink-0">
+        <div className="w-full md:w-[38%] flex flex-col gap-3 flex-shrink-0 md:min-h-0 h-auto md:h-full">
 
-          <div className="flex-1 rounded-2xl overflow-hidden relative border border-slate-200 dark:border-slate-800/60 shadow-sm dark:shadow-2xl min-h-0 transition-colors">
+          <div className="h-48 md:flex-1 rounded-2xl overflow-hidden relative border border-slate-200 dark:border-slate-800/60 shadow-sm dark:shadow-2xl md:min-h-0 transition-colors">
             <InterviewerAvatar
               aiSpeaking={aiSpeaking}
               isAIThinking={isAIThinking}
@@ -966,7 +966,7 @@ const LiveInterview = () => {
             />
           </div>
 
-          <div className="h-[36%] flex-shrink-0 bg-white dark:bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/50 p-4 flex flex-col min-h-0 shadow-sm dark:shadow-xl transition-colors">
+          <div className="h-32 md:h-[36%] flex-shrink-0 bg-white dark:bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/50 p-4 flex flex-col md:min-h-0 shadow-sm dark:shadow-xl transition-colors">
             <div className="flex items-center justify-between mb-2.5 flex-shrink-0">
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/12 border border-indigo-200 dark:border-indigo-500/25 px-2.5 py-0.5 rounded-full">
@@ -1022,9 +1022,9 @@ const LiveInterview = () => {
         {/* ══════════════════════════════════════════
             RIGHT PANEL: Candidate + Answer
             ══════════════════════════════════════════ */}
-        <div className="flex-1 flex flex-col gap-3 min-h-0">
+        <div className="flex-1 flex flex-col gap-3 md:min-h-0 h-auto md:h-full">
 
-          <div className="flex-1 bg-slate-100 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-800/50 relative overflow-hidden group min-h-0 shadow-sm dark:shadow-2xl transition-colors">
+          <div className="h-64 md:flex-1 bg-slate-100 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-800/50 relative overflow-hidden group md:min-h-0 shadow-sm dark:shadow-2xl transition-colors">
             
             <video
               ref={videoRef}
@@ -1148,7 +1148,7 @@ const LiveInterview = () => {
             </div>
           </div>
 
-          <div className="h-[38%] flex-shrink-0 bg-white dark:bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/50 p-4 flex flex-col min-h-0 shadow-sm dark:shadow-xl transition-colors">
+          <div className="h-48 md:h-[38%] flex-shrink-0 bg-white dark:bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/50 p-4 flex flex-col md:min-h-0 shadow-sm dark:shadow-xl transition-colors">
             <div className="flex items-center justify-between mb-3 flex-shrink-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-slate-800 dark:text-slate-200 font-semibold text-sm">Your Answer</h3>

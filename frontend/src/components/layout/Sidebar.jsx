@@ -45,6 +45,8 @@ const Sidebar = () => {
   const [isMobile, setIsMobile] = useState(false);
   const sidebarRef = useRef(null);
 
+  const isSidebarExpanded = isMobile ? mobileOpen : expanded;
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -91,16 +93,16 @@ const Sidebar = () => {
           }
         }}
         onMouseMove={handleMouseMove}
-        animate={{ width: isMobile ? 260 : (expanded ? 260 : 72) }}
+        animate={{ width: isMobile ? 260 : (isSidebarExpanded ? 260 : 72) }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         className={`fixed left-0 top-0 z-50 flex h-screen flex-col overflow-hidden border-r border-white/[0.06] bg-[#070711] select-none transition-transform duration-300 md:transition-none
           ${isMobile ? (mobileOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}`}
-        style={{ boxShadow: (isMobile && mobileOpen) || (!isMobile && expanded) ? '4px 0 60px rgba(99,102,241,0.12)' : '2px 0 20px rgba(0,0,0,0.4)' }}
+        style={{ boxShadow: (isMobile && mobileOpen) || (!isMobile && isSidebarExpanded) ? '4px 0 60px rgba(99,102,241,0.12)' : '2px 0 20px rgba(0,0,0,0.4)' }}
       >
       {/* Ambient glow that follows mouse */}
       <motion.div
         className="pointer-events-none absolute left-0 w-full"
-        animate={{ top: mouseY - 60, opacity: expanded ? 0.15 : 0 }}
+        animate={{ top: mouseY - 60, opacity: isSidebarExpanded ? 0.15 : 0 }}
         transition={{ type: 'spring', stiffness: 200, damping: 20 }}
         style={{ height: 120, background: 'radial-gradient(ellipse at left, rgba(99,102,241,0.6) 0%, transparent 70%)' }}
       />
@@ -118,7 +120,7 @@ const Sidebar = () => {
           <span className="absolute inset-0 rounded-xl ring-2 ring-indigo-400/30 animate-ping" style={{ animationDuration: '3s' }} />
         </div>
         <AnimatePresence>
-          {expanded && (
+          {isSidebarExpanded && (
             <motion.div
               initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
@@ -197,7 +199,7 @@ const Sidebar = () => {
 
                 {/* Label & Badge */}
                 <AnimatePresence>
-                  {expanded && (
+                  {isSidebarExpanded && (
                     <motion.div
                       initial={{ opacity: 0, x: -6, width: 0 }}
                       animate={{ opacity: 1, x: 0, width: 'auto' }}
@@ -222,7 +224,7 @@ const Sidebar = () => {
               </div>
 
               {/* Tooltip when collapsed */}
-              {!expanded && (
+              {!isSidebarExpanded && (
                 <AnimatePresence>
                   {isHovered && (
                     <motion.div
@@ -249,8 +251,6 @@ const Sidebar = () => {
       {/* Divider */}
       <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
-
-
       {/* Settings */}
       <div className="flex-shrink-0 px-2 pb-4 pt-3">
         <Link
@@ -259,7 +259,7 @@ const Sidebar = () => {
         >
           <Settings className="h-5 w-5 flex-shrink-0 transition-transform group-hover:rotate-45" />
           <AnimatePresence>
-            {expanded && (
+            {isSidebarExpanded && (
               <motion.span
                 initial={{ opacity: 0, width: 0 }}
                 animate={{ opacity: 1, width: 'auto' }}

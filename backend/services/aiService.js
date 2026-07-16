@@ -8,9 +8,17 @@ const groq = new OpenAI({
   apiKey: process.env.GROQ_API_KEY, 
   baseURL: "https://api.groq.com/openai/v1" 
 });
+const openrouter = new OpenAI({
+  apiKey: process.env.OPENROUTER_API_KEY,
+  baseURL: "https://openrouter.ai/api/v1",
+  defaultHeaders: {
+    "HTTP-Referer": "http://localhost:5000",
+    "X-Title": "InterviewX AI",
+  }
+});
 
 // Industry-level AI Provider Abstraction with Fallback
-// Order: OpenAI -> Gemini -> Groq
+// Order: OpenAI -> OpenRouter (Gemini) -> OpenRouter (Llama 3 Free) -> Gemini -> Groq
 const ai = {
   models: {
     generateContent: async ({ contents }) => {
@@ -25,28 +33,76 @@ const ai = {
       } catch (err1) {
         console.error("⚠️ OpenAI failed:", err1.message);
         
-        // 2. Try Gemini
+        // 2. Try OpenRouter (Gemini 2.5 Flash)
         try {
-          const response = await gemini.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: contents,
+          const response = await openrouter.chat.completions.create({
+            model: "google/gemini-2.5-flash",
+            messages: [{ role: "user", content: contents }],
+            max_tokens: 8000,
           });
-          return { text: response.text };
+          return { text: response.choices[0].message.content };
         } catch (err2) {
-          console.error("⚠️ Gemini failed:", err2.message);
+          console.error("⚠️ OpenRouter (Gemini 2.5 Flash) failed:", err2.message);
           
-          // 3. Try Groq
+          // 3. Try OpenRouter (Llama 3.3 70B Free)
           try {
-            const response = await groq.chat.completions.create({
-              model: "llama-3.1-8b-instant",
+            const response = await openrouter.chat.completions.create({
+              model: "meta-llama/llama-3.3-70b-instruct:free",
               messages: [{ role: "user", content: contents }],
-              max_tokens: 2048,
+              max_tokens: 8000,
             });
             return { text: response.choices[0].message.content };
           } catch (err3) {
-            console.error("❌ Groq failed:", err3.message);
-            fs.writeFileSync('ai_error.log', err3.toString());
-            throw new Error("All AI providers failed. Quota exceeded everywhere.");
+            console.error("⚠️ OpenRouter (Llama 3.3 Free) failed:", err3.message);
+            
+            // 3.5. Try OpenRouter (Gemma 4 31B Free)
+            try {
+              const response = await openrouter.chat.completions.create({
+                model: "google/gemma-4-31b-it:free",
+                messages: [{ role: "user", content: contents }],
+                max_tokens: 8000,
+              });
+              return { text: response.choices[0].message.content };
+            } catch (err3_5) {
+              console.error("⚠️ OpenRouter (Gemma 4 Free) failed:", err3_5.message);
+              
+              // 3.6. Try OpenRouter (General Free Router)
+              try {
+                const response = await openrouter.chat.completions.create({
+                  model: "openrouter/free",
+                  messages: [{ role: "user", content: contents }],
+                  max_tokens: 8000,
+                });
+                return { text: response.choices[0].message.content };
+              } catch (err3_6) {
+                console.error("⚠️ OpenRouter (General Free) failed:", err3_6.message);
+                
+                // 4. Try Native Gemini
+                try {
+                  const response = await gemini.models.generateContent({
+                    model: 'gemini-2.5-flash',
+                    contents: contents,
+                  });
+                  return { text: response.text };
+                } catch (err4) {
+                  console.error("⚠️ Native Gemini failed:", err4.message);
+                  
+                  // 5. Try Groq
+                  try {
+                    const response = await groq.chat.completions.create({
+                      model: "llama-3.3-70b-versatile",
+                      messages: [{ role: "user", content: contents }],
+                      max_tokens: 4096,
+                    });
+                    return { text: response.choices[0].message.content };
+                  } catch (err5) {
+                    console.error("❌ Groq failed:", err5.message);
+                    fs.writeFileSync('ai_error.log', err5.toString());
+                    throw new Error("All AI providers failed. Quota exceeded everywhere.");
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -252,7 +308,39 @@ RULES:
     });
     return response.text.trim().replace(/^["']|["']$/g, '');
   } catch (error) {
-    return "Failed to construct simulation question. Check your API token configuration in the backend env file.";
+    console.error("❌ generateQuestion failed completely. Using static fallback questions:", error.message);
+    const roleLower = role.toLowerCase();
+    const typeLower = type.toLowerCase();
+    
+    // HR Interview static fallbacks
+    if (typeLower.includes('hr') || typeLower.includes('behavioral')) {
+      const hrFallbacks = [
+        "Tell me about a challenging situation you faced at work/university and how you resolved it.",
+        "Why do you want to join our company, and what values do you think you can bring to the team?",
+        "Describe a time when you had a conflict with a team member. How did you handle it and what was the outcome?",
+        "Where do you see yourself in the next 5 years, and how does this role align with your career goals?",
+        "Tell me about a time you failed or made a mistake. What did you learn from it?"
+      ];
+      return hrFallbacks[Math.floor(Math.random() * hrFallbacks.length)];
+    }
+
+    // Role-specific static fallbacks
+    if (roleLower.includes('java')) {
+      return "Welcome! Can you explain the differences between an interface and an abstract class in Java, and when you would use each?";
+    } else if (roleLower.includes('python')) {
+      return "Welcome! Can you explain what decorators are in Python and provide a common use case?";
+    } else if (roleLower.includes('react') || roleLower.includes('frontend') || roleLower.includes('javascript')) {
+      return "Welcome! Can you explain what closures are in JavaScript and how they are useful?";
+    } else if (roleLower.includes('node') || roleLower.includes('backend')) {
+      return "Welcome! Can you explain the Node.js event loop and how it handles asynchronous operations?";
+    } else if (roleLower.includes('data science') || roleLower.includes('machine learning')) {
+      return "Welcome! Can you explain the difference between supervised and unsupervised learning?";
+    } else if (roleLower.includes('sql') || roleLower.includes('database')) {
+      return "Welcome! Can you explain the differences between inner join and left join with examples?";
+    }
+
+    // General software engineer fallback
+    return "Welcome! Can you tell me about the difference between SQL and NoSQL databases, and how you decide which one to use for a project?";
   }
 };
 
@@ -942,4 +1030,4 @@ Output ONLY the final feedback string. No JSON, no markdown formatting. Keep it 
   }
 };
 
-module.exports = { generateQuestion, analyzeAnswer, analyzeResume, generateCompanyQuestion, analyzeCode, generateReport, generateRoadmap, generateTopicDetail, getCodeHint, generateAIReport, askMentor, compareRoadmaps, generateAptitudeReport };
+module.exports = { ai, generateQuestion, analyzeAnswer, analyzeResume, generateCompanyQuestion, analyzeCode, generateReport, generateRoadmap, generateTopicDetail, getCodeHint, generateAIReport, askMentor, compareRoadmaps, generateAptitudeReport };

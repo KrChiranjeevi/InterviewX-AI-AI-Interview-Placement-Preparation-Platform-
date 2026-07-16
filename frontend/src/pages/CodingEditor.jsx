@@ -223,16 +223,16 @@ const CodingEditor = () => {
       
       {/* Top Professional Code-Workspace Header */}
       <div className="h-14 bg-[#141418] border-b border-white/5 flex items-center justify-between px-4 shrink-0 relative z-20">
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4 min-w-0">
           <button 
             onClick={() => navigate(-1)} 
             className="flex items-center space-x-1.5 text-xs font-bold text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-xl border border-white/5 transition-all"
           >
             <FiChevronLeft className="w-4 h-4" />
-            <span>Problem List</span>
+            <span className="hidden sm:inline">Problem List</span>
           </button>
           
-          <div className="flex items-center space-x-2.5">
+          <div className="hidden md:flex items-center space-x-2.5 min-w-0">
             <span className="font-bold text-white max-w-[200px] sm:max-w-[400px] truncate">{problem.title}</span>
             <span className={`text-[10px] px-2.5 py-0.5 rounded-lg border font-extrabold uppercase tracking-wider ${getDifficultyColor(problem.difficulty)}`}>
               {problem.difficulty}
@@ -241,7 +241,7 @@ const CodingEditor = () => {
         </div>
 
         {/* Global IDE Action Controls */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-3 flex-shrink-0">
           <button 
             onClick={handleRun}
             disabled={running || submitting}
@@ -274,7 +274,7 @@ const CodingEditor = () => {
       <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
         
         {/* Left Interactive Documentation Workspace Panel */}
-        <div className="border-b lg:border-b-0 lg:border-r border-white/5 flex flex-col bg-[#111115] w-full lg:w-[45%] shrink-0">
+        <div className="border-b lg:border-b-0 lg:border-r border-white/5 flex flex-col bg-[#111115] w-full lg:w-[45%] h-[40vh] lg:h-full shrink-0">
           
           {/* Glassmorphic tab selection row */}
           <div className="flex h-11 border-b border-white/5 bg-[#141418] shrink-0 overflow-x-auto whitespace-nowrap scrollbar-none">
@@ -494,7 +494,7 @@ const CodingEditor = () => {
         </div>
 
         {/* Right Editor IDE Panel & Bottom Console */}
-        <div className="flex-1 flex flex-col min-w-0 w-full relative">
+        <div className="flex-1 flex flex-col min-w-0 w-full relative h-[60vh] lg:h-full">
           
           {/* Customizable Monaco Editor Controls Header */}
           <div className="flex h-11 border-b border-white/5 bg-[#141418] items-center px-4 justify-between shrink-0 relative z-10">

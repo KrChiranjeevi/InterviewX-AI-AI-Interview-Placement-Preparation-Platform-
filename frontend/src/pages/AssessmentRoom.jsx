@@ -18,7 +18,7 @@ const AssessmentRoom = () => {
   
   const rawDuration = searchParams.get('duration') || '30 Mins';
   const durationMatch = rawDuration.match(/\d+/);
-  const initialTimeMinutes = durationMatch ? parseInt(durationMatch[0], 10) : 30;
+  const fallbackTimeMinutes = durationMatch ? parseInt(durationMatch[0], 10) : 30;
 
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +28,8 @@ const AssessmentRoom = () => {
   const [responses, setResponses] = useState({});
   const [markedForReview, setMarkedForReview] = useState({});
   const [timeSpentMap, setTimeSpentMap] = useState({}); // index -> seconds spent
-  const [timeLeft, setTimeLeft] = useState(initialTimeMinutes * 60); // in seconds
+  const [timeLeft, setTimeLeft] = useState(0); // in seconds
+  const [calculatedDurationMins, setCalculatedDurationMins] = useState(0);
   const [submitting, setSubmitting] = useState(false);
 
   // Proctoring State
@@ -41,7 +42,7 @@ const AssessmentRoom = () => {
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const res = await api.get(`/assessments/${category}?limit=20`);
+        const res = await api.get(`/assessments/${category}?limit=35`);
         // Process questions to add stable shuffled options and mock difficulty if missing
         const processed = res.data.map((q) => {
           const shuffledOptions = [...q.options].sort(() => Math.random() - 0.5);
@@ -50,6 +51,17 @@ const AssessmentRoom = () => {
           return { ...q, shuffledOptions, difficulty };
         });
         setQuestions(processed);
+        
+        // Calculate dynamic timer based on difficulty
+        const totalSeconds = processed.reduce((acc, q) => {
+          if (q.difficulty === 'Easy') return acc + 60; // 1 min
+          if (q.difficulty === 'Medium') return acc + 120; // 2 mins
+          if (q.difficulty === 'Hard') return acc + 180; // 3 mins
+          return acc + 120; // default
+        }, 0);
+        
+        setTimeLeft(totalSeconds > 0 ? totalSeconds : fallbackTimeMinutes * 60);
+        setCalculatedDurationMins(totalSeconds > 0 ? Math.round(totalSeconds / 60) : fallbackTimeMinutes);
       } catch (err) {
         toast.error('Failed to load assessment questions.');
         console.error(err);
@@ -117,7 +129,7 @@ const AssessmentRoom = () => {
         module: category,
         company: company || 'Practice',
         role: role || 'General',
-        timeTakenMinutes: Math.round((initialTimeMinutes * 60 - timeLeft) / 60) || 1,
+        timeTakenMinutes: Math.round((calculatedDurationMins * 60 - timeLeft) / 60) || 1,
         responses: formattedResponses
       });
 
@@ -142,7 +154,7 @@ const AssessmentRoom = () => {
       console.error(err);
       setSubmitting(false);
     }
-  }, [category, company, initialTimeMinutes, isSim, navigate, questions, responses, role, roundIndex, submitting, timeLeft]);
+  }, [category, company, calculatedDurationMins, isSim, navigate, questions, responses, role, roundIndex, submitting, timeLeft]);
 
   // Timer Countdown and Time Spent Tracking
   useEffect(() => {
@@ -241,7 +253,7 @@ const AssessmentRoom = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{company ? `${company} - ${roundName}` : `${category} Assessment`}</h1>
-              <p className="text-slate-500 text-sm mt-0.5">Duration: {initialTimeMinutes} Minutes • {questions.length} Questions</p>
+              <p className="text-slate-500 text-sm mt-0.5">Duration: {calculatedDurationMins} Minutes • {questions.length} Questions</p>
             </div>
           </div>
 
@@ -291,16 +303,16 @@ const AssessmentRoom = () => {
     <div className="h-screen flex flex-col bg-slate-50 dark:bg-[#0b1121] select-none text-slate-900 dark:text-slate-200 overflow-hidden font-sans">
       
       {/* ─── Top Header ─── */}
-      <header className="h-16 flex-shrink-0 bg-white dark:bg-[#131b2f] border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 z-20 shadow-sm">
+      <header className="h-16 flex-shrink-0 bg-white dark:bg-[#131b2f] border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 z-20 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-md">
             <span className="text-white text-xs font-black">IX</span>
           </div>
           <div>
-            <h1 className="text-base font-bold text-slate-800 dark:text-white leading-tight">
+            <h1 className="text-sm sm:text-base font-bold text-slate-800 dark:text-white leading-tight">
               {company ? `${company} ${roundName}` : `${category} Assessment`}
             </h1>
-            <p className="text-[11px] text-slate-500 font-medium uppercase tracking-wider mt-0.5">
+            <p className="hidden sm:block text-[11px] text-slate-500 font-medium uppercase tracking-wider mt-0.5">
               Candidate Id: IX-{Math.floor(Math.random()*90000) + 10000}
             </p>
           </div>
@@ -308,7 +320,7 @@ const AssessmentRoom = () => {
 
         <div className="flex items-center gap-6">
           <div className="flex flex-col items-end">
-            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Time Remaining</span>
+            <span className="hidden sm:block text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Time Remaining</span>
             <div className={`flex items-center gap-1.5 px-3 py-1 rounded-md border font-mono text-sm font-bold shadow-sm ${
               timeLeft < 300 
                 ? 'bg-red-50 border-red-200 text-red-600 dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-400 animate-pulse' 
@@ -329,12 +341,12 @@ const AssessmentRoom = () => {
         />
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden min-h-0">
         
         {/* ─── Left Side: Question Area ─── */}
-        <main className="flex-1 flex flex-col relative overflow-hidden bg-white dark:bg-[#0b1121]">
+        <main className="flex-1 flex flex-col relative overflow-hidden bg-white dark:bg-[#0b1121] min-h-[50vh] lg:min-h-0">
           
-          <div className="flex-1 overflow-y-auto px-8 py-10 no-scrollbar">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 sm:py-10 no-scrollbar">
             <div className="max-w-4xl mx-auto h-full flex flex-col">
               
               <AnimatePresence mode="wait">
@@ -413,53 +425,56 @@ const AssessmentRoom = () => {
           </div>
 
           {/* ─── Footer Action Bar ─── */}
-          <div className="h-20 flex-shrink-0 bg-white dark:bg-[#131b2f] border-t border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 z-20">
-            <div className="flex gap-3">
+          <div className="h-20 flex-shrink-0 bg-white dark:bg-[#131b2f] border-t border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 sm:px-8 z-20">
+            <div className="flex gap-2">
               <button 
                 onClick={toggleMarkForReview}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-sm transition-all border ${
+                className={`flex items-center gap-2 px-3 sm:px-5 py-2.5 rounded-lg font-semibold text-sm transition-all border ${
                   markedForReview[currentIndex] 
                     ? 'bg-purple-50 border-purple-200 text-purple-700 dark:bg-purple-500/10 dark:border-purple-500/30 dark:text-purple-400' 
                     : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800'
                 }`}
+                title="Mark for Review"
               >
                 <Bookmark className="w-4 h-4" />
-                {markedForReview[currentIndex] ? 'Unmark Review' : 'Mark for Review'}
+                <span className="hidden sm:inline">{markedForReview[currentIndex] ? 'Unmark Review' : 'Mark for Review'}</span>
               </button>
               
               <button 
                 onClick={clearResponse}
                 disabled={!responses[currentIndex]}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-sm bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition-all"
+                className="flex items-center gap-2 px-3 sm:px-5 py-2.5 rounded-lg font-semibold text-sm bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition-all"
+                title="Clear Answer"
               >
                 <XCircle className="w-4 h-4" />
-                Clear
+                <span className="hidden sm:inline">Clear</span>
               </button>
             </div>
             
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               <button 
                 onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
                 disabled={currentIndex === 0}
-                className="flex items-center gap-1.5 px-6 py-2.5 rounded-lg font-bold text-sm bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 transition-all"
+                className="flex items-center gap-1.5 px-3 sm:px-6 py-2.5 rounded-lg font-bold text-sm bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 transition-all"
+                title="Previous Question"
               >
-                <ChevronLeft className="w-4 h-4" /> Previous
+                <ChevronLeft className="w-4 h-4" /> <span className="hidden sm:inline">Previous</span>
               </button>
               
               {currentIndex === questions.length - 1 ? (
                 <button 
                   onClick={() => handleSubmit(false)}
                   disabled={submitting}
-                  className="flex items-center gap-1.5 px-8 py-2.5 rounded-lg font-bold text-sm bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20 disabled:opacity-60 transition-all"
+                  className="flex items-center gap-1.5 px-4 sm:px-8 py-2.5 rounded-lg font-bold text-sm bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20 disabled:opacity-60 transition-all"
                 >
-                  <CheckCircle2 className="w-4 h-4" /> Submit Test
+                  <CheckCircle2 className="w-4 h-4" /> <span>Submit Test</span>
                 </button>
               ) : (
                 <button 
                   onClick={() => setCurrentIndex(prev => Math.min(questions.length - 1, prev + 1))}
-                  className="flex items-center gap-1.5 px-8 py-2.5 rounded-lg font-bold text-sm bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20 transition-all"
+                  className="flex items-center gap-1.5 px-5 sm:px-8 py-2.5 rounded-lg font-bold text-sm bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20 transition-all"
                 >
-                  Next <ChevronRight className="w-4 h-4" />
+                  <span>Next</span> <ChevronRight className="w-4 h-4" />
                 </button>
               )}
             </div>
@@ -467,7 +482,7 @@ const AssessmentRoom = () => {
         </main>
 
         {/* ─── Right Side: Question Palette ─── */}
-        <aside className="w-80 bg-slate-50 dark:bg-[#131b2f] border-l border-slate-200 dark:border-slate-800 flex flex-col z-20 shadow-[-4px_0_15px_rgba(0,0,0,0.02)]">
+        <aside className="w-full lg:w-80 bg-slate-50 dark:bg-[#131b2f] border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 flex flex-col z-20 shadow-[-4px_0_15px_rgba(0,0,0,0.02)] shrink-0">
           <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
             <LayoutGrid className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             <h3 className="font-bold text-slate-800 dark:text-slate-200 text-base">Question Palette</h3>

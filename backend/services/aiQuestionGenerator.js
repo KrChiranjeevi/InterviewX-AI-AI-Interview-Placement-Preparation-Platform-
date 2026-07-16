@@ -1,11 +1,5 @@
-const { OpenAI } = require('openai');
 const AssessmentQuestion = require('../models/AssessmentQuestion');
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const groq = new OpenAI({ 
-  apiKey: process.env.GROQ_API_KEY, 
-  baseURL: "https://api.groq.com/openai/v1" 
-});
+const { ai } = require('./aiService');
 
 /**
  * Generates high-quality placement assessment questions using AI
@@ -39,25 +33,11 @@ OUTPUT EXACTLY AS A VALID JSON OBJECT WITH A SINGLE KEY "questions" CONTAINING T
 
       let textResponse = "";
       try {
-        // 1. Try Groq directly since it's the fastest and we know OpenAI/Gemini are having issues
-        const response = await groq.chat.completions.create({
-          model: "llama-3.3-70b-versatile",
-          messages: [{ role: "user", content: prompt }],
-          temperature: 0.7,
-          max_tokens: 8000,
-          response_format: { type: "json_object" },
-        });
-        textResponse = response.choices[0].message.content;
+        const response = await ai.models.generateContent({ contents: prompt });
+        textResponse = response.text || "";
       } catch (err) {
-        console.log(`[AI Generator] Groq failed, trying OpenAI:`, err.message);
-        const response = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          messages: [{ role: "user", content: prompt }],
-          temperature: 0.7,
-          max_tokens: 8000,
-          response_format: { type: "json_object" },
-        });
-        textResponse = response.choices[0].message.content;
+        console.error(`[AI Generator] Failed to generate questions via unified fallback chain:`, err.message);
+        continue;
       }
 
       // Clean up JSON string

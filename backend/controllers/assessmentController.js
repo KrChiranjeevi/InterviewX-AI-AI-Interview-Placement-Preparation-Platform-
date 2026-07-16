@@ -1,7 +1,42 @@
+const mongoose = require('mongoose');
 const AssessmentQuestion = require('../models/AssessmentQuestion');
 const AssessmentAttempt = require('../models/AssessmentAttempt');
 const User = require('../models/User');
 const { generateAndSaveQuestions } = require('../services/aiQuestionGenerator');
+const { getFallbackQuestions } = require('../utils/fallbackQuestions');
+
+const generatingModules = new Set();
+
+const topUpQuestionBank = async (moduleName) => {
+  const mod = moduleName.toLowerCase();
+  if (generatingModules.has(mod)) return;
+  generatingModules.add(mod);
+
+  console.log(`[Assessment] Background top-up worker started for ${mod}`);
+  try {
+    let count = await AssessmentQuestion.countDocuments({ module: mod });
+    const target = 650;
+    
+    while (count < target) {
+      console.log(`[Assessment] ${mod} question count: ${count}/${target}. Triggering generation of 15...`);
+      const generated = await generateAndSaveQuestions(mod, 15);
+      
+      if (!generated || generated.length === 0) {
+        console.log(`[Assessment] Background top-up returned 0 for ${mod}. Waiting 30s before retry...`);
+        await new Promise(resolve => setTimeout(resolve, 30000));
+      } else {
+        count = await AssessmentQuestion.countDocuments({ module: mod });
+        // Wait 12 seconds between batches to avoid rate limit exhausts
+        await new Promise(resolve => setTimeout(resolve, 12000));
+      }
+    }
+    console.log(`[Assessment] Background top-up complete for ${mod}. Final count: ${count}`);
+  } catch (err) {
+    console.error(`[Assessment] Background top-up failed for ${mod}:`, err);
+  } finally {
+    generatingModules.delete(mod);
+  }
+};
 
 // @desc    Get questions for a specific assessment module
 // @route   GET /api/assessments/:module
@@ -9,36 +44,73 @@ const { generateAndSaveQuestions } = require('../services/aiQuestionGenerator');
 const getQuestions = async (req, res) => {
   try {
     const { module } = req.params;
-    let { limit = 20, difficulty } = req.query;
+    let { limit = 35, difficulty } = req.query;
     limit = parseInt(limit, 10);
 
     const moduleName = module.toLowerCase();
     
-    // 1. Fetch user's previous attempts to avoid repeating questions
+    // 1. Fetch user's previous attempts to avoid repeating questions (only exclude answered questions)
     const previousAttempts = await AssessmentAttempt.find({ userId: req.user._id, module: moduleName });
     let seenQuestionIds = [];
     previousAttempts.forEach(attempt => {
-      attempt.responses.forEach(r => seenQuestionIds.push(r.questionId));
+      attempt.responses.forEach(r => {
+        // ONLY count as seen/attempted if the user actually answered the question (not skipped, option selected)
+        if (r.questionId && !r.isSkipped && r.selectedOption) {
+          seenQuestionIds.push(r.questionId.toString());
+        }
+      });
     });
+
+    // 2. Count total questions in DB for this module
+    let totalCount = await AssessmentQuestion.countDocuments({ module: moduleName });
+    
+    // Count how many questions are unseen by this user
+    const unseenCount = await AssessmentQuestion.countDocuments({ 
+      module: moduleName, 
+      _id: { $nin: seenQuestionIds.map(id => {
+        try { return new mongoose.Types.ObjectId(id); } catch(e) { return null; }
+      }).filter(Boolean) }
+    });
+
+    // If the database has questions, but the user has seen almost all of them (fewer than the required limit left)
+    if (totalCount > 0 && unseenCount < limit) {
+      console.log(`[Assessment] User has exhausted the question pool for ${moduleName} (${unseenCount} unseen left of ${totalCount}). Deleting and generating a fresh set of 600+ questions.`);
+      await AssessmentQuestion.deleteMany({ module: moduleName });
+      totalCount = 0; // reset local count to trigger fresh generation
+      seenQuestionIds = []; // clear seen list for the new pool
+    }
+    
+    // Trigger background top-up if the database pool is smaller than 650
+    if (totalCount < 650) {
+      topUpQuestionBank(moduleName).catch(err => {
+        console.error(`[Assessment] topUpQuestionBank failed for ${moduleName}:`, err);
+      });
+    }
 
     let baseQuery = { module: moduleName };
     if (difficulty) baseQuery.difficulty = difficulty;
 
-    // 2. Intelligent Aggregation Pipeline
-    let questions = [];
-
     const fetchQuestionsWithExclusion = async (excludeIds) => {
-      const matchQuery = { ...baseQuery, _id: { $nin: excludeIds } };
+      const excludeObjectIds = excludeIds.map(id => {
+        try {
+          return new mongoose.Types.ObjectId(id);
+        } catch (e) {
+          return null;
+        }
+      }).filter(Boolean);
+
+      const matchQuery = { ...baseQuery };
+      if (excludeObjectIds.length > 0) {
+        matchQuery._id = { $nin: excludeObjectIds };
+      }
       
       if (difficulty) {
-        // If a specific difficulty is requested, just sample
         return await AssessmentQuestion.aggregate([
           { $match: matchQuery },
           { $sample: { size: limit } },
           { $project: { correctAnswer: 0 } }
         ]);
       } else {
-        // Balanced Paper Generation (30% Easy, 40% Medium, 30% Hard)
         const easyCount = Math.round(limit * 0.3);
         const hardCount = Math.round(limit * 0.3);
         const mediumCount = limit - easyCount - hardCount;
@@ -55,12 +127,11 @@ const getQuestions = async (req, res) => {
         ]);
 
         const combined = [
-          ...facetResults[0].easy,
-          ...facetResults[0].medium,
-          ...facetResults[0].hard
+          ...(facetResults[0].easy || []),
+          ...(facetResults[0].medium || []),
+          ...(facetResults[0].hard || [])
         ];
 
-        // Shuffle the combined array so they aren't ordered by difficulty
         return combined.sort(() => Math.random() - 0.5).map(q => {
           delete q.correctAnswer;
           return q;
@@ -68,22 +139,61 @@ const getQuestions = async (req, res) => {
       }
     };
 
-    questions = await fetchQuestionsWithExclusion(seenQuestionIds);
+    let questions = await fetchQuestionsWithExclusion(seenQuestionIds);
 
-    // 3. Fallback Mechanism: If we ran out of unseen questions, generate new ones via AI
+    // 3. Fallback Mechanism: If we ran out of unseen questions, top up and reuse seen ones
     if (questions.length < limit) {
-      console.log(`[Assessment] Not enough unseen questions for ${moduleName}. Triggering AI Generation...`);
-      // Generate enough questions to fill the gap (or just a batch of 20)
-      const generated = await generateAndSaveQuestions(moduleName, 20);
-      if (generated && generated.length > 0) {
-         // Re-fetch to include newly generated questions
-         questions = await fetchQuestionsWithExclusion(seenQuestionIds);
-      }
+      console.log(`[Assessment] Running low on unseen questions for ${moduleName} (${questions.length}/${limit}). Triggering top-up.`);
       
-      // If STILL not enough (e.g. AI failed), fallback to repeating old questions
-      if (questions.length < limit) {
-        console.log(`[Assessment] AI generation failed or insufficient. Falling back to full pool for user ${req.user._id}`);
+      // Trigger top-up worker to generate more questions in background
+      topUpQuestionBank(moduleName).catch(err => {
+        console.error(`[Assessment] topUpQuestionBank failed for ${moduleName}:`, err);
+      });
+
+      if (questions.length === 0) {
+        // Database has 0 unseen questions. Let's try to query with fewer exclusions (fallback to repeating)
+        console.log(`[Assessment] 0 unseen questions left. Falling back to full pool (repeats) for ${moduleName}`);
         questions = await fetchQuestionsWithExclusion([]);
+      } else {
+        // Mix what unseen we have with some random seen ones to satisfy the limit
+        const needed = limit - questions.length;
+        const seenQuestions = await fetchQuestionsWithExclusion([]);
+        const currentIds = questions.map(q => q._id.toString());
+        const repeats = seenQuestions.filter(q => !currentIds.includes(q._id.toString())).slice(0, needed);
+        questions = [...questions, ...repeats];
+      }
+
+      // If STILL < limit (database is literally empty for this module, first time run):
+      if (questions.length < limit) {
+        console.log(`[Assessment] Database is empty/has too few questions for ${moduleName}. Synchronously generating initial set...`);
+        const generated = await generateAndSaveQuestions(moduleName, limit - questions.length);
+        if (generated && generated.length > 0) {
+          const fresh = await fetchQuestionsWithExclusion(seenQuestionIds);
+          // Combine existing questions with new fresh ones
+          const freshIds = questions.map(q => q._id.toString());
+          const newQuestions = fresh.filter(q => !freshIds.includes(q._id.toString()));
+          questions = [...questions, ...newQuestions];
+        }
+      }
+
+      // If STILL < limit (e.g. all APIs blocked/quota exceeded, or offline fallback needed):
+      if (questions.length < limit) {
+        console.log(`[Assessment] Serving/padding emergency static fallback questions to reach limit of ${limit}`);
+        const fallbacks = getFallbackQuestions(moduleName);
+        let padded = [...questions];
+        
+        while (padded.length < limit && fallbacks.length > 0) {
+          padded = padded.concat(fallbacks.map(q => ({
+            ...q,
+            _id: new mongoose.Types.ObjectId() // unique ObjectIds to prevent key clashes
+          })));
+        }
+        
+        questions = padded.slice(0, limit).map(q => {
+          const qCopy = { ...q };
+          delete qCopy.correctAnswer;
+          return qCopy;
+        });
       }
     }
 
@@ -253,8 +363,7 @@ const submitAssessment = async (req, res) => {
       await user.save();
     }
 
-    // Auto-Replace logic: Delete previous attempts for this user and this module
-    await AssessmentAttempt.deleteMany({ userId: req.user._id, module: module.toLowerCase() });
+    // Removed Auto-Replace logic to preserve history for non-repeating questions
 
     const attempt = await AssessmentAttempt.create({
       userId: req.user._id,

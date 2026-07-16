@@ -99,14 +99,14 @@ const CodingHub = () => {
           Medium: codingStats.totals.Medium,
           Hard: codingStats.totals.Hard,
           total: codingStats.totals.Easy + codingStats.totals.Medium + codingStats.totals.Hard
-        } : getDifficultyCounts(cat.id);
+        } : { Easy: 0, Medium: 0, Hard: 0, total: 0 };
       } else {
         counts = metaCounts[cat.id] ? {
           Easy: metaCounts[cat.id].Easy || 0,
           Medium: metaCounts[cat.id].Medium || 0,
           Hard: metaCounts[cat.id].Hard || 0,
           total: metaCounts[cat.id].total || 0
-        } : getDifficultyCounts(cat.id);
+        } : { Easy: 0, Medium: 0, Hard: 0, total: 0 };
       }
       
       let solved = 0;
@@ -164,9 +164,9 @@ const CodingHub = () => {
             {/* Dynamic Premium Dashboard Header */}
             {(() => {
               const scoresArray = Object.values(latestReportsSummary).map(s => s.score);
-              const readinessIndex = scoresArray.length > 0 ? Math.round(scoresArray.reduce((a, b) => a + b, 0) / scoresArray.length) : 65;
+              const readinessIndex = scoresArray.length > 0 ? Math.round(scoresArray.reduce((a, b) => a + b, 0) / scoresArray.length) : 0;
               const userLevel = profile?.level || 1;
-              const currentXp = profile?.xp || 120;
+              const currentXp = profile?.xp || 0;
               const nextLevelXp = userLevel * 500;
               const xpPercent = Math.min(100, Math.round((currentXp / nextLevelXp) * 100));
 
@@ -242,7 +242,7 @@ const CodingHub = () => {
                         <div className="flex items-center gap-1.5">
                           <Trophy className="h-4.5 w-4.5 text-amber-400" />
                           <span className="text-xl font-black text-white">
-                            {1450 + (codingStats?.solved?.count || 0) * 12 + (profile?.streakCount || 0) * 5}
+                            {codingStats?.solved?.count ? 1200 + (codingStats.solved.count * 12) + ((profile?.streakCount || 0) * 5) : 0}
                           </span>
                         </div>
                       </div>
@@ -367,23 +367,38 @@ const CodingHub = () => {
                         </div>
                       )}
 
-                      {/* Difficulty breakdown */}
-                      <div className="flex items-center gap-3 text-[11px] mb-3">
-                        <span className="text-emerald-400 font-medium">Easy: {cat.Easy}</span>
-                        <span className="text-amber-400 font-medium">Med: {cat.Medium}</span>
-                        <span className="text-red-400 font-medium">Hard: {cat.Hard}</span>
-                        <span className="text-zinc-600 ml-auto">{cat.solved}/{cat.total}</span>
-                      </div>
-
-                      {/* Progress bar */}
-                      <div className="h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden mb-4">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${pct}%` }}
-                          transition={{ duration: 1, delay: i * 0.05, ease: [0.16,1,0.3,1] }}
-                          className={`h-full rounded-full bg-gradient-to-r ${cat.color}`}
-                        />
-                      </div>
+                      {/* Difficulty breakdown & Progress */}
+                      {isCodingEnv ? (
+                        <>
+                          <div className="flex items-center gap-3 text-[11px] mb-3">
+                            <span className="text-emerald-400 font-medium">Easy: {cat.Easy}</span>
+                            <span className="text-amber-400 font-medium">Med: {cat.Medium}</span>
+                            <span className="text-red-400 font-medium">Hard: {cat.Hard}</span>
+                            <span className="text-zinc-600 ml-auto">{cat.solved}/{cat.total}</span>
+                          </div>
+                          <div className="h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden mb-4">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${pct}%` }}
+                              transition={{ duration: 1, delay: i * 0.05, ease: [0.16,1,0.3,1] }}
+                              className={`h-full rounded-full bg-gradient-to-r ${cat.color}`}
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex items-center justify-between text-[11px] mb-3 border border-white/[0.05] bg-white/[0.02] rounded-lg px-2 py-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-emerald-400 font-medium" title="11 Easy Questions">11 E</span>
+                              <span className="text-zinc-600">•</span>
+                              <span className="text-amber-400 font-medium" title="13 Medium Questions">13 M</span>
+                              <span className="text-zinc-600">•</span>
+                              <span className="text-red-400 font-medium" title="11 Hard Questions">11 H</span>
+                            </div>
+                            <span className="text-zinc-400 font-bold">35 Qs Total</span>
+                          </div>
+                        </>
+                      )}
 
                       {/* Last Attempt Info (Only for MCQ cards) */}
                       {!isCodingEnv && (
