@@ -5,3 +5,5 @@ dist/
 build/
 backend/uploads/
 .vscode/
+**/scratch/
+*.log

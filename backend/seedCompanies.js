@@ -215,22 +215,7 @@ const companies = [
     selectionRate: '11.0%',
     estimatedTime: '1 Week'
   },
-  {
-    name: 'Wipro',
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/9/90/Wipro_Logo_2017.svg',
-    rounds: ['Aptitude', 'Coding', 'Technical', 'HR'],
-    skills: ['Quantitative Aptitude', 'Coding Basics', 'Java/Python', 'DBMS', 'Communication'],
-    questions: [
-      'What is polymorphism?',
-      'Write a query to find duplicates in a table.',
-      'Explain the difference between stack and queue.'
-    ],
-    difficulty: 'Easy',
-    package: '3.5 - 7.0 LPA',
-    eligibility: 'All Graduates (CGPA >= 6.0)',
-    selectionRate: '14.0%',
-    estimatedTime: '1 Week'
-  },
+
   {
     name: 'Cognizant',
     logo: 'https://upload.wikimedia.org/wikipedia/commons/e/ea/Cognizant_logo_2022.svg',
@@ -246,6 +231,39 @@ const companies = [
     eligibility: 'B.Tech/M.Tech/MCA/M.Sc (CGPA >= 6.0)',
     selectionRate: '12.0%',
     estimatedTime: '1 Week'
+  },
+  {
+    name: 'Wipro',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/a/a0/Wipro_Primary_Logo_Color_RGB.svg',
+    rounds: ['Aptitude', 'Logical Reasoning', 'Verbal', 'Coding', 'Technical Interview', 'HR Interview'],
+    skills: ['Java', 'Python', 'SQL', 'OOP', 'DSA', 'Cloud', 'System Design'],
+    questions: [
+      'Explain the four pillars of OOP with examples.',
+      'Write a SQL query to find the second highest salary.',
+      'What is the difference between process and thread?',
+      'Implement a function to find the longest palindromic substring.'
+    ],
+    difficulty: 'Hard',
+    package: '3.5 - 10.0 LPA',
+    eligibility: 'B.E/B.Tech/MCA (CGPA >= 6.0)',
+    selectionRate: '4.8%',
+    estimatedTime: '5-6 Weeks'
+  },
+  {
+    name: 'Deloitte',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/5/56/Deloitte.svg',
+    rounds: ['Application', 'Online Assessment', 'Technical Interview', 'Managerial Interview', 'HR Interview'],
+    skills: ['Technology Consulting', 'Java/Python', 'SQL', 'System Design', 'Communication'],
+    questions: [
+      'Tell me about a time you demonstrated leadership.',
+      'Explain polymorphism with an example.',
+      'How do you handle conflict in a team?'
+    ],
+    difficulty: 'Medium',
+    package: '6.0 - 12.0 LPA',
+    eligibility: 'B.E/B.Tech/MCA/M.Tech (CGPA >= 6.5)',
+    selectionRate: '8.5%',
+    estimatedTime: '3-4 Weeks'
   }
 ];
 

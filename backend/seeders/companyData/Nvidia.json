@@ -1,0 +1,192 @@
+{
+  "name": "NVIDIA",
+  "logo": "https://upload.wikimedia.org/wikipedia/commons/2/21/Nvidia_logo.svg",
+  "about": "NVIDIA's hiring process is known for being extremely technical, focusing heavily on CUDA, Low-Level C/C++, System Programming, and Deep Learning GPU acceleration.",
+  "selectionRate": "2.5%",
+  "package": "22-45 LPA",
+  "eligibility": "B.Tech/M.Tech/Ph.D (CS/EE/AI or related)",
+  "estimatedTime": "4-6 Weeks",
+  "difficulty": "Hard",
+  "roles": [
+    {
+      "roleName": "Software Engineer",
+      "description": "Develop and optimize system software, driver stacks, and compiler pipelines for NVIDIA GPUs.",
+      "skillsRequired": ["C++", "C", "Algorithms", "Operating Systems", "Computer Architecture"],
+      "offerPrediction": "High",
+      "timeline": "6 Weeks",
+      "tags": ["Full-time", "System Software"],
+      "rounds": [
+        {
+          "roundIndex": 0,
+          "name": "Resume Screening",
+          "duration": "24-48 Hours",
+          "difficulty": "Medium",
+          "passingScore": "70%",
+          "skillsRequired": ["C++", "Systems Programming"],
+          "instructions": "Initial automated resume screening evaluating skills match against NVIDIA's low-level stack expectations.",
+          "assessmentType": "screening"
+        },
+        {
+          "roundIndex": 1,
+          "name": "Online Assessment",
+          "duration": "90 Mins",
+          "difficulty": "Hard",
+          "passingScore": "75%",
+          "skillsRequired": ["Bit Manipulation", "Algorithms", "Concurrency"],
+          "instructions": "Solve algorithmic and system optimization challenges. Code execution tests with performance constraints.",
+          "assessmentType": "coding"
+        },
+        {
+          "roundIndex": 2,
+          "name": "Technical Interview 1 (System & DSA)",
+          "duration": "45 Mins",
+          "difficulty": "Hard",
+          "passingScore": "80%",
+          "skillsRequired": ["Pointers", "Memory Management", "Advanced DSA"],
+          "instructions": "Deep dive into low-level memory layout, pointer manipulation, and complex algorithm optimizations.",
+          "assessmentType": "technical"
+        },
+        {
+          "roundIndex": 3,
+          "name": "Technical Interview 2 (System Design / CUDA)",
+          "duration": "45 Mins",
+          "difficulty": "Hard",
+          "passingScore": "80%",
+          "skillsRequired": ["Concurrency", "GPU Architecture", "OS Internals"],
+          "instructions": "Discussion on multi-threading, CPU caching, GPU core layouts, and design tradeoffs.",
+          "assessmentType": "technical"
+        },
+        {
+          "roundIndex": 4,
+          "name": "Behavioral / Values Round",
+          "duration": "45 Mins",
+          "difficulty": "Medium",
+          "passingScore": "85%",
+          "skillsRequired": ["Teamwork", "Ownership", "STAR method"],
+          "instructions": "Behavioral assessment using the STAR format, mapping against NVIDIA values of speed, excellence, and collaboration.",
+          "assessmentType": "hr"
+        }
+      ]
+    },
+    {
+      "roleName": "AI Engineer / Deep Learning Engineer",
+      "description": "Design and build AI architectures, deep learning model pipelines, and optimized neural networks.",
+      "skillsRequired": ["PyTorch", "TensorRT", "Deep Learning", "Python", "GPU Optimization"],
+      "offerPrediction": "Very High",
+      "timeline": "6 Weeks",
+      "tags": ["Full-time", "AI & Deep Learning"],
+      "rounds": [
+        {
+          "roundIndex": 0,
+          "name": "Resume Screening",
+          "duration": "24-48 Hours",
+          "difficulty": "Medium",
+          "passingScore": "70%",
+          "skillsRequired": ["Python", "PyTorch", "Tensorflow"],
+          "instructions": "Automated evaluation of project portfolios and technical matching on neural net frameworks.",
+          "assessmentType": "screening"
+        },
+        {
+          "roundIndex": 1,
+          "name": "Online Assessment",
+          "duration": "90 Mins",
+          "difficulty": "Hard",
+          "passingScore": "75%",
+          "skillsRequired": ["Linear Algebra", "Python Optimization", "Neural Nets"],
+          "instructions": "Solve algorithmic challenges with dynamic optimization constraints.",
+          "assessmentType": "coding"
+        },
+        {
+          "roundIndex": 2,
+          "name": "Technical Interview 1 (ML Theory & DSA)",
+          "duration": "45 Mins",
+          "difficulty": "Hard",
+          "passingScore": "80%",
+          "skillsRequired": ["Backpropagation", "Loss Functions", "Gradient Descent"],
+          "instructions": "In-depth ML fundamentals, mathematical proof discussions, and coding of layers from scratch.",
+          "assessmentType": "technical"
+        },
+        {
+          "roundIndex": 3,
+          "name": "Technical Interview 2 (System Design & Scaling)",
+          "duration": "45 Mins",
+          "difficulty": "Hard",
+          "passingScore": "80%",
+          "skillsRequired": ["Distributed Training", "CUDA basics", "TensorRT"],
+          "instructions": "Scale models on cluster systems and discuss TensorRT inference optimizations.",
+          "assessmentType": "technical"
+        },
+        {
+          "roundIndex": 4,
+          "name": "Behavioral / Values Round",
+          "duration": "45 Mins",
+          "difficulty": "Medium",
+          "passingScore": "85%",
+          "skillsRequired": ["Adaptability", "Collaboration", "STAR method"],
+          "instructions": "NVIDIA values check focusing on innovation and project execution under high pressure.",
+          "assessmentType": "hr"
+        }
+      ]
+    },
+    {
+      "roleName": "CUDA Developer / GPU Software Engineer",
+      "description": "Optimize algorithms for GPU architectures using CUDA and parallel programming paradigms.",
+      "skillsRequired": ["CUDA", "C++", "Parallel Algorithms", "Performance Tuning"],
+      "offerPrediction": "High",
+      "timeline": "6 Weeks",
+      "tags": ["Full-time", "Parallel Computing"],
+      "rounds": [
+        {
+          "roundIndex": 0,
+          "name": "Resume Screening",
+          "duration": "24-48 Hours",
+          "difficulty": "Medium",
+          "passingScore": "70%",
+          "skillsRequired": ["CUDA", "C++", "Parallel Processing"],
+          "instructions": "Resume check focusing on CUDA programming and GPU architecture concepts.",
+          "assessmentType": "screening"
+        },
+        {
+          "roundIndex": 1,
+          "name": "Online Assessment",
+          "duration": "90 Mins",
+          "difficulty": "Hard",
+          "passingScore": "75%",
+          "skillsRequired": ["Parallel Logic", "Optimizations", "DSA"],
+          "instructions": "Solve algorithmic problems requiring parallel execution paradigms or memory locality.",
+          "assessmentType": "coding"
+        },
+        {
+          "roundIndex": 2,
+          "name": "Technical Interview 1 (GPU Memory & C++)",
+          "duration": "45 Mins",
+          "difficulty": "Hard",
+          "passingScore": "80%",
+          "skillsRequired": ["Shared Memory", "Coalesced Access", "Warp Divergence"],
+          "instructions": "Detailed questions on GPU memory hierarchies and minimizing warp divergence.",
+          "assessmentType": "technical"
+        },
+        {
+          "roundIndex": 3,
+          "name": "Technical Interview 2 (Parallel Algorithms)",
+          "duration": "45 Mins",
+          "difficulty": "Hard",
+          "passingScore": "80%",
+          "skillsRequired": ["Prefix Sum", "Parallel Reduction", "GPU Architectures"],
+          "instructions": "Design efficient GPU parallel algorithms like prefix sum (scan) or reduction from scratch.",
+          "assessmentType": "technical"
+        },
+        {
+          "roundIndex": 4,
+          "name": "Behavioral / Values Round",
+          "duration": "45 Mins",
+          "difficulty": "Medium",
+          "passingScore": "85%",
+          "skillsRequired": ["Excellence", "Speed", "STAR method"],
+          "instructions": "NVIDIA speed and high performance values discussion.",
+          "assessmentType": "hr"
+        }
+      ]
+    }
+  ]
+}

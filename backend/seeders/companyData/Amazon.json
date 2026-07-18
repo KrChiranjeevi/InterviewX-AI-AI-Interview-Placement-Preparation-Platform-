@@ -1,0 +1,62 @@
+{
+  "name": "Amazon",
+  "logo": "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg",
+  "about": "Amazon's interview process strongly indexes on their 16 Leadership Principles and technical problem-solving ability.",
+  "selectionRate": "3.5%",
+  "package": "25-45 LPA",
+  "eligibility": "B.Tech/M.Tech (CS/IT/ECE)",
+  "estimatedTime": "3-5 Weeks",
+  "difficulty": "Hard",
+  "roles": [
+    {
+      "roleName": "Software Development Engineer (SDE) - I",
+      "description": "Core software engineering role focusing on scalable systems, coding, and Amazon's Leadership Principles.",
+      "skillsRequired": ["Data Structures", "Algorithms", "System Design", "Object Oriented Design", "Leadership Principles"],
+      "offerPrediction": "High",
+      "timeline": "4 Weeks",
+      "tags": ["Full-time", "Engineering"],
+      "rounds": [
+        {
+          "roundIndex": 0,
+          "name": "Online Assessment (Coding + Work Style)",
+          "duration": "90 Mins",
+          "difficulty": "Medium",
+          "passingScore": "75%",
+          "skillsRequired": ["Arrays", "Strings", "Graphs", "Amazon Leadership Principles"],
+          "instructions": "Solve 2 coding questions matching standard DSA concepts and answer situational judgment scenarios based on Amazon Leadership Principles.",
+          "assessmentType": "coding"
+        },
+        {
+          "roundIndex": 1,
+          "name": "Technical Interview 1 (Problem Solving)",
+          "duration": "60 Mins",
+          "difficulty": "Hard",
+          "passingScore": "80%",
+          "skillsRequired": ["Data Structures", "Algorithmic Complexity", "Problem Solving"],
+          "instructions": "Interactive live coding session with a senior engineer. Expect optimization-related questions (e.g., LeetCode Medium/Hard).",
+          "assessmentType": "technical"
+        },
+        {
+          "roundIndex": 2,
+          "name": "Technical Interview 2 (System Design/OOD)",
+          "duration": "60 Mins",
+          "difficulty": "Hard",
+          "passingScore": "80%",
+          "skillsRequired": ["Object Oriented Design", "Low Level Design", "Design Patterns"],
+          "instructions": "Design a scalable system or component. Focus is on classes, interfaces, and solid principles.",
+          "assessmentType": "technical"
+        },
+        {
+          "roundIndex": 3,
+          "name": "Bar Raiser",
+          "duration": "60 Mins",
+          "difficulty": "Hard",
+          "passingScore": "85%",
+          "skillsRequired": ["STAR Method", "Leadership Principles", "Cultural Fit"],
+          "instructions": "Brace for deep dive behavioral questions testing your culture fit. Interviewed by a neutral third-party 'Bar Raiser'.",
+          "assessmentType": "hr"
+        }
+      ]
+    }
+  ]
+}

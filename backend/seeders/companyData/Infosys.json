@@ -1,0 +1,54 @@
+{
+  "name": "Infosys",
+  "logo": "https://upload.wikimedia.org/wikipedia/commons/9/95/Infosys_logo.svg",
+  "about": "Infosys campus placement simulation evaluates students on InfyTQ online assessment, English communication skills, technical aptitude, and HR interviews. Infosys hires across three tracks: Systems Engineer, Digital Specialist Engineer, and Power Programmer.",
+  "selectionRate": "15%",
+  "package": "3.6 - 9.0 LPA",
+  "eligibility": "B.E/B.Tech/M.E/M.Tech/MCA (60% throughout)",
+  "estimatedTime": "2-4 Weeks",
+  "difficulty": "Medium",
+  "roles": [
+    {
+      "roleName": "Systems Engineer",
+      "description": "Entry-level software engineering role at Infosys with exposure to large enterprise client projects globally.",
+      "skillsRequired": ["Java", "Python", "SQL", "OOPs", "DBMS", "Software Engineering"],
+      "offerPrediction": "Very High",
+      "timeline": "3 Weeks",
+      "tags": ["Full-time", "SE Track"],
+      "rounds": [
+        { "roundIndex": 0, "name": "InfyTQ Online Assessment", "duration": "95 Mins", "difficulty": "Medium", "passingScore": "65%", "skillsRequired": ["Aptitude", "Coding"], "instructions": "Online qualifier test", "assessmentType": "coding" },
+        { "roundIndex": 1, "name": "Hackwithinfy Round 1", "duration": "3 Hours", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["DSA", "Problem Solving"], "instructions": "Coding contest qualifying round", "assessmentType": "coding" },
+        { "roundIndex": 2, "name": "Technical Interview", "duration": "45 Mins", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["Java", "OOPs", "SQL"], "instructions": "Technical discussion round", "assessmentType": "technical" },
+        { "roundIndex": 3, "name": "HR Interview", "duration": "20 Mins", "difficulty": "Easy", "passingScore": "50%", "skillsRequired": ["Communication", "Flexibility"], "instructions": "HR validation round", "assessmentType": "hr" }
+      ]
+    },
+    {
+      "roleName": "Digital Specialist Engineer",
+      "description": "Premium tech role at Infosys focusing on cloud, data engineering, and modern full-stack development.",
+      "skillsRequired": ["React", "Node.js", "AWS", "Cloud Architecture", "Microservices"],
+      "offerPrediction": "High",
+      "timeline": "3 Weeks",
+      "tags": ["Full-time", "DSE Track"],
+      "rounds": [
+        { "roundIndex": 0, "name": "InfyTQ Advanced Assessment", "duration": "95 Mins", "difficulty": "Hard", "passingScore": "75%", "skillsRequired": ["Advanced Coding", "Cloud"], "instructions": "Advanced qualifier", "assessmentType": "coding" },
+        { "roundIndex": 1, "name": "Hackwithinfy Round 1 and 2", "duration": "6 Hours", "difficulty": "Hard", "passingScore": "75%", "skillsRequired": ["DSA", "System Design"], "instructions": "Multi-stage coding contest", "assessmentType": "coding" },
+        { "roundIndex": 2, "name": "Technical Interview", "duration": "60 Mins", "difficulty": "Hard", "passingScore": "75%", "skillsRequired": ["System Design", "Cloud", "Full Stack"], "instructions": "Deep technical evaluation", "assessmentType": "technical" },
+        { "roundIndex": 3, "name": "HR Interview", "duration": "20 Mins", "difficulty": "Easy", "passingScore": "50%", "skillsRequired": ["Leadership", "Communication"], "instructions": "HR validation round", "assessmentType": "hr" }
+      ]
+    },
+    {
+      "roleName": "Power Programmer",
+      "description": "Elite programming track at Infosys targeting top coders with high salary and advanced project allocations.",
+      "skillsRequired": ["Competitive Programming", "Advanced DSA", "System Design", "OS", "Networking"],
+      "offerPrediction": "High",
+      "timeline": "4 Weeks",
+      "tags": ["Full-time", "PP Track"],
+      "rounds": [
+        { "roundIndex": 0, "name": "InfyTQ PP Assessment", "duration": "120 Mins", "difficulty": "Hard", "passingScore": "80%", "skillsRequired": ["Advanced Coding", "Algorithms"], "instructions": "Elite programming test", "assessmentType": "coding" },
+        { "roundIndex": 1, "name": "Hackwithinfy Grand Finale", "duration": "8 Hours", "difficulty": "Hard", "passingScore": "80%", "skillsRequired": ["CP", "Optimization"], "instructions": "Grand finale competition", "assessmentType": "coding" },
+        { "roundIndex": 2, "name": "Technical Panel Interview", "duration": "90 Mins", "difficulty": "Hard", "passingScore": "80%", "skillsRequired": ["Advanced Algorithms", "System Design"], "instructions": "Panel-based deep dive", "assessmentType": "technical" },
+        { "roundIndex": 3, "name": "HR Interview", "duration": "20 Mins", "difficulty": "Easy", "passingScore": "50%", "skillsRequired": ["Research Drive", "Ownership"], "instructions": "HR validation", "assessmentType": "hr" }
+      ]
+    }
+  ]
+}

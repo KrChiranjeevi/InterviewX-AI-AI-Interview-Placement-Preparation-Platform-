@@ -1,0 +1,162 @@
+{
+  "name": "TCS",
+  "logo": "https://upload.wikimedia.org/wikipedia/commons/b/b1/Tata_Consultancy_Services_Logo.svg",
+  "about": "TCS campus placement simulation evaluates students on Quantitative Aptitude, Verbal Ability, Logical Reasoning, Coding, and Technical/Managerial/HR interview competencies.",
+  "selectionRate": "12%",
+  "package": "3.3 - 9.0 LPA",
+  "eligibility": "B.E/B.Tech/M.E/M.Tech/MCA/M.Sc",
+  "estimatedTime": "1-2 Weeks",
+  "difficulty": "Medium",
+  "roles": [
+    {
+      "roleName": "Software Engineer",
+      "description": "Develop and maintain enterprise applications and software systems.",
+      "skillsRequired": ["Java", "C++", "DSA", "DBMS", "Software Engineering"],
+      "offerPrediction": "Very High",
+      "timeline": "2 Weeks",
+      "tags": ["Full-time", "Ninja Track"],
+      "rounds": [
+        { "roundIndex": 0, "name": "Resume Screening", "duration": "24 Hours", "difficulty": "Easy", "passingScore": "60%", "skillsRequired": ["Resume Keywords"], "instructions": "Profile verification", "assessmentType": "screening" },
+        { "roundIndex": 1, "name": "TCS NQT", "duration": "90 Mins", "difficulty": "Medium", "passingScore": "65%", "skillsRequired": ["Aptitude", "Coding"], "instructions": "National Qualifier Test", "assessmentType": "coding" },
+        { "roundIndex": 2, "name": "Technical Interview", "duration": "30 Mins", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["Java/C++", "OOPs"], "instructions": "Technical interview", "assessmentType": "technical" },
+        { "roundIndex": 3, "name": "Managerial Interview", "duration": "30 Mins", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["Agile", "Teamwork"], "instructions": "Managerial discussion", "assessmentType": "technical" },
+        { "roundIndex": 4, "name": "HR Interview", "duration": "15 Mins", "difficulty": "Easy", "passingScore": "50%", "skillsRequired": ["Communication"], "instructions": "HR policy checks", "assessmentType": "hr" }
+      ]
+    },
+    {
+      "roleName": "Assistant System Engineer",
+      "description": "Core software role at TCS, offering exposure to diverse domain projects.",
+      "skillsRequired": ["Java/C++", "SQL", "OOPs", "DBMS", "SDLC"],
+      "offerPrediction": "Very High",
+      "timeline": "2 Weeks",
+      "tags": ["Full-time", "Ninja Track"],
+      "rounds": [
+        { "roundIndex": 0, "name": "Resume Screening", "duration": "24 Hours", "difficulty": "Easy", "passingScore": "60%", "skillsRequired": ["OOPs"], "instructions": "Profile verification", "assessmentType": "screening" },
+        { "roundIndex": 1, "name": "TCS NQT", "duration": "90 Mins", "difficulty": "Medium", "passingScore": "65%", "skillsRequired": ["Aptitude", "Coding"], "instructions": "National Qualifier Test", "assessmentType": "coding" },
+        { "roundIndex": 2, "name": "Technical Interview", "duration": "30 Mins", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["OOPs", "DBMS"], "instructions": "Technical interview", "assessmentType": "technical" },
+        { "roundIndex": 3, "name": "Managerial Interview", "duration": "30 Mins", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["Conflict Resolution"], "instructions": "Managerial discussion", "assessmentType": "technical" },
+        { "roundIndex": 4, "name": "HR Interview", "duration": "15 Mins", "difficulty": "Easy", "passingScore": "50%", "skillsRequired": ["Flexibility"], "instructions": "HR policy checks", "assessmentType": "hr" }
+      ]
+    },
+    {
+      "roleName": "System Engineer",
+      "description": "High performance role at TCS with Digital or Prime tracks.",
+      "skillsRequired": ["Advanced DSA", "System Design", "Cloud Architecture", "Python/Java"],
+      "offerPrediction": "High",
+      "timeline": "2 Weeks",
+      "tags": ["Full-time", "Digital Track"],
+      "rounds": [
+        { "roundIndex": 0, "name": "Resume Screening", "duration": "24 Hours", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["Python"], "instructions": "Strict evaluation", "assessmentType": "screening" },
+        { "roundIndex": 1, "name": "TCS NQT (Advanced)", "duration": "90 Mins", "difficulty": "Hard", "passingScore": "75%", "skillsRequired": ["Advanced Coding"], "instructions": "Advanced NQT", "assessmentType": "coding" },
+        { "roundIndex": 2, "name": "Technical Interview", "duration": "30 Mins", "difficulty": "Hard", "passingScore": "75%", "skillsRequired": ["Advanced SQL", "OS"], "instructions": "Technical interview", "assessmentType": "technical" },
+        { "roundIndex": 3, "name": "Managerial Interview", "duration": "30 Mins", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["Leadership"], "instructions": "Managerial discussion", "assessmentType": "technical" },
+        { "roundIndex": 4, "name": "HR Interview", "duration": "15 Mins", "difficulty": "Easy", "passingScore": "50%", "skillsRequired": ["Availability"], "instructions": "HR policy checks", "assessmentType": "hr" }
+      ]
+    },
+    {
+      "roleName": "Developer",
+      "description": "General application development and customer project customisation.",
+      "skillsRequired": ["C#", "SQL", "JavaScript", "ASP.NET"],
+      "offerPrediction": "High",
+      "timeline": "2 Weeks",
+      "tags": ["Full-time", "Ninja Track"],
+      "rounds": [
+        { "roundIndex": 0, "name": "Resume Screening", "duration": "24 Hours", "difficulty": "Easy", "passingScore": "60%", "skillsRequired": ["SQL"], "instructions": "Profile verification", "assessmentType": "screening" },
+        { "roundIndex": 1, "name": "TCS NQT", "duration": "90 Mins", "difficulty": "Medium", "passingScore": "65%", "skillsRequired": ["Aptitude", "Coding"], "instructions": "National Qualifier Test", "assessmentType": "coding" },
+        { "roundIndex": 2, "name": "Technical Interview", "duration": "30 Mins", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["C#", "OOPs"], "instructions": "Technical interview", "assessmentType": "technical" },
+        { "roundIndex": 3, "name": "Managerial Interview", "duration": "30 Mins", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["Collaboration"], "instructions": "Managerial discussion", "assessmentType": "technical" },
+        { "roundIndex": 4, "name": "HR Interview", "duration": "15 Mins", "difficulty": "Easy", "passingScore": "50%", "skillsRequired": ["Communication"], "instructions": "HR policy checks", "assessmentType": "hr" }
+      ]
+    },
+    {
+      "roleName": "Full Stack Developer",
+      "description": "Design and build both frontend layouts and backend database microservices.",
+      "skillsRequired": ["Node.js", "React", "MongoDB", "Express", "REST APIs"],
+      "offerPrediction": "High",
+      "timeline": "2 Weeks",
+      "tags": ["Full-time", "Digital Track"],
+      "rounds": [
+        { "roundIndex": 0, "name": "Resume Screening", "duration": "24 Hours", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["React"], "instructions": "Strict evaluation", "assessmentType": "screening" },
+        { "roundIndex": 1, "name": "TCS NQT (Advanced)", "duration": "90 Mins", "difficulty": "Hard", "passingScore": "75%", "skillsRequired": ["Advanced Coding"], "instructions": "Advanced NQT", "assessmentType": "coding" },
+        { "roundIndex": 2, "name": "Technical Interview", "duration": "30 Mins", "difficulty": "Hard", "passingScore": "75%", "skillsRequired": ["APIs", "Database Design"], "instructions": "Technical interview", "assessmentType": "technical" },
+        { "roundIndex": 3, "name": "Managerial Interview", "duration": "30 Mins", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["Leadership"], "instructions": "Managerial discussion", "assessmentType": "technical" },
+        { "roundIndex": 4, "name": "HR Interview", "duration": "15 Mins", "difficulty": "Easy", "passingScore": "50%", "skillsRequired": ["Salary expectations"], "instructions": "HR policy checks", "assessmentType": "hr" }
+      ]
+    },
+    {
+      "roleName": "Java Developer",
+      "description": "Design and code large-scale Java/J2EE applications.",
+      "skillsRequired": ["Java", "Spring Boot", "Hibernate", "Microservices"],
+      "offerPrediction": "Very High",
+      "timeline": "2 Weeks",
+      "tags": ["Full-time", "Digital Track"],
+      "rounds": [
+        { "roundIndex": 0, "name": "Resume Screening", "duration": "24 Hours", "difficulty": "Easy", "passingScore": "60%", "skillsRequired": ["Java"], "instructions": "Profile verification", "assessmentType": "screening" },
+        { "roundIndex": 1, "name": "TCS NQT", "duration": "90 Mins", "difficulty": "Medium", "passingScore": "65%", "skillsRequired": ["Aptitude", "Coding"], "instructions": "National Qualifier Test", "assessmentType": "coding" },
+        { "roundIndex": 2, "name": "Technical Interview", "duration": "30 Mins", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["Spring Boot", "OOPs"], "instructions": "Technical interview", "assessmentType": "technical" },
+        { "roundIndex": 3, "name": "Managerial Interview", "duration": "30 Mins", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["Teamwork"], "instructions": "Managerial discussion", "assessmentType": "technical" },
+        { "roundIndex": 4, "name": "HR Interview", "duration": "15 Mins", "difficulty": "Easy", "passingScore": "50%", "skillsRequired": ["Flexibility"], "instructions": "HR policy checks", "assessmentType": "hr" }
+      ]
+    },
+    {
+      "roleName": "Frontend Developer",
+      "description": "Design UI screens using React, JavaScript, HTML and CSS.",
+      "skillsRequired": ["React", "JavaScript", "HTML", "CSS", "Tailwind"],
+      "offerPrediction": "High",
+      "timeline": "2 Weeks",
+      "tags": ["Full-time", "Ninja Track"],
+      "rounds": [
+        { "roundIndex": 0, "name": "Resume Screening", "duration": "24 Hours", "difficulty": "Easy", "passingScore": "60%", "skillsRequired": ["React"], "instructions": "Profile verification", "assessmentType": "screening" },
+        { "roundIndex": 1, "name": "TCS NQT", "duration": "90 Mins", "difficulty": "Medium", "passingScore": "65%", "skillsRequired": ["Aptitude", "Coding"], "instructions": "National Qualifier Test", "assessmentType": "coding" },
+        { "roundIndex": 2, "name": "Technical Interview", "duration": "30 Mins", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["JavaScript", "CSS"], "instructions": "Technical interview", "assessmentType": "technical" },
+        { "roundIndex": 3, "name": "Managerial Interview", "duration": "30 Mins", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["Adaptability"], "instructions": "Managerial discussion", "assessmentType": "technical" },
+        { "roundIndex": 4, "name": "HR Interview", "duration": "15 Mins", "difficulty": "Easy", "passingScore": "50%", "skillsRequired": ["Communication"], "instructions": "HR policy checks", "assessmentType": "hr" }
+      ]
+    },
+    {
+      "roleName": "Backend Developer",
+      "description": "Build high scalability server systems and query optimizations.",
+      "skillsRequired": ["Node.js", "Python", "SQL", "DBMS", "APIs"],
+      "offerPrediction": "High",
+      "timeline": "2 Weeks",
+      "tags": ["Full-time", "Digital Track"],
+      "rounds": [
+        { "roundIndex": 0, "name": "Resume Screening", "duration": "24 Hours", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["SQL"], "instructions": "Profile verification", "assessmentType": "screening" },
+        { "roundIndex": 1, "name": "TCS NQT (Advanced)", "duration": "90 Mins", "difficulty": "Hard", "passingScore": "75%", "skillsRequired": ["Advanced Coding"], "instructions": "Advanced NQT", "assessmentType": "coding" },
+        { "roundIndex": 2, "name": "Technical Interview", "duration": "30 Mins", "difficulty": "Hard", "passingScore": "75%", "skillsRequired": ["SQL Queries", "DBMS"], "instructions": "Technical interview", "assessmentType": "technical" },
+        { "roundIndex": 3, "name": "Managerial Interview", "duration": "30 Mins", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["Time management"], "instructions": "Managerial discussion", "assessmentType": "technical" },
+        { "roundIndex": 4, "name": "HR Interview", "duration": "15 Mins", "difficulty": "Easy", "passingScore": "50%", "skillsRequired": ["Relocation"], "instructions": "HR policy checks", "assessmentType": "hr" }
+      ]
+    },
+    {
+      "roleName": "Support Engineer",
+      "description": "Troubleshoot software deployments and maintain system uptime.",
+      "skillsRequired": ["Linux", "Scripting", "SQL", "Networking", "ITIL"],
+      "offerPrediction": "Very High",
+      "timeline": "2 Weeks",
+      "tags": ["Full-time", "Ninja Track"],
+      "rounds": [
+        { "roundIndex": 0, "name": "Resume Screening", "duration": "24 Hours", "difficulty": "Easy", "passingScore": "60%", "skillsRequired": ["Linux"], "instructions": "Profile verification", "assessmentType": "screening" },
+        { "roundIndex": 1, "name": "TCS NQT", "duration": "90 Mins", "difficulty": "Medium", "passingScore": "65%", "skillsRequired": ["Aptitude", "Coding"], "instructions": "National Qualifier Test", "assessmentType": "coding" },
+        { "roundIndex": 2, "name": "Technical Interview", "duration": "30 Mins", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["Linux commands", "SQL"], "instructions": "Technical interview", "assessmentType": "technical" },
+        { "roundIndex": 3, "name": "Managerial Interview", "duration": "30 Mins", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["Ownership"], "instructions": "Managerial discussion", "assessmentType": "technical" },
+        { "roundIndex": 4, "name": "HR Interview", "duration": "15 Mins", "difficulty": "Easy", "passingScore": "50%", "skillsRequired": ["Night shifts"], "instructions": "HR policy checks", "assessmentType": "hr" }
+      ]
+    },
+    {
+      "roleName": "QA Engineer",
+      "description": "Write automated testing scripts and manual testing cases.",
+      "skillsRequired": ["Selenium", "Java", "Testing Methodology", "Bug Tracking"],
+      "offerPrediction": "Very High",
+      "timeline": "2 Weeks",
+      "tags": ["Full-time", "Ninja Track"],
+      "rounds": [
+        { "roundIndex": 0, "name": "Resume Screening", "duration": "24 Hours", "difficulty": "Easy", "passingScore": "60%", "skillsRequired": ["Testing"], "instructions": "Profile verification", "assessmentType": "screening" },
+        { "roundIndex": 1, "name": "TCS NQT", "duration": "90 Mins", "difficulty": "Medium", "passingScore": "65%", "skillsRequired": ["Aptitude", "Coding"], "instructions": "National Qualifier Test", "assessmentType": "coding" },
+        { "roundIndex": 2, "name": "Technical Interview", "duration": "30 Mins", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["Selenium", "Java"], "instructions": "Technical interview", "assessmentType": "technical" },
+        { "roundIndex": 3, "name": "Managerial Interview", "duration": "30 Mins", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["Conflict resolution"], "instructions": "Managerial discussion", "assessmentType": "technical" },
+        { "roundIndex": 4, "name": "HR Interview", "duration": "15 Mins", "difficulty": "Easy", "passingScore": "50%", "skillsRequired": ["Availability"], "instructions": "HR policy checks", "assessmentType": "hr" }
+      ]
+    }
+  ]
+}

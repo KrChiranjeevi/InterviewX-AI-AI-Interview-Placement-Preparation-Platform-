@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
 import Navbar from '../components/layout/Navbar';
@@ -10,7 +10,6 @@ import {
   FaUndo, FaClock, FaCheck, FaAward, FaSlidersH, FaBrain,
   FaTimesCircle, FaTrophy, FaLightbulb, FaBriefcase, FaChevronDown, FaChevronUp
 } from 'react-icons/fa';
-import { ROLES, getCompanySimulations, getRoleSkills } from '../data/companySimulations';
 import toast from 'react-hot-toast';
 
 // Helper to generate dynamic mock details for passed/failed rounds
@@ -74,7 +73,6 @@ const generateRoundDetails = (roundName, score, passed, role) => {
   };
 };
 
-// Helper to generate the final recruitment report based only on actual scores
 const generateFinalReport = (scores, simulationRounds) => {
   const activeRounds = simulationRounds.filter(r => r.name.toLowerCase() !== 'final result' && r.name.toLowerCase() !== 'final decision');
   const completedCount = Object.keys(scores).length;
@@ -149,34 +147,31 @@ const generateFinalReport = (scores, simulationRounds) => {
 const CompanyDetail = () => {
   const { companyName } = useParams();
   const [company, setCompany] = useState(null);
+  const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedRounds, setExpandedRounds] = useState({});
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [selectedRole, setSelectedRole] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    const roleParam = params.get('role');
-    if (roleParam) return decodeURIComponent(roleParam);
-    return localStorage.getItem(`last_role_${companyName}`) || '';
-  });
+  const [selectedRole, setSelectedRole] = useState('');
+  const [selectedRoleData, setSelectedRoleData] = useState(null);
+  const [simulationRounds, setSimulationRounds] = useState([]);
   
   const [simState, setSimState] = useState({
+    attemptId: null,
     currentRoundIndex: 0,
     scores: {},
     roundDetails: {},
     finalReport: null
   });
 
-  const simulationRounds = useMemo(() => {
-    return selectedRole ? getCompanySimulations(companyName, selectedRole) : [];
-  }, [companyName, selectedRole]);
-
-  // Load company details
+  // Load company details and roles
   useEffect(() => {
     const fetchCompany = async () => {
       try {
-        const res = await api.get(`/company/${companyName}`);
-        setCompany(res.data);
+        const res = await api.get(`/prep/companies/${companyName}`);
+        setCompany(res.data.company);
+        setRoles(res.data.roles || []);
       } catch (err) {
         console.error('Failed to fetch company details', err);
         toast.error('Failed to load company details.');
@@ -187,182 +182,157 @@ const CompanyDetail = () => {
     fetchCompany();
   }, [companyName]);
 
-  // Load simulation state when role is selected
+  const loadRolePipeline = async (roleObj) => {
+    try {
+      const resRounds = await api.get(`/prep/roles/${roleObj._id}/pipeline`);
+      setSimulationRounds(resRounds.data);
+
+      const resAttempt = await api.post('/prep/attempt', { companyId: company._id, roleId: roleObj._id });
+      setSimState({
+        attemptId: resAttempt.data._id,
+        currentRoundIndex: resAttempt.data.currentRoundIndex || 0,
+        scores: resAttempt.data.scores || {},
+        roundDetails: resAttempt.data.roundDetails || {},
+        finalReport: resAttempt.data.finalReport || null
+      });
+    } catch(err) {
+      console.error(err);
+      toast.error('Failed to load pipeline.');
+    }
+  };
+
+  // Restore role from query param or localStorage
   useEffect(() => {
-    if (selectedRole) {
-      localStorage.setItem(`last_role_${companyName}`, selectedRole);
-      const simKey = `recruitment_sim_${companyName}_${selectedRole}`;
-      const saved = localStorage.getItem(simKey);
-      if (saved) {
-        setSimState(JSON.parse(saved));
-      } else {
-        const initialState = { currentRoundIndex: 0, scores: {}, roundDetails: {}, finalReport: null };
-        setSimState(initialState);
-        localStorage.setItem(simKey, JSON.stringify(initialState));
+    if (company && roles.length > 0 && !selectedRole) {
+      const params = new URLSearchParams(window.location.search);
+      const roleParam = params.get('role');
+      const savedRoleId = localStorage.getItem(`last_role_id_${companyName}`);
+      
+      let targetRole = null;
+      if (roleParam) {
+        targetRole = roles.find(r => r.roleName === decodeURIComponent(roleParam));
+      } else if (savedRoleId) {
+        targetRole = roles.find(r => r._id === savedRoleId);
+      }
+
+      if (targetRole) {
+        setSelectedRole(targetRole.roleName);
+        setSelectedRoleData(targetRole);
+        loadRolePipeline(targetRole);
       }
     }
-  }, [selectedRole, companyName]);
+  }, [company, roles]);
 
   // Handle simulation query results (after returning from LiveInterview or CodingEditor)
   useEffect(() => {
+    if (!company || !selectedRoleData || simulationRounds.length === 0 || !simState.attemptId) return;
+
     const params = new URLSearchParams(window.location.search);
     const simComplete = params.get('simComplete');
     if (simComplete === 'true') {
-      const score = parseInt(params.get('score') || '0', 10);
-      const roundIdx = parseInt(params.get('round') || '0', 10);
-      const passed = score >= 60;
+      const processScore = async () => {
+        const score = parseInt(params.get('score') || '0', 10);
+        const roundIdx = parseInt(params.get('round') || '0', 10);
+        const passed = score >= 60; // Assuming 60% passing for now, can be extracted from roundData
+        
+        const roundData = simulationRounds[roundIdx];
+        const roundName = roundData?.name || `Round ${roundIdx + 1}`;
+        const details = generateRoundDetails(roundName, score, passed, selectedRole);
 
-      const simKey = `recruitment_sim_${companyName}_${selectedRole}`;
-      let simData = JSON.parse(localStorage.getItem(simKey)) || { currentRoundIndex: 0, scores: {}, roundDetails: {}, finalReport: null };
+        let newScores = { ...simState.scores, [roundIdx]: score };
+        let newCurrentIdx = passed ? Math.max(simState.currentRoundIndex, roundIdx + 1) : simState.currentRoundIndex;
+        let isFinal = newCurrentIdx >= simulationRounds.length - (simulationRounds[simulationRounds.length-1].name.includes('Final') ? 1 : 0);
+        let finalReport = null;
 
-      if (!simData.roundDetails) simData.roundDetails = {};
+        if (isFinal || newCurrentIdx === simulationRounds.length) {
+           finalReport = generateFinalReport(newScores, simulationRounds);
+        }
 
-      const roundName = simulationRounds[roundIdx]?.name || `Round ${roundIdx + 1}`;
-      const details = generateRoundDetails(roundName, score, passed, selectedRole);
+        try {
+          await api.post(`/prep/attempt/${simState.attemptId}/submit`, {
+            roundIndex: roundIdx,
+            score,
+            passed,
+            details,
+            isFinal,
+            finalReport
+          });
+          
+          setSimState(prev => ({
+            ...prev,
+            scores: newScores,
+            roundDetails: { ...prev.roundDetails, [roundIdx]: details },
+            currentRoundIndex: newCurrentIdx,
+            finalReport
+          }));
+
+          if (passed) {
+            toast.success(`Passed Round ${roundIdx + 1} with ${score}%!`, { duration: 5000 });
+          } else {
+            toast.error(`Round ${roundIdx + 1} failed with ${score}%. Try again.`, { duration: 5000 });
+          }
+        } catch (err) {
+          toast.error('Failed to submit score.');
+        }
+
+        navigate(`/companies/${companyName}?role=${encodeURIComponent(selectedRole)}`, { replace: true });
+      };
       
-      simData.scores[roundIdx] = score;
-      simData.roundDetails[roundIdx] = details;
-
-      if (passed) {
-        simData.currentRoundIndex = Math.max(simData.currentRoundIndex, roundIdx + 1);
-        toast.success(`Passed Round ${roundIdx + 1} with ${score}%!`, { duration: 5000 });
-      } else {
-        toast.error(`Round ${roundIdx + 1} failed with ${score}%. Try again.`, { duration: 5000 });
-      }
-
-      // Check if all active rounds are complete
-      if (simData.currentRoundIndex === simulationRounds.length - 1) {
-        simData.finalReport = generateFinalReport(simData.scores, simulationRounds);
-      }
-
-      localStorage.setItem(simKey, JSON.stringify(simData));
-      setSimState(simData);
-
-      // Clean query params
-      navigate(`/companies/${companyName}?role=${encodeURIComponent(selectedRole)}`, { replace: true });
+      processScore();
     }
-  }, [navigate, companyName, selectedRole, simulationRounds]);
+  }, [location.search, company, selectedRoleData, simulationRounds, simState.attemptId]);
 
-  const handleRoleSelect = (role) => {
-    setSelectedRole(role);
+  const handleRoleSelect = (roleObj) => {
+    setSelectedRole(roleObj.roleName);
+    setSelectedRoleData(roleObj);
+    localStorage.setItem(`last_role_${companyName}`, roleObj.roleName);
+    localStorage.setItem(`last_role_id_${companyName}`, roleObj._id);
+    loadRolePipeline(roleObj);
   };
 
-  const resetSimulation = () => {
+  const resetSimulation = async () => {
     if (window.confirm('Are you sure you want to reset this recruitment simulation? All progress will be cleared.')) {
-      const simKey = `recruitment_sim_${companyName}_${selectedRole}`;
-      const freshState = { currentRoundIndex: 0, scores: {}, roundDetails: {}, finalReport: null };
-      setSimState(freshState);
-      localStorage.setItem(simKey, JSON.stringify(freshState));
-      toast.success('Simulation reset successfully!');
+      try {
+        await api.post(`/prep/attempt/${simState.attemptId}/reset`);
+        setSimState(prev => ({
+          ...prev,
+          currentRoundIndex: 0,
+          scores: {},
+          roundDetails: {},
+          finalReport: null
+        }));
+        toast.success('Simulation reset successfully!');
+      } catch (err) {
+        toast.error('Failed to reset simulation');
+      }
     }
-  };
-
-  const retryRound = (roundIdx) => {
-    const simKey = `recruitment_sim_${companyName}_${selectedRole}`;
-    let simData = { ...simState };
-    delete simData.scores[roundIdx];
-    delete simData.roundDetails[roundIdx];
-    simData.currentRoundIndex = roundIdx;
-    
-    setSimState(simData);
-    localStorage.setItem(simKey, JSON.stringify(simData));
-    toast.success('Round reset! Ready for retry.');
   };
 
   const changeRole = () => {
     setSelectedRole('');
+    setSelectedRoleData(null);
   };
 
   const toggleRoundExpand = (idx) => {
     setExpandedRounds(prev => ({ ...prev, [idx]: !prev[idx] }));
   };
 
-  const getRoundCategory = (roundName) => {
-    const name = roundName.toLowerCase();
-    
-    // Quantitative Aptitude
-    if (name.includes('quantitative') || name.includes('quant')) {
-      return 'quant';
-    }
-    // Logical Reasoning
-    if (name.includes('reasoning') || name.includes('logical')) {
-      return 'reasoning';
-    }
-    // Verbal Ability
-    if (name.includes('verbal') || name.includes('english')) {
-      return 'verbal';
-    }
-    // Aptitude (general/cognitive/game based)
-    if (name.includes('aptitude') || name.includes('cognitive') || name.includes('game based') || name.includes('spatial')) {
-      return 'aptitude';
-    }
-    
-    // Tech-specific sub-categories
-    if (name.includes('react')) {
-      return 'react';
-    }
-    if (name.includes('node.js') || name.includes('node')) {
-      return 'node';
-    }
-    if (name.includes('express.js') || name.includes('express')) {
-      return 'express';
-    }
-    if (name.includes('mongodb') || name.includes('mongo')) {
-      return 'mongodb';
-    }
-    if (name.includes('java ') || name === 'java') {
-      return 'java';
-    }
-    if (name.includes('python')) {
-      return 'python';
-    }
-    if (name.includes('javascript') || name === 'js') {
-      return 'javascript';
-    }
-    if (name.includes('sql')) {
-      return 'sql';
-    }
-    if (name.includes('dbms') || name.includes('database')) {
-      return 'dbms';
-    }
-    if (name.includes('operating system') || name === 'os') {
-      return 'os';
-    }
-    if (name.includes('network') || name === 'cn') {
-      return 'cn';
-    }
-    if (name.includes('oop') || name.includes('object oriented')) {
-      return 'oop';
-    }
-    if (name.includes('frontend')) {
-      return 'frontend';
-    }
-    if (name.includes('backend')) {
-      return 'backend';
-    }
-    if (name.includes('system design')) {
-      return 'system-design';
-    }
-    
-    // Default coding rounds
-    if (name.includes('coding') || name.includes('dsa') || name.includes('algorithm') || name.includes('problem solving') || name.includes('assessment')) {
-      return 'dsa';
-    }
-    
-    return null;
-  };
-
   const startRoundSimulation = async (roundName, roundIndex, roundConfig) => {
     try {
-      const category = getRoundCategory(roundName);
+      const category = roundConfig.assessmentType;
       
-      if (category) {
+      if (['aptitude', 'quant', 'reasoning', 'verbal'].includes(category)) {
         toast.success(`Redirecting to ${roundName} practice...`);
-        const isAssessment = ['aptitude', 'quant', 'reasoning', 'verbal'].includes(category);
-        const basePath = isAssessment ? '/assessment' : '/coding';
-        
         navigate(
-          `${basePath}/${category}?sim=true&company=${encodeURIComponent(company.name)}&role=${encodeURIComponent(selectedRole)}&roundIndex=${roundIndex}&roundName=${encodeURIComponent(roundName)}&difficulty=${company.difficulty}&duration=${encodeURIComponent(roundConfig.duration || '30 Mins')}`
+          `/assessment/${category}?sim=true&company=${encodeURIComponent(company.name)}&role=${encodeURIComponent(selectedRole)}&roundIndex=${roundIndex}&roundName=${encodeURIComponent(roundName)}&difficulty=${company.difficulty}&duration=${encodeURIComponent(roundConfig.duration || '30 Mins')}`
+        );
+        return;
+      }
+
+      if (category === 'coding') {
+        toast.success(`Redirecting to ${roundName} practice...`);
+        navigate(
+          `/coding/dsa?sim=true&company=${encodeURIComponent(company.name)}&role=${encodeURIComponent(selectedRole)}&roundIndex=${roundIndex}&roundName=${encodeURIComponent(roundName)}&difficulty=${company.difficulty}&duration=${encodeURIComponent(roundConfig.duration || '30 Mins')}`
         );
         return;
       }
@@ -370,8 +340,7 @@ const CompanyDetail = () => {
       toast.loading('Initializing simulation environment...');
       
       let finalType = 'Technical Interview';
-      const normalizedName = roundName.toLowerCase();
-      if (normalizedName.includes('hr') || normalizedName.includes('googliness') || normalizedName.includes('behavioral') || normalizedName.includes('principles') || normalizedName.includes('bar raiser') || normalizedName.includes('leadership')) {
+      if (category === 'hr') {
         finalType = 'HR Interview';
       }
 
@@ -446,8 +415,8 @@ const CompanyDetail = () => {
                 <h1 className="text-4xl font-extrabold text-white tracking-tight">{company.name}</h1>
                 <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${
                   company.difficulty === 'Hard' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                  company.difficulty === 'Medium' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
-                  'bg-green-500/10 text-green-400 border-green-500/20'
+                  company.difficulty === 'Medium' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                  'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                 }`}>
                   {company.difficulty} Match
                 </span>
@@ -458,7 +427,7 @@ const CompanyDetail = () => {
                 )}
               </div>
               <p className="text-slate-400 text-base max-w-2xl mb-4">
-                Real-world simulation of {company.name}'s multi-stage recruitment pipeline. Select your target role to begin the simulation.
+                {company.about || `Real-world simulation of ${company.name}'s multi-stage recruitment pipeline. Select your target role to begin the simulation.`}
               </p>
               
               {selectedRole && (
@@ -496,18 +465,25 @@ const CompanyDetail = () => {
                   <p className="text-slate-400 text-sm">We will tailor the recruitment rounds, questions, and difficulty specific to this role.</p>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {ROLES.map((role) => (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {roles.map((role) => (
                     <motion.button
-                      key={role}
+                      key={role._id}
                       whileHover={{ y: -3, scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => handleRoleSelect(role)}
-                      className="bg-slate-950 hover:bg-indigo-600 border border-slate-800 hover:border-indigo-500/60 p-4 rounded-2xl text-left transition-all hover:shadow-[0_0_15px_rgba(99,102,241,0.15)] flex flex-col justify-between h-28 relative overflow-hidden group"
+                      className="bg-slate-950 hover:bg-indigo-600/10 border border-slate-800 hover:border-indigo-500/60 p-5 rounded-2xl text-left transition-all hover:shadow-[0_0_15px_rgba(99,102,241,0.1)] flex flex-col justify-between h-36 relative overflow-hidden group"
                     >
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 blur-2xl rounded-full group-hover:bg-indigo-500/20 transition-colors pointer-events-none"></div>
-                      <span className="text-slate-200 group-hover:text-white font-semibold text-sm line-clamp-2 z-10">{role}</span>
-                      <span className="text-[10px] text-slate-500 group-hover:text-indigo-300 font-semibold z-10">Tailored Questions</span>
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl rounded-full group-hover:bg-indigo-500/10 transition-colors pointer-events-none"></div>
+                      <div>
+                        <span className="text-white font-bold text-base line-clamp-2 z-10 mb-1">{role.roleName}</span>
+                        <span className="text-slate-400 text-xs line-clamp-2 z-10">{role.description}</span>
+                      </div>
+                      <div className="mt-3 flex gap-2">
+                        {role.tags?.slice(0,2).map(tag => (
+                          <span key={tag} className="text-[9px] bg-slate-800 text-slate-300 px-2 py-1 rounded-md">{tag}</span>
+                        ))}
+                      </div>
                     </motion.button>
                   ))}
                 </div>
@@ -634,7 +610,7 @@ const CompanyDetail = () => {
                                 : isActive 
                                   ? details && !details.passed
                                     ? 'bg-red-500 border-red-400 text-white shadow-[0_0_15px_rgba(239,68,68,0.3)]'
-                                    : 'bg-indigo-650 border-indigo-400 text-white shadow-[0_0_20px_rgba(99,102,241,0.5)] animate-pulse' 
+                                    : 'bg-indigo-600 border-indigo-400 text-white shadow-[0_0_20px_rgba(99,102,241,0.5)] animate-pulse' 
                                   : 'bg-slate-900 border-slate-800 text-slate-500'
                             }`}>
                               {isCompleted ? <FaCheck className="text-xs" /> : isLocked ? <FaLock className="text-xs" /> : idx + 1}
@@ -671,7 +647,7 @@ const CompanyDetail = () => {
                                 {isCompleted && roundScore !== undefined && (
                                   <button 
                                     onClick={() => toggleRoundExpand(idx)}
-                                    className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-xl border border-slate-750 font-medium transition-colors"
+                                    className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-xl border border-slate-700 font-medium transition-colors"
                                   >
                                     <FaAward className="text-indigo-400" /> Score: {roundScore}%
                                     {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
@@ -681,7 +657,7 @@ const CompanyDetail = () => {
 
                               {/* Locked Round display */}
                               {isLocked && (
-                                <p className="text-slate-650 text-xs md:text-sm">Complete pichhle stage elements to unlock this process round.</p>
+                                <p className="text-slate-500 text-xs md:text-sm">Complete previous stage elements to unlock this process round.</p>
                               )}
 
                               {/* Active Round or Expanded Completed details */}
@@ -704,8 +680,8 @@ const CompanyDetail = () => {
                                     </div>
                                     <div>
                                       <span className="text-slate-500 block mb-0.5">Focus Areas</span>
-                                      <span className="text-slate-300 font-medium truncate block">
-                                        {round.skillsRequired.join(', ')}
+                                      <span className="text-slate-300 font-medium truncate block" title={round.skillsRequired?.join(', ')}>
+                                        {round.skillsRequired?.join(', ')}
                                       </span>
                                     </div>
                                   </div>
@@ -723,7 +699,7 @@ const CompanyDetail = () => {
                                           <span className="text-slate-500 block mb-1.5 font-bold uppercase tracking-wider text-[9px]">Weak Topics</span>
                                           <div className="flex flex-wrap gap-1">
                                             {details.weakTopics?.map(t => (
-                                              <span key={t} className="bg-slate-900 border border-slate-800 text-slate-350 px-2 py-1 rounded text-[10px]">{t}</span>
+                                              <span key={t} className="bg-slate-900 border border-slate-800 text-slate-300 px-2 py-1 rounded text-[10px]">{t}</span>
                                             ))}
                                           </div>
                                         </div>
@@ -736,19 +712,13 @@ const CompanyDetail = () => {
                                             ))}
                                           </div>
                                         </div>
-                                        <div>
-                                          <span className="text-slate-500 block mb-1.5 font-bold uppercase tracking-wider text-[9px]">Resume Improvements</span>
-                                          <ul className="list-disc pl-3 text-slate-400 space-y-1 text-[10px]">
-                                            {details.resumeImprovements?.map((ri, i) => <li key={i}>{ri}</li>)}
-                                          </ul>
-                                        </div>
                                       </div>
 
                                       <button
-                                        onClick={() => retryRound(idx)}
+                                        onClick={resetSimulation}
                                         className="w-full bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 font-semibold py-2 px-4 rounded-xl transition-all flex items-center justify-center gap-2 text-xs"
                                       >
-                                        <FaUndo /> Retry Assessment Round
+                                        <FaUndo /> Reset Simulation To Retry
                                       </button>
                                     </div>
                                   )}
@@ -757,7 +727,7 @@ const CompanyDetail = () => {
                                   {isActive && !details && !isFinal && (
                                     <button
                                       onClick={() => startRoundSimulation(round.name, idx, round)}
-                                      className="w-full bg-indigo-650 hover:bg-indigo-600 text-white font-semibold py-2.5 px-4 rounded-xl transition-all shadow-[0_0_15px_rgba(99,102,241,0.25)] flex items-center justify-center gap-2 hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] text-sm"
+                                      className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 px-4 rounded-xl transition-all shadow-[0_0_15px_rgba(99,102,241,0.25)] flex items-center justify-center gap-2 hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] text-sm"
                                     >
                                       <FaPlay className="text-xs" /> Start Round Simulation
                                     </button>
@@ -789,22 +759,7 @@ const CompanyDetail = () => {
                                         </div>
                                       </div>
                                       
-                                      <p className="text-slate-350 italic">"{details.feedback}"</p>
-                                      
-                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-white/5 pt-3">
-                                        <div>
-                                          <span className="text-slate-500 block font-bold text-[9px] uppercase mb-1">Key Strengths</span>
-                                          <ul className="list-disc pl-4 text-slate-300 space-y-0.5">
-                                            {details.strengths?.map((s, i) => <li key={i}>{s}</li>)}
-                                          </ul>
-                                        </div>
-                                        <div>
-                                          <span className="text-slate-500 block font-bold text-[9px] uppercase mb-1">Identified Weaknesses</span>
-                                          <ul className="list-disc pl-4 text-slate-300 space-y-0.5">
-                                            {details.weaknesses?.map((w, i) => <li key={i}>{w}</li>)}
-                                          </ul>
-                                        </div>
-                                      </div>
+                                      <p className="text-slate-300 italic">"{details.feedback}"</p>
                                     </motion.div>
                                   )}
 
@@ -833,7 +788,7 @@ const CompanyDetail = () => {
                   <div className="bg-slate-900 border border-slate-800/80 rounded-3xl p-6 md:p-8">
                     <h3 className="text-lg font-bold text-white mb-4">Required Skills</h3>
                     <div className="flex flex-wrap gap-2">
-                      {getRoleSkills(selectedRole).map((skill, idx) => (
+                      {selectedRoleData?.skillsRequired?.map((skill, idx) => (
                         <span key={idx} className="bg-slate-950 border border-slate-800 text-slate-300 px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center">
                           <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mr-2"></span>
                           {skill}

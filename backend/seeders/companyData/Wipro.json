@@ -1,0 +1,54 @@
+{
+  "name": "Wipro",
+  "logo": "https://upload.wikimedia.org/wikipedia/commons/a/a0/Wipro_Primary_Logo_Color_RGB.svg",
+  "about": "Wipro campus hiring evaluates candidates across Aptitude, Logical Reasoning, Verbal Ability, Coding, Technical Interview, and HR Interview. Three tracks — Project Engineer, Elite, and Turbo — offer packages from 3.5 to 10 LPA.",
+  "selectionRate": "4.8%",
+  "package": "3.5 - 10.0 LPA",
+  "eligibility": "B.E/B.Tech/MCA (CGPA >= 6.0)",
+  "estimatedTime": "5-6 Weeks",
+  "difficulty": "Hard",
+  "roles": [
+    {
+      "roleName": "Project Engineer",
+      "description": "Standard Wipro campus hire track for software engineering roles across service lines.",
+      "skillsRequired": ["Java", "Python", "SQL", "OOP", "Aptitude"],
+      "offerPrediction": "High",
+      "timeline": "3-4 Weeks",
+      "tags": ["Full-time", "Project Engineer Track"],
+      "rounds": [
+        { "roundIndex": 0, "name": "Online Assessment — Aptitude", "duration": "25 Mins", "difficulty": "Easy", "passingScore": "70%", "skillsRequired": ["Quantitative", "Logical"], "instructions": "20 questions covering arithmetic, data interpretation, and logical reasoning", "assessmentType": "coding" },
+        { "roundIndex": 1, "name": "Online Assessment — Coding", "duration": "60 Mins", "difficulty": "Medium", "passingScore": "75%", "skillsRequired": ["Data Structures", "Algorithms"], "instructions": "2 coding problems — typically Easy to Medium DSA", "assessmentType": "coding" },
+        { "roundIndex": 2, "name": "Technical Interview", "duration": "45 Mins", "difficulty": "Medium", "passingScore": "65%", "skillsRequired": ["Java", "OOP", "DBMS", "OS"], "instructions": "Core CS concepts, project discussion, and 1 live coding problem", "assessmentType": "technical" },
+        { "roundIndex": 3, "name": "HR Interview", "duration": "30 Mins", "difficulty": "Easy", "passingScore": "60%", "skillsRequired": ["Communication", "Behavioral"], "instructions": "Behavioral, situational, and motivational questions", "assessmentType": "hr" }
+      ]
+    },
+    {
+      "roleName": "Elite",
+      "description": "Accelerated Wipro track for high-performers with advanced packages and faster growth.",
+      "skillsRequired": ["DSA", "System Design", "Cloud", "Java", "SQL"],
+      "offerPrediction": "Medium",
+      "timeline": "5-6 Weeks",
+      "tags": ["Full-time", "Elite Track"],
+      "rounds": [
+        { "roundIndex": 0, "name": "Online Assessment", "duration": "90 Mins", "difficulty": "Medium", "passingScore": "80%", "skillsRequired": ["Aptitude", "Coding"], "instructions": "Aptitude + Coding in one session, higher bar than Project Engineer", "assessmentType": "coding" },
+        { "roundIndex": 1, "name": "Technical Interview I", "duration": "60 Mins", "difficulty": "Hard", "passingScore": "70%", "skillsRequired": ["DSA", "System Design", "Java"], "instructions": "Two DSA problems + system design basics + OOP deep dive", "assessmentType": "technical" },
+        { "roundIndex": 2, "name": "Technical Interview II", "duration": "45 Mins", "difficulty": "Hard", "passingScore": "70%", "skillsRequired": ["Cloud", "DBMS", "Problem Solving"], "instructions": "Cloud fundamentals, DBMS optimization, and situational problem solving", "assessmentType": "technical" },
+        { "roundIndex": 3, "name": "HR Interview", "duration": "30 Mins", "difficulty": "Medium", "passingScore": "65%", "skillsRequired": ["Communication", "Leadership"], "instructions": "Leadership, adaptability, and Wipro cultural alignment", "assessmentType": "hr" }
+      ]
+    },
+    {
+      "roleName": "Turbo",
+      "description": "Top-tier Wipro track for exceptional candidates targeting highest packages and fast-track leadership roles.",
+      "skillsRequired": ["Competitive Programming", "Advanced DSA", "System Design", "ML Basics", "Cloud"],
+      "offerPrediction": "Low",
+      "timeline": "6-8 Weeks",
+      "tags": ["Full-time", "Turbo Track"],
+      "rounds": [
+        { "roundIndex": 0, "name": "Turbo Assessment", "duration": "90 Mins", "difficulty": "Hard", "passingScore": "90%", "skillsRequired": ["Advanced DSA", "Aptitude", "Verbal"], "instructions": "Highest difficulty OA — 4 sections with proctored environment", "assessmentType": "coding" },
+        { "roundIndex": 1, "name": "Technical Interview I", "duration": "75 Mins", "difficulty": "Hard", "passingScore": "80%", "skillsRequired": ["CP", "System Design", "Java Internals"], "instructions": "Live coding on hard problems + system design end-to-end", "assessmentType": "technical" },
+        { "roundIndex": 2, "name": "Technical Interview II", "duration": "60 Mins", "difficulty": "Hard", "passingScore": "80%", "skillsRequired": ["Cloud Architecture", "ML Concepts", "DBMS"], "instructions": "Architecture discussions, ML fundamentals, advanced database concepts", "assessmentType": "technical" },
+        { "roundIndex": 3, "name": "HR + Culture Fit", "duration": "45 Mins", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["Leadership", "Strategic Thinking", "Communication"], "instructions": "Leadership potential, long-term career vision, and Wipro Turbo culture alignment", "assessmentType": "hr" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "name": "Cognizant",
+  "logo": "https://upload.wikimedia.org/wikipedia/commons/2/25/Cognizant_logo_2022.svg",
+  "about": "Cognizant recruitment drive evaluates candidates on Cognitive, Technical, Coding assessments, and AI-assisted Technical and HR Interviews.",
+  "selectionRate": "11%",
+  "package": "4.0 - 8.0 LPA",
+  "eligibility": "B.E/B.Tech/MCA/M.Sc (60% throughout)",
+  "estimatedTime": "2-3 Weeks",
+  "difficulty": "Medium",
+  "roles": [
+    {
+      "roleName": "GenC Next",
+      "description": "Premium tech track role focusing on core coding and advanced engineering tasks.",
+      "skillsRequired": ["Java", "Python", "SQL", "OOP", "Data Structures"],
+      "offerPrediction": "High",
+      "timeline": "3 Weeks",
+      "tags": ["Full-time", "GenC Next Track"],
+      "rounds": [
+        { "roundIndex": 0, "name": "Cognitive Assessment", "duration": "90 Mins", "difficulty": "Medium", "passingScore": "60%", "skillsRequired": ["Cognitive", "Aptitude"], "instructions": "Analytical and cognitive check", "assessmentType": "coding" },
+        { "roundIndex": 1, "name": "Coding Assessment", "duration": "45 Mins", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["Coding", "DSA"], "instructions": "Coding test with 2 questions", "assessmentType": "coding" },
+        { "roundIndex": 2, "name": "Technical & HR Interview", "duration": "45 Mins", "difficulty": "Medium", "passingScore": "65%", "skillsRequired": ["Java", "OOP", "Communication"], "instructions": "Combined review round", "assessmentType": "technical" }
+      ]
+    }
+  ]
+}

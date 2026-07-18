@@ -1,0 +1,52 @@
+{
+  "name": "Deloitte",
+  "logo": "https://upload.wikimedia.org/wikipedia/commons/5/56/Deloitte.svg",
+  "about": "Deloitte recruitment drive evaluates candidates on Quantitative Aptitude, Logical Reasoning, Verbal Ability, Coding assessments, and Technical, Managerial, and HR Interviews.",
+  "selectionRate": "8.5%",
+  "package": "6.0 - 12.0 LPA",
+  "eligibility": "B.E/B.Tech/MCA/M.Tech (60% throughout)",
+  "estimatedTime": "3-4 Weeks",
+  "difficulty": "Medium",
+  "roles": [
+    {
+      "roleName": "Technology Consulting",
+      "description": "Tech consulting track focusing on software engineering, cloud, and digital transformation.",
+      "skillsRequired": ["Java", "Python", "SQL", "Cloud", "System Design"],
+      "offerPrediction": "Medium",
+      "timeline": "4 Weeks",
+      "tags": ["Full-time", "Technology Consulting"],
+      "rounds": [
+        { "roundIndex": 0, "name": "Online Assessment", "duration": "90 Mins", "difficulty": "Medium", "passingScore": "65%", "skillsRequired": ["Aptitude", "Logical", "Verbal", "Coding"], "instructions": "Analytical, verbal, and basic coding check", "assessmentType": "coding" },
+        { "roundIndex": 1, "name": "Technical Interview", "duration": "45 Mins", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["Java", "OOP", "DBMS", "Projects"], "instructions": "Technical depth and coding review", "assessmentType": "technical" },
+        { "roundIndex": 2, "name": "Managerial Interview", "duration": "30 Mins", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["Leadership", "Scenario Handling", "Communication"], "instructions": "Scenario-based and behavioral check", "assessmentType": "technical" },
+        { "roundIndex": 3, "name": "HR Interview", "duration": "30 Mins", "difficulty": "Easy", "passingScore": "75%", "skillsRequired": ["Communication", "Cultural Fit"], "instructions": "Standard HR round", "assessmentType": "technical" }
+      ]
+    },
+    {
+      "roleName": "Analyst",
+      "description": "Core analyst role involving data processing, business logic, and standard engineering.",
+      "skillsRequired": ["Data Structures", "OOP", "SQL", "Communication"],
+      "offerPrediction": "High",
+      "timeline": "3 Weeks",
+      "tags": ["Full-time", "Analyst"],
+      "rounds": [
+        { "roundIndex": 0, "name": "Online Assessment", "duration": "90 Mins", "difficulty": "Medium", "passingScore": "60%", "skillsRequired": ["Aptitude", "Logical", "Verbal"], "instructions": "Analytical and cognitive check", "assessmentType": "coding" },
+        { "roundIndex": 1, "name": "Technical Interview", "duration": "45 Mins", "difficulty": "Medium", "passingScore": "65%", "skillsRequired": ["OOP", "DBMS", "Coding"], "instructions": "Technical depth", "assessmentType": "technical" },
+        { "roundIndex": 2, "name": "Managerial & HR Interview", "duration": "45 Mins", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["Communication", "Behavioral"], "instructions": "Combined review round", "assessmentType": "technical" }
+      ]
+    },
+    {
+      "roleName": "Associate Analyst",
+      "description": "Entry-level engineering and analyst role.",
+      "skillsRequired": ["Basic Programming", "Aptitude", "SQL"],
+      "offerPrediction": "High",
+      "timeline": "3 Weeks",
+      "tags": ["Full-time", "Associate Analyst"],
+      "rounds": [
+        { "roundIndex": 0, "name": "Online Assessment", "duration": "60 Mins", "difficulty": "Easy", "passingScore": "60%", "skillsRequired": ["Aptitude", "Logical", "Verbal"], "instructions": "Basic analytical check", "assessmentType": "coding" },
+        { "roundIndex": 1, "name": "Technical Interview", "duration": "30 Mins", "difficulty": "Easy", "passingScore": "60%", "skillsRequired": ["Basics", "SQL"], "instructions": "Basic technical depth", "assessmentType": "technical" },
+        { "roundIndex": 2, "name": "HR Interview", "duration": "30 Mins", "difficulty": "Easy", "passingScore": "70%", "skillsRequired": ["Communication", "Fit"], "instructions": "Standard HR round", "assessmentType": "technical" }
+      ]
+    }
+  ]
+}

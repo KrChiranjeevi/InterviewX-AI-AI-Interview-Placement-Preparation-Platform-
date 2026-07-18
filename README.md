@@ -77,7 +77,12 @@ Our comprehensive suite of tools includes:
 ### 3. Comprehensive Layout Responsiveness
 - **Live Interview Room (`LiveInterview.jsx`):** Redesigned with media queries to hide non-essential elements on mobile/tablet viewports (AI thinking logs, network indicators, fullscreen controls) and collapse "Pause" and "End" actions to compact icons. Stacks panels vertically (`flex-col md:flex-row`) to support smooth scrolling.
 - **Coding Workspace (`CodingEditor.jsx`):** Shrunk header options to icon buttons on mobile to prevent the "Run" and "Submit" buttons from being cut off. Uses responsive heights (`h-[40vh]` / `h-[60vh]`) for stacked panels.
-- **Assessment Room (`AssessmentRoom.jsx`):** Responsive grid palette stacks cleanly on small screens, and control footer buttons convert to icon-only viewports to prevent overflow.
+### 4. Bespoke Deloitte Hiring Module & Global Theme Upgrades
+- **Deloitte Recruitment Simulation:** Built a premium Deloitte Campus Hiring module from scratch featuring a specialized glassmorphic Deloitte Green theme, customized tracks (**Technology Consulting**, **Analyst**, and **Associate Analyst**), and a structured timeline.
+- **Dedicated Managerial Interview:** Integrated a 5-step Managerial Interview round evaluating leadership, conflict resolution, professional ethics, and stakeholder management.
+- **Universal HR Interview Round:** Standardized the mock HR Interview button across all 15 company dashboards to seamlessly route to the centralized `InterviewLive` engine.
+- **Dynamic Light/Dark Theme Adaptations:** Upgraded the Wipro and Deloitte Prep Detail modules to dynamically hook into the `'theme-changed'` event, transitioning their background and typography variables natively between dark-brand configurations and crisp light-mode layouts.
+- **Data Escaping Bugfixes:** Cleaned up oxc string literal syntax parse errors in the company coding question pool (`companyCodingPYQs.js`) to restore seamless Vite hot reloading.
 
 ---
 

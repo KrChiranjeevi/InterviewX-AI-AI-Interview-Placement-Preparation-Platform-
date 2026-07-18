@@ -23,6 +23,7 @@ const communityRoutes = require('./routes/communityRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
 const assessmentRoutes = require('./routes/assessmentRoutes');
+const companyPrepRoutes = require('./routes/companyPrepRoutes');
 // Connect to database
 connectDB();
 
@@ -56,6 +57,7 @@ app.use('/api/community', communityRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/assessments', assessmentRoutes);
+app.use('/api/prep', companyPrepRoutes);
 
 // Global Error Handler
 app.use(errorHandler);
@@ -67,6 +69,7 @@ app.get('/', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
+// Trigger restart
 app.listen(PORT, console.log(`Server running on port ${PORT}`));
 
 

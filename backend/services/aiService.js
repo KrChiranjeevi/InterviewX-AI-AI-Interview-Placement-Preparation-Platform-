@@ -291,8 +291,10 @@ ${hintCheck}
 ${previousQuestionsStr}
 
 RULES:
-1. Keep the question medium-sized, concise, and between 2 to 3 sentences maximum. Avoid long-winded, multi-paragraph questions.
-2. Conduct a natural, conversational dialogue (like HackerRank mock interviews). Weave in a mix of follow-up questions reacting to the candidate's last answer, along with introducing new questions from the role's domain.
+1. You MUST generate historically accurate Previous Year Questions (PYQs) asked by ${company || 'this company'} for the ${role} role. Do NOT repeat generic questions.
+2. The question must be UNIQUE. Avoid repeating identical topics or questions that are too similar to the ones listed in the HISTORY section.
+3. Keep the question medium-sized, concise, and between 2 to 3 sentences maximum. Avoid long-winded, multi-paragraph questions.
+4. Conduct a natural, conversational dialogue (like HackerRank mock interviews). Weave in a mix of follow-up questions reacting to the candidate's last answer, along with introducing new questions from the role's domain.
 3. Target the difficulty level strictly:
    - For Beginner/Easy: Ask simple, introductory fundamental concepts or basic definitions.
    - For Intermediate/Medium: Ask typical mid-level scenarios, core practical logic, or conceptual usage.

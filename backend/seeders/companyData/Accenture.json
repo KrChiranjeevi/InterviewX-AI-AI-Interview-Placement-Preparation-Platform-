@@ -1,0 +1,25 @@
+{
+  "name": "Accenture",
+  "logo": "https://upload.wikimedia.org/wikipedia/commons/c/cd/Accenture.svg",
+  "about": "Accenture recruitment drive evaluates candidates on Cognitive, Technical, Coding assessments, and AI-assisted Technical and HR Interviews.",
+  "selectionRate": "12%",
+  "package": "4.5 - 8.0 LPA",
+  "eligibility": "B.E/B.Tech/MCA/M.Sc (65% throughout)",
+  "estimatedTime": "2-3 Weeks",
+  "difficulty": "Medium",
+  "roles": [
+    {
+      "roleName": "Associate Software Engineer",
+      "description": "Entry-level software engineering role focusing on client projects and application development.",
+      "skillsRequired": ["Java", "Python", "SQL", "OOP", "Data Structures"],
+      "offerPrediction": "High",
+      "timeline": "3 Weeks",
+      "tags": ["Full-time", "ASE Track"],
+      "rounds": [
+        { "roundIndex": 0, "name": "Cognitive Assessment", "duration": "90 Mins", "difficulty": "Medium", "passingScore": "60%", "skillsRequired": ["Cognitive", "Aptitude"], "instructions": "Analytical and cognitive check", "assessmentType": "coding" },
+        { "roundIndex": 1, "name": "Coding Assessment", "duration": "45 Mins", "difficulty": "Medium", "passingScore": "70%", "skillsRequired": ["Coding", "DSA"], "instructions": "Coding test with 2 questions", "assessmentType": "coding" },
+        { "roundIndex": 2, "name": "Technical & HR Interview", "duration": "45 Mins", "difficulty": "Medium", "passingScore": "65%", "skillsRequired": ["Java", "OOP", "Communication"], "instructions": "Combined review round", "assessmentType": "technical" }
+      ]
+    }
+  ]
+}

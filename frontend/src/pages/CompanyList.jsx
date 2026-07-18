@@ -37,7 +37,7 @@ const CompanyList = () => {
   useEffect(() => {
     const fetchCompanies = async () => {
       try {
-        const res = await api.get('/company/all');
+        const res = await api.get('/prep/companies');
         setCompanies(res.data);
       } catch (err) {
         console.error('Failed to fetch companies', err);

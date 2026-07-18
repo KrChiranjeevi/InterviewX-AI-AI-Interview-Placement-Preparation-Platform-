@@ -1,0 +1,212 @@
+{
+  "name": "Microsoft",
+  "logo": "https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg",
+  "about": "Microsoft's interview process strongly emphasizes their Growth Mindset, system design capabilities, and collaborative engineering culture.",
+  "selectionRate": "2.8%",
+  "package": "20-40 LPA",
+  "eligibility": "B.Tech/M.Tech (CS/IT/ECE)",
+  "estimatedTime": "4-6 Weeks",
+  "difficulty": "Hard",
+  "roles": [
+    {
+      "roleName": "Software Engineer",
+      "description": "Build core Microsoft products, from Windows to Office and cloud infrastructure.",
+      "skillsRequired": ["C#", "C++", "Java", "Data Structures", "Algorithms", "System Design", "OOP"],
+      "offerPrediction": "High",
+      "timeline": "6 Weeks",
+      "tags": ["Full-time", "Engineering"],
+      "rounds": [
+        {
+          "roundIndex": 0,
+          "name": "Resume Screening",
+          "duration": "24-48 Hours",
+          "difficulty": "Medium",
+          "passingScore": "70%",
+          "skillsRequired": ["Resume Keywords", "Microsoft ATS"],
+          "instructions": "Initial automated resume screening evaluating skills match against Microsoft's ATS requirements.",
+          "assessmentType": "screening"
+        },
+        {
+          "roundIndex": 1,
+          "name": "Online Assessment",
+          "duration": "90 Mins",
+          "difficulty": "Medium",
+          "passingScore": "75%",
+          "skillsRequired": ["Arrays", "Strings", "Graphs"],
+          "instructions": "Solve 2-3 coding questions. Platform usually supports C# and TS.",
+          "assessmentType": "coding"
+        },
+        {
+          "roundIndex": 2,
+          "name": "Technical Interview 1",
+          "duration": "45 Mins",
+          "difficulty": "Hard",
+          "passingScore": "80%",
+          "skillsRequired": ["Data Structures", "Algorithmic Complexity"],
+          "instructions": "Interactive live coding session. Expect medium/hard algorithmic problems.",
+          "assessmentType": "technical"
+        },
+        {
+          "roundIndex": 3,
+          "name": "Technical Interview 2",
+          "duration": "45 Mins",
+          "difficulty": "Hard",
+          "passingScore": "80%",
+          "skillsRequired": ["Object Oriented Design", "Low Level Design"],
+          "instructions": "Focus on complex data structures, class design, and object-oriented principles.",
+          "assessmentType": "technical"
+        },
+        {
+          "roundIndex": 4,
+          "name": "System Design",
+          "duration": "60 Mins",
+          "difficulty": "Hard",
+          "passingScore": "80%",
+          "skillsRequired": ["Scalability", "Azure", "Databases", "APIs"],
+          "instructions": "Design a highly scalable system. High emphasis on tradeoffs and NoSQL vs SQL.",
+          "assessmentType": "system"
+        },
+        {
+          "roundIndex": 5,
+          "name": "Behavioral / AA",
+          "duration": "45 Mins",
+          "difficulty": "Medium",
+          "passingScore": "85%",
+          "skillsRequired": ["STAR Method", "Growth Mindset", "Cultural Fit"],
+          "instructions": "Behavioral round using the STAR method. 'As Appropriate' interviewer assesses culture fit.",
+          "assessmentType": "hr"
+        }
+      ]
+    },
+    {
+      "roleName": "Cloud Engineer (Azure)",
+      "description": "Design, build, and maintain highly scalable Azure cloud services and infrastructure.",
+      "skillsRequired": ["Distributed Systems", "Azure", "C#", "Go", "Networking", "Kubernetes"],
+      "offerPrediction": "Very High",
+      "timeline": "8 Weeks",
+      "tags": ["Full-time", "Cloud Engineering"],
+      "rounds": [
+        {
+          "roundIndex": 0,
+          "name": "Resume Screening",
+          "duration": "24-48 Hours",
+          "difficulty": "Medium",
+          "passingScore": "70%",
+          "skillsRequired": ["Cloud Architecture", "Kubernetes"],
+          "instructions": "Initial automated resume screening evaluating skills match against Microsoft's ATS requirements.",
+          "assessmentType": "screening"
+        },
+        {
+          "roundIndex": 1,
+          "name": "Online Assessment",
+          "duration": "90 Mins",
+          "difficulty": "Medium",
+          "passingScore": "75%",
+          "skillsRequired": ["Networking", "Scripting", "Sysops"],
+          "instructions": "Solve infrastructure scaling coding questions.",
+          "assessmentType": "coding"
+        },
+        {
+          "roundIndex": 2,
+          "name": "Technical Interview 1",
+          "duration": "45 Mins",
+          "difficulty": "Hard",
+          "passingScore": "80%",
+          "skillsRequired": ["OS Internals", "Networking Protocols"],
+          "instructions": "Low-level system calls, kernels, and networking fundamentals check.",
+          "assessmentType": "technical"
+        },
+        {
+          "roundIndex": 3,
+          "name": "Technical Interview 2",
+          "duration": "45 Mins",
+          "difficulty": "Hard",
+          "passingScore": "80%",
+          "skillsRequired": ["API Design", "Distributed Systems"],
+          "instructions": "Architecture coding focusing on fault tolerance and scalability.",
+          "assessmentType": "technical"
+        },
+        {
+          "roundIndex": 4,
+          "name": "System Design (Distributed)",
+          "duration": "60 Mins",
+          "difficulty": "Hard",
+          "passingScore": "80%",
+          "skillsRequired": ["Scalability", "Azure Architecture", "Caching"],
+          "instructions": "Design global scale databases and multi-region replication layers.",
+          "assessmentType": "system"
+        },
+        {
+          "roundIndex": 5,
+          "name": "Behavioral / AA",
+          "duration": "45 Mins",
+          "difficulty": "Medium",
+          "passingScore": "85%",
+          "skillsRequired": ["STAR Method", "Growth Mindset", "Cultural Fit"],
+          "instructions": "Microsoft values check on learning and team collaboration.",
+          "assessmentType": "hr"
+        }
+      ]
+    },
+    {
+      "roleName": "Data Scientist / AI Engineer",
+      "description": "Develop cutting edge AI models, integrate OpenAI technologies, and build intelligent products.",
+      "skillsRequired": ["Python", "PyTorch", "Machine Learning", "NLP", "Statistics", "SQL"],
+      "offerPrediction": "High",
+      "timeline": "6 Weeks",
+      "tags": ["Full-time", "AI Engineering"],
+      "rounds": [
+        {
+          "roundIndex": 0,
+          "name": "Resume Screening",
+          "duration": "24-48 Hours",
+          "difficulty": "Medium",
+          "passingScore": "70%",
+          "skillsRequired": ["Python", "ML Pipelines", "Deep Learning"],
+          "instructions": "Initial automated resume screening evaluating skills match against Microsoft's ATS requirements.",
+          "assessmentType": "screening"
+        },
+        {
+          "roundIndex": 1,
+          "name": "ML Assessment",
+          "duration": "90 Mins",
+          "difficulty": "Medium",
+          "passingScore": "75%",
+          "skillsRequired": ["Statistics", "ML modeling", "Probability"],
+          "instructions": "Solve complex statistical modeling problems and Python algorithms.",
+          "assessmentType": "coding"
+        },
+        {
+          "roundIndex": 2,
+          "name": "Technical Interview 1",
+          "duration": "45 Mins",
+          "difficulty": "Hard",
+          "passingScore": "80%",
+          "skillsRequired": ["Optimization", "Gradient Descent", "Loss Metrics"],
+          "instructions": "Theoretical deep dive on neural network weights and vector matrices.",
+          "assessmentType": "technical"
+        },
+        {
+          "roundIndex": 3,
+          "name": "ML System Design",
+          "duration": "60 Mins",
+          "difficulty": "Hard",
+          "passingScore": "80%",
+          "skillsRequired": ["ML Ops", "Model Checkpointing", "GPUs"],
+          "instructions": "Design highly parallel deep learning scaling nodes.",
+          "assessmentType": "system"
+        },
+        {
+          "roundIndex": 4,
+          "name": "Behavioral / AA",
+          "duration": "45 Mins",
+          "difficulty": "Medium",
+          "passingScore": "85%",
+          "skillsRequired": ["STAR Method", "Growth Mindset", "Cultural Fit"],
+          "instructions": "Discuss innovation barriers and feedback dynamics.",
+          "assessmentType": "hr"
+        }
+      ]
+    }
+  ]
+}

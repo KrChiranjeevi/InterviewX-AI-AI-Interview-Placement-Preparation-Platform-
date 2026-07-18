@@ -1,0 +1,112 @@
+{
+  "name": "TCS",
+  "logo": "https://upload.wikimedia.org/wikipedia/commons/b/b1/Tata_Consultancy_Services_Logo.svg",
+  "about": "TCS National Qualifier Test (NQT) is a multi-level assessment to assess competence on core cognitive processes.",
+  "selectionRate": "15%",
+  "package": "3.3 - 7.0 LPA",
+  "eligibility": "B.E./B.Tech/M.E./M.Tech/MCA/M.Sc",
+  "estimatedTime": "1-2 Weeks",
+  "difficulty": "Medium",
+  "roles": [
+    {
+      "roleName": "TCS Ninja",
+      "description": "The base profile for freshers at TCS, focusing on cognitive and basic programming skills.",
+      "skillsRequired": ["Numerical Ability", "Verbal Ability", "Reasoning Ability", "Basic Programming"],
+      "offerPrediction": "High",
+      "timeline": "1 Week",
+      "tags": ["Entry Level", "Mass Hiring"],
+      "rounds": [
+        {
+          "roundIndex": 0,
+          "name": "Numerical Ability",
+          "duration": "40 Mins",
+          "difficulty": "Medium",
+          "passingScore": "60%",
+          "skillsRequired": ["Percentages", "Profit & Loss", "Time & Work", "Speed Distance"],
+          "instructions": "Quantitative aptitude questions focusing on speed and accuracy.",
+          "assessmentType": "aptitude"
+        },
+        {
+          "roundIndex": 1,
+          "name": "Verbal Ability",
+          "duration": "30 Mins",
+          "difficulty": "Easy",
+          "passingScore": "60%",
+          "skillsRequired": ["Reading Comprehension", "Email Writing", "Sentence Correction", "Fill in the blanks"],
+          "instructions": "Test on English grammar, vocabulary, and reading comprehension.",
+          "assessmentType": "verbal"
+        },
+        {
+          "roundIndex": 2,
+          "name": "Reasoning Ability",
+          "duration": "50 Mins",
+          "difficulty": "Medium",
+          "passingScore": "60%",
+          "skillsRequired": ["Syllogisms", "Blood Relations", "Data Sufficiency", "Pattern Recognition"],
+          "instructions": "Logical deductions, patterns, seating arrangements.",
+          "assessmentType": "reasoning"
+        },
+        {
+          "roundIndex": 3,
+          "name": "Basic Coding",
+          "duration": "45 Mins",
+          "difficulty": "Medium",
+          "passingScore": "70%",
+          "skillsRequired": ["C/C++/Java/Python", "Arrays", "Strings"],
+          "instructions": "2 coding problems on standard logic (strings, loops, basic arrays).",
+          "assessmentType": "coding"
+        },
+        {
+          "roundIndex": 4,
+          "name": "Technical & HR Interview",
+          "duration": "30 Mins",
+          "difficulty": "Medium",
+          "passingScore": "70%",
+          "skillsRequired": ["Core Subjects (OS, DBMS, CN)", "OOPs", "Communication"],
+          "instructions": "Combined technical and HR round. Be prepared to explain your resume projects and willingness to relocate.",
+          "assessmentType": "technical"
+        }
+      ]
+    },
+    {
+      "roleName": "TCS Digital",
+      "description": "Premium profile requiring advanced coding and specialized technology knowledge.",
+      "skillsRequired": ["Advanced Quantitative", "Advanced Reasoning", "Advanced Coding", "Latest Technologies"],
+      "offerPrediction": "Medium",
+      "timeline": "2 Weeks",
+      "tags": ["Premium", "Advanced Tech"],
+      "rounds": [
+        {
+          "roundIndex": 0,
+          "name": "Advanced Quantitative & Reasoning",
+          "duration": "40 Mins",
+          "difficulty": "Hard",
+          "passingScore": "75%",
+          "skillsRequired": ["Advanced Maths", "Complex Puzzles"],
+          "instructions": "Higher difficulty level cognitive questions compared to Ninja.",
+          "assessmentType": "aptitude"
+        },
+        {
+          "roundIndex": 1,
+          "name": "Advanced Coding",
+          "duration": "60 Mins",
+          "difficulty": "Hard",
+          "passingScore": "80%",
+          "skillsRequired": ["Data Structures", "Algorithms", "Optimization"],
+          "instructions": "2 complex coding questions requiring optimized solutions (time and space complexity).",
+          "assessmentType": "coding"
+        },
+        {
+          "roundIndex": 2,
+          "name": "Technical Interview",
+          "duration": "45 Mins",
+          "difficulty": "Hard",
+          "passingScore": "80%",
+          "skillsRequired": ["System Design", "Cloud/AI/ML/Blockchain (Basics)", "Deep Core CS"],
+          "instructions": "In-depth technical interview focusing on specialized technologies and advanced project discussions.",
+          "assessmentType": "technical"
+        }
+      ]
+    }
+  ]
+}
