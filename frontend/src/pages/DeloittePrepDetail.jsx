@@ -367,7 +367,7 @@ const DeloittePrepDetail = () => {
           const n = managerialStep + 1; setManagerialStep(n);
           setMsgs(p => [...p, { from: 'ai', text: MANAGERIAL_FLOW[n].q, step: MANAGERIAL_FLOW[n].step }]);
         } else {
-          setMsgs(p => [...p, { from: 'ai', text: 'Thank you! That concludes the Managerial Interview. Let\\'s proceed to the HR Discussion.', step: 'Completed' }]);
+          setMsgs(p => [...p, { from: 'ai', text: "Thank you! That concludes the Managerial Interview. Let's proceed to the HR Discussion.", step: 'Completed' }]);
           setIntDone(p => ({ ...p, managerial: true })); setPipelineStep(5);
         }
       } else {

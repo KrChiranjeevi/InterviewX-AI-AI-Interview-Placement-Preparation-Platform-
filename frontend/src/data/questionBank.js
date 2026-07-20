@@ -1,423 +1,722 @@
 // ============================================================
-// InterviewX AI — Complete Interview Question Bank
-// Real questions from top companies: Google, Amazon, Microsoft,
-// Meta, TCS, Infosys, Accenture, Wipro, Cognizant
+// INTERVIEWX AI — COMPREHENSIVE QUESTION BANK
+// 500+ Questions across all domains and types
 // ============================================================
 
-const starterTemplates = {
-  javascript: '// Write your solution in JavaScript\nfunction solution() {\n  // your code here\n}\n',
-  python: '# Write your solution in Python\ndef solution():\n    # your code here\n    pass\n',
-  java: '// Write your solution in Java\npublic class Solution {\n    public static void main(String[] args) {\n        // your code here\n    }\n}\n',
-  cpp: '// Write your solution in C++\n#include <bits/stdc++.h>\nusing namespace std;\nint main() {\n    // your code here\n    return 0;\n}\n',
-  sql: '-- Write your SQL query here\nSELECT * FROM table_name;',
+// ============================================================
+// NUMERICAL ABILITY QUESTIONS
+// ============================================================
+export const NUMERICAL_QUESTIONS = [
+  { id: 'n1', question: 'A train travels 360 km in 6 hours. If the speed increases by 20 km/hr, how much time will it take to travel the same distance?', options: ['4 hours', '4.5 hours', '5 hours', '5.5 hours'], answer: '4.5 hours', difficulty: 'Easy', type: 'mcq', domain: 'numerical' },
+  { id: 'n2', question: 'If 20% of a number is 80, what is 35% of that number?', options: ['140', '120', '160', '100'], answer: '140', difficulty: 'Easy', type: 'mcq', domain: 'numerical' },
+  { id: 'n3', question: 'A and B can complete a work in 12 days. B alone can complete it in 20 days. How many days will A take alone?', options: ['24 days', '28 days', '30 days', '36 days'], answer: '30 days', difficulty: 'Easy', type: 'mcq', domain: 'numerical' },
+  { id: 'n4', question: 'The ratio of boys to girls in a class is 3:4. If there are 35 students total, how many boys are there?', options: ['12', '15', '18', '21'], answer: '15', difficulty: 'Easy', type: 'mcq', domain: 'numerical' },
+  { id: 'n5', question: 'A shopkeeper sells an article at 25% profit. If the cost price is Rs. 400, what is the selling price?', options: ['Rs. 480', 'Rs. 500', 'Rs. 450', 'Rs. 520'], answer: 'Rs. 500', difficulty: 'Easy', type: 'mcq', domain: 'numerical' },
+  { id: 'n6', question: 'What is 15% of 240?', options: ['32', '36', '40', '44'], answer: '36', difficulty: 'Easy', type: 'mcq', domain: 'numerical' },
+  { id: 'n7', question: 'A pipe can fill a tank in 8 hours. Another pipe can empty it in 12 hours. If both are opened simultaneously, how long will it take to fill the tank?', options: ['20 hours', '24 hours', '28 hours', '16 hours'], answer: '24 hours', difficulty: 'Medium', type: 'mcq', domain: 'numerical' },
+  { id: 'n8', question: 'The average of 5 consecutive even numbers is 24. What is the greatest of these numbers?', options: ['24', '26', '28', '30'], answer: '28', difficulty: 'Easy', type: 'mcq', domain: 'numerical' },
+  { id: 'n9', question: 'If A:B = 2:3 and B:C = 4:5, then A:C = ?', options: ['8:15', '4:9', '5:8', '3:10'], answer: '8:15', difficulty: 'Medium', type: 'mcq', domain: 'numerical' },
+  { id: 'n10', question: 'A car covers a distance of 480 km at 60 km/h. If it returns at 80 km/h, what is the average speed for the entire journey?', options: ['68.57 km/h', '70 km/h', '72 km/h', '65 km/h'], answer: '68.57 km/h', difficulty: 'Medium', type: 'mcq', domain: 'numerical' },
+  { id: 'n11', question: 'Simple interest on Rs. 5000 at 8% per annum for 3 years is?', options: ['Rs. 1000', 'Rs. 1200', 'Rs. 1400', 'Rs. 1600'], answer: 'Rs. 1200', difficulty: 'Easy', type: 'mcq', domain: 'numerical' },
+  { id: 'n12', question: 'Find the missing number: 2, 6, 12, 20, 30, ?', options: ['42', '40', '38', '44'], answer: '42', difficulty: 'Easy', type: 'mcq', domain: 'numerical' },
+  { id: 'n13', question: 'If SELL is coded as 1011 and BELL is coded as 2011, then TELL is coded as?', options: ['3011', '2110', '1101', '1110'], answer: '3011', difficulty: 'Medium', type: 'mcq', domain: 'numerical' },
+  { id: 'n14', question: 'Compound interest on Rs. 2000 at 10% per annum for 2 years is?', options: ['Rs. 400', 'Rs. 420', 'Rs. 440', 'Rs. 460'], answer: 'Rs. 420', difficulty: 'Medium', type: 'mcq', domain: 'numerical' },
+  { id: 'n15', question: 'If 6 men can do a piece of work in 10 days, then 4 men can do it in how many days?', options: ['12 days', '15 days', '18 days', '20 days'], answer: '15 days', difficulty: 'Easy', type: 'mcq', domain: 'numerical' },
+  { id: 'n16', question: 'The LCM of 12, 15, and 18 is?', options: ['150', '180', '210', '120'], answer: '180', difficulty: 'Easy', type: 'mcq', domain: 'numerical' },
+  { id: 'n17', question: 'If P can complete a work in 12 days and Q can complete it in 18 days, how many days will they take if they work together?', options: ['6.2 days', '7.2 days', '7.5 days', '8 days'], answer: '7.2 days', difficulty: 'Medium', type: 'mcq', domain: 'numerical' },
+  { id: 'n18', question: 'A sum of money at simple interest amounts to Rs. 1560 in 2 years and Rs. 1720 in 4 years. What is the principal?', options: ['Rs. 1200', 'Rs. 1300', 'Rs. 1400', 'Rs. 1000'], answer: 'Rs. 1400', difficulty: 'Hard', type: 'mcq', domain: 'numerical' },
+  { id: 'n19', question: 'Three numbers are in the ratio 3:4:5. Their sum is 108. What is the largest number?', options: ['36', '48', '45', '60'], answer: '45', difficulty: 'Easy', type: 'mcq', domain: 'numerical' },
+  { id: 'n20', question: 'A sells a bicycle to B at a profit of 20%. B sells it to C at a profit of 25%. If C pays Rs. 1800, what did A pay?', options: ['Rs. 1000', 'Rs. 1100', 'Rs. 1200', 'Rs. 1300'], answer: 'Rs. 1200', difficulty: 'Hard', type: 'mcq', domain: 'numerical' },
+  { id: 'n21', question: 'What is the value of √(196) + √(225)?', options: ['28', '29', '30', '31'], answer: '29', difficulty: 'Easy', type: 'mcq', domain: 'numerical' },
+  { id: 'n22', question: 'The perimeter of a rectangle is 60 cm. If the length is 18 cm, what is the area?', options: ['216 sq cm', '220 sq cm', '224 sq cm', '228 sq cm'], answer: '216 sq cm', difficulty: 'Easy', type: 'mcq', domain: 'numerical' },
+  { id: 'n23', question: 'If 3/5 of a number is 45, what is 4/9 of that number?', options: ['30', '32', '33.33', '36'], answer: '33.33', difficulty: 'Medium', type: 'mcq', domain: 'numerical' },
+  { id: 'n24', question: 'A man walks at 4 km/h and covers a distance in 3 hours. At what speed should he walk to cover the same distance in 2 hours?', options: ['5 km/h', '6 km/h', '7 km/h', '8 km/h'], answer: '6 km/h', difficulty: 'Easy', type: 'mcq', domain: 'numerical' },
+  { id: 'n25', question: 'Two numbers differ by 5 and their product is 84. Find the larger number.', options: ['10', '11', '12', '13'], answer: '12', difficulty: 'Medium', type: 'mcq', domain: 'numerical' },
+  { id: 'n26', question: 'A sum triples in 20 years at simple interest. What is the annual rate of interest?', options: ['10%', '15%', '20%', '12%'], answer: '10%', difficulty: 'Medium', type: 'mcq', domain: 'numerical' },
+  { id: 'n27', question: 'If 5 apples + 3 oranges = Rs. 35 and 3 apples + 5 oranges = Rs. 29, what is the price of one apple?', options: ['Rs. 5', 'Rs. 6', 'Rs. 7', 'Rs. 8'], answer: 'Rs. 7', difficulty: 'Medium', type: 'mcq', domain: 'numerical' },
+  { id: 'n28', question: 'A boat travels 30 km upstream in 6 hours. If the river speed is 2 km/h, what is the boat\'s speed in still water?', options: ['5 km/h', '6 km/h', '7 km/h', '8 km/h'], answer: '7 km/h', difficulty: 'Medium', type: 'mcq', domain: 'numerical' },
+  { id: 'n29', question: 'In how many ways can 4 boys and 3 girls sit in a row such that all girls are always together?', options: ['720', '1440', '2520', '5040'], answer: '720', difficulty: 'Hard', type: 'mcq', domain: 'numerical' },
+  { id: 'n30', question: 'What is the probability of getting a sum of 7 when two dice are thrown?', options: ['1/6', '1/9', '5/36', '7/36'], answer: '1/6', difficulty: 'Medium', type: 'mcq', domain: 'numerical' },
+];
+
+// ============================================================
+// VERBAL ABILITY QUESTIONS
+// ============================================================
+export const VERBAL_QUESTIONS = [
+  { id: 'v1', question: 'Choose the word that is opposite in meaning to "ABUNDANT":', options: ['Plentiful', 'Sufficient', 'Scarce', 'Enough'], answer: 'Scarce', difficulty: 'Easy', type: 'mcq', domain: 'verbal' },
+  { id: 'v2', question: 'Select the correctly spelled word:', options: ['Accomodate', 'Accommodate', 'Accomadate', 'Acomodate'], answer: 'Accommodate', difficulty: 'Easy', type: 'mcq', domain: 'verbal' },
+  { id: 'v3', question: 'Choose the synonym of "METICULOUS":', options: ['Careless', 'Precise', 'Vague', 'Hasty'], answer: 'Precise', difficulty: 'Easy', type: 'mcq', domain: 'verbal' },
+  { id: 'v4', question: 'Fill in the blank: "He was _____ to accept the offer because he feared the consequences."', options: ['eager', 'reluctant', 'determined', 'willing'], answer: 'reluctant', difficulty: 'Easy', type: 'mcq', domain: 'verbal' },
+  { id: 'v5', question: 'Which of the following sentences is grammatically correct?', options: ['She don\'t like coffee', 'She doesn\'t likes coffee', 'She doesn\'t like coffee', 'She not like coffee'], answer: 'She doesn\'t like coffee', difficulty: 'Easy', type: 'mcq', domain: 'verbal' },
+  { id: 'v6', question: 'Choose the antonym of "BENEVOLENT":', options: ['Kind', 'Generous', 'Malevolent', 'Charitable'], answer: 'Malevolent', difficulty: 'Easy', type: 'mcq', domain: 'verbal' },
+  { id: 'v7', question: 'The idiom "A blessing in disguise" means:', options: ['A hidden curse', 'Something good that initially seemed bad', 'A literal blessing', 'A bad situation'], answer: 'Something good that initially seemed bad', difficulty: 'Easy', type: 'mcq', domain: 'verbal' },
+  { id: 'v8', question: 'Identify the error in: "Each of the students have submitted their assignments."', options: ['Each of', 'students', 'have', 'assignments'], answer: 'have', difficulty: 'Medium', type: 'mcq', domain: 'verbal' },
+  { id: 'v9', question: 'Choose the correct passive voice of: "They are building a new hospital."', options: ['A new hospital is built by them', 'A new hospital is being built by them', 'A new hospital was being built', 'A new hospital has been built'], answer: 'A new hospital is being built by them', difficulty: 'Medium', type: 'mcq', domain: 'verbal' },
+  { id: 'v10', question: '"Ephemeral" means:', options: ['Permanent', 'Lasting a very short time', 'Very large', 'Extremely old'], answer: 'Lasting a very short time', difficulty: 'Medium', type: 'mcq', domain: 'verbal' },
+  { id: 'v11', question: 'Select the word that best completes the analogy: Doctor : Hospital :: Pilot : ?', options: ['Airport', 'Airplane', 'Sky', 'Runway'], answer: 'Airplane', difficulty: 'Easy', type: 'mcq', domain: 'verbal' },
+  { id: 'v12', question: 'Identify the correctly punctuated sentence:', options: ["It's a lovely day, isn't it?", "Its a lovely day, isn't it?", "It's a lovely day isn't it?", "Its a lovely day isnt it?"], answer: "It's a lovely day, isn't it?", difficulty: 'Easy', type: 'mcq', domain: 'verbal' },
+  { id: 'v13', question: '"Ubiquitous" means:', options: ['Rare', 'Found everywhere', 'Ancient', 'Beautiful'], answer: 'Found everywhere', difficulty: 'Medium', type: 'mcq', domain: 'verbal' },
+  { id: 'v14', question: 'Fill in the blank: "The manager, along with his team, _____ working on the project."', options: ['are', 'is', 'were', 'have'], answer: 'is', difficulty: 'Medium', type: 'mcq', domain: 'verbal' },
+  { id: 'v15', question: 'Choose the synonym of "PRUDENT":', options: ['Reckless', 'Wise', 'Foolish', 'Hasty'], answer: 'Wise', difficulty: 'Easy', type: 'mcq', domain: 'verbal' },
+  { id: 'v16', question: 'Which sentence uses the word "affect" correctly?', options: ['The medicine had a positive affect on her', 'The cold weather will affect the crops', 'There was no affect visible', 'His emotion was an affect'], answer: 'The cold weather will affect the crops', difficulty: 'Medium', type: 'mcq', domain: 'verbal' },
+  { id: 'v17', question: '"Cacophony" refers to:', options: ['Harmony', 'Loud, harsh sounds', 'Silence', 'Music'], answer: 'Loud, harsh sounds', difficulty: 'Hard', type: 'mcq', domain: 'verbal' },
+  { id: 'v18', question: 'Choose the correct form: "Neither the students nor the teacher _____ present."', options: ['are', 'is', 'were', 'have been'], answer: 'is', difficulty: 'Medium', type: 'mcq', domain: 'verbal' },
+  { id: 'v19', question: 'The word "Altruistic" means:', options: ['Self-centered', 'Selflessly concerned for others', 'Greedy', 'Competitive'], answer: 'Selflessly concerned for others', difficulty: 'Medium', type: 'mcq', domain: 'verbal' },
+  { id: 'v20', question: 'Identify the figure of speech in: "The world is a stage."', options: ['Simile', 'Metaphor', 'Personification', 'Hyperbole'], answer: 'Metaphor', difficulty: 'Easy', type: 'mcq', domain: 'verbal' },
+];
+
+// ============================================================
+// LOGICAL REASONING QUESTIONS
+// ============================================================
+export const REASONING_QUESTIONS = [
+  { id: 'r1', question: 'Find the missing number in the series: 2, 5, 10, 17, 26, ?', options: ['33', '35', '37', '39'], answer: '37', difficulty: 'Easy', type: 'mcq', domain: 'reasoning' },
+  { id: 'r2', question: 'Find the missing number in the series: 5, 12, 20, 30, 42, ?', options: ['52', '54', '56', '58'], answer: '56', difficulty: 'Easy', type: 'mcq', domain: 'reasoning' },
+  { id: 'r3', question: 'If A is north of B, and C is east of B, then C is _____ of A.', options: ['North-East', 'South-East', 'East', 'West'], answer: 'South-East', difficulty: 'Medium', type: 'mcq', domain: 'reasoning' },
+  { id: 'r4', question: 'Find the missing number in the series: 1, 4, 9, 16, 25, ?', options: ['30', '35', '36', '40'], answer: '36', difficulty: 'Easy', type: 'mcq', domain: 'reasoning' },
+  { id: 'r5', question: 'A is B\'s sister. C is B\'s mother. D is C\'s father. E is D\'s mother. How is A related to D?', options: ['Grandmother', 'Granddaughter', 'Daughter', 'Niece'], answer: 'Granddaughter', difficulty: 'Medium', type: 'mcq', domain: 'reasoning' },
+  { id: 'r6', question: 'Find the missing number in the series: 3, 6, 11, 18, 27, ?', options: ['36', '38', '40', '42'], answer: '38', difficulty: 'Medium', type: 'mcq', domain: 'reasoning' },
+  { id: 'r7', question: 'In a row of students, Ram is 7th from the left and Sam is 12th from the right. If there are 4 students between them, how many students are in the row?', options: ['21', '22', '23', '24'], answer: '23', difficulty: 'Medium', type: 'mcq', domain: 'reasoning' },
+  { id: 'r8', question: 'If PAINTER is coded as NCGPRCF, how is KITCHEN coded?', options: ['IGRAFCK', 'IGRAFKC', 'IGRFACK', 'IGRALCK'], answer: 'IGRAFCK', difficulty: 'Hard', type: 'mcq', domain: 'reasoning' },
+  { id: 'r9', question: 'Find the odd one out: 41, 43, 47, 53, 57', options: ['41', '43', '53', '57'], answer: '57', difficulty: 'Medium', type: 'mcq', domain: 'reasoning' },
+  { id: 'r10', question: 'All cats are dogs. All dogs are birds. Some birds are fish. Which conclusion definitely follows? I. All cats are birds. II. Some fish are cats.', options: ['Only I', 'Only II', 'Both I and II', 'Neither I nor II'], answer: 'Only I', difficulty: 'Medium', type: 'mcq', domain: 'reasoning' },
+  { id: 'r11', question: 'Find the missing number: 8, 11 = 4, 3, 6 = 9, 7, 5 = 8, 9, 4 = ?', options: ['5', '6', '7', '8'], answer: '5', difficulty: 'Hard', type: 'mcq', domain: 'reasoning' },
+  { id: 'r12', question: 'A clock shows the time as 6:25. What is the angle between the hour and minute hands?', options: ['87.5°', '95°', '85°', '90°'], answer: '87.5°', difficulty: 'Hard', type: 'mcq', domain: 'reasoning' },
+  { id: 'r13', question: 'Which number replaces the question mark? 7, 11, 19, 35, 67, ?', options: ['119', '131', '133', '130'], answer: '131', difficulty: 'Hard', type: 'mcq', domain: 'reasoning' },
+  { id: 'r14', question: 'A cube is painted red on all faces and then cut into 27 equal small cubes. How many small cubes have exactly 2 faces painted?', options: ['8', '10', '12', '14'], answer: '12', difficulty: 'Hard', type: 'mcq', domain: 'reasoning' },
+  { id: 'r15', question: 'Find the missing number in the series: 5, 12, 20, 30, 42, 56, ?', options: ['70', '72', '74', '76'], answer: '72', difficulty: 'Medium', type: 'mcq', domain: 'reasoning' },
+  { id: 'r16', question: 'In a class, 30 students passed in both Hindi and English. 8 passed in Hindi only, 12 passed in English only. How many students are there in total?', options: ['45', '48', '50', '52'], answer: '50', difficulty: 'Medium', type: 'mcq', domain: 'reasoning' },
+  { id: 'r17', question: 'If 1 January 2020 is Wednesday, what day is 1 January 2021?', options: ['Thursday', 'Friday', 'Saturday', 'Sunday'], answer: 'Friday', difficulty: 'Medium', type: 'mcq', domain: 'reasoning' },
+  { id: 'r18', question: 'Find the odd one out: Apple, Mango, Brinjal, Guava, Banana', options: ['Apple', 'Mango', 'Brinjal', 'Guava'], answer: 'Brinjal', difficulty: 'Easy', type: 'mcq', domain: 'reasoning' },
+  { id: 'r19', question: '5 friends sit in a circle. A is to the left of B, C is to the right of D, E is between A and C. Who is to the right of B?', options: ['A', 'C', 'D', 'E'], answer: 'D', difficulty: 'Hard', type: 'mcq', domain: 'reasoning' },
+  { id: 'r20', question: 'What comes next in the pattern: Z, X, V, T, R, ?', options: ['Q', 'P', 'O', 'N'], answer: 'P', difficulty: 'Easy', type: 'mcq', domain: 'reasoning' },
+];
+
+// ============================================================
+// CS FUNDAMENTALS / TECHNICAL MCQ QUESTIONS
+// ============================================================
+export const TECHNICAL_QUESTIONS = [
+  { id: 't1', question: 'What is the time complexity of Binary Search?', options: ['O(n)', 'O(log n)', 'O(n log n)', 'O(n²)'], answer: 'O(log n)', difficulty: 'Easy', type: 'mcq', domain: 'technical' },
+  { id: 't2', question: 'Which data structure uses LIFO (Last In First Out) principle?', options: ['Queue', 'Stack', 'Array', 'Linked List'], answer: 'Stack', difficulty: 'Easy', type: 'mcq', domain: 'technical' },
+  { id: 't3', question: 'What is the output of: print(type([]) == list) in Python?', options: ['False', 'True', 'Error', 'None'], answer: 'True', difficulty: 'Easy', type: 'code_output', domain: 'technical' },
+  { id: 't4', question: 'Which sorting algorithm has the best average case time complexity?', options: ['Bubble Sort', 'Quick Sort', 'Selection Sort', 'Insertion Sort'], answer: 'Quick Sort', difficulty: 'Medium', type: 'mcq', domain: 'technical' },
+  { id: 't5', question: 'In OOP, what is Encapsulation?', options: ['Inheriting properties', 'Hiding internal implementation details', 'Creating multiple instances', 'Overriding methods'], answer: 'Hiding internal implementation details', difficulty: 'Easy', type: 'mcq', domain: 'technical' },
+  { id: 't6', question: 'What does SQL stand for?', options: ['Structured Query Language', 'Simple Query Language', 'Standard Query Language', 'System Query Language'], answer: 'Structured Query Language', difficulty: 'Easy', type: 'mcq', domain: 'technical' },
+  { id: 't7', question: 'Which HTTP method is used to send data to a server to create a resource?', options: ['GET', 'PUT', 'POST', 'DELETE'], answer: 'POST', difficulty: 'Easy', type: 'mcq', domain: 'technical' },
+  { id: 't8', question: 'What is the output of 5 & 3 in Python (bitwise AND)?', options: ['1', '2', '3', '7'], answer: '1', difficulty: 'Medium', type: 'code_output', domain: 'technical' },
+  { id: 't9', question: 'Which of the following is NOT a DBMS property in ACID?', options: ['Atomicity', 'Consistency', 'Independence', 'Durability'], answer: 'Independence', difficulty: 'Easy', type: 'mcq', domain: 'technical' },
+  { id: 't10', question: 'What is the maximum number of nodes in a binary tree of height h?', options: ['2h', '2h+1 - 1', '2^h - 1', 'h²'], answer: '2^h - 1', difficulty: 'Medium', type: 'mcq', domain: 'technical' },
+  { id: 't11', question: 'Which OSI layer is responsible for routing?', options: ['Physical', 'Data Link', 'Network', 'Transport'], answer: 'Network', difficulty: 'Medium', type: 'mcq', domain: 'technical' },
+  { id: 't12', question: 'In Java, which keyword is used to prevent a class from being subclassed?', options: ['static', 'private', 'final', 'abstract'], answer: 'final', difficulty: 'Easy', type: 'mcq', domain: 'technical' },
+  { id: 't13', question: 'What is a deadlock in OS?', options: ['A process running indefinitely', 'Two processes waiting for each other\'s resources forever', 'High CPU usage', 'Memory overflow'], answer: 'Two processes waiting for each other\'s resources forever', difficulty: 'Medium', type: 'mcq', domain: 'technical' },
+  { id: 't14', question: 'What does DFS stand for in graph traversal?', options: ['Deep First Search', 'Depth First Search', 'Direct First Search', 'Dynamic First Search'], answer: 'Depth First Search', difficulty: 'Easy', type: 'mcq', domain: 'technical' },
+  { id: 't15', question: 'What is the time complexity of inserting an element at the beginning of a linked list?', options: ['O(1)', 'O(n)', 'O(log n)', 'O(n²)'], answer: 'O(1)', difficulty: 'Easy', type: 'mcq', domain: 'technical' },
+  { id: 't16', question: 'In Python, what is the difference between a list and a tuple?', options: ['Lists are faster', 'Tuples are mutable', 'Lists are mutable, tuples are immutable', 'No difference'], answer: 'Lists are mutable, tuples are immutable', difficulty: 'Easy', type: 'mcq', domain: 'technical' },
+  { id: 't17', question: 'Which normal form eliminates transitive dependencies?', options: ['1NF', '2NF', '3NF', 'BCNF'], answer: '3NF', difficulty: 'Medium', type: 'mcq', domain: 'technical' },
+  { id: 't18', question: 'What is the time complexity of Merge Sort?', options: ['O(n)', 'O(n log n)', 'O(n²)', 'O(log n)'], answer: 'O(n log n)', difficulty: 'Easy', type: 'mcq', domain: 'technical' },
+  { id: 't19', question: 'What does REST stand for?', options: ['Remote Execution Standard Transfer', 'Representational State Transfer', 'Resource Entity State Transfer', 'Request State Transfer'], answer: 'Representational State Transfer', difficulty: 'Easy', type: 'mcq', domain: 'technical' },
+  { id: 't20', question: 'Which protocol is used for secure data transfer over the web?', options: ['HTTP', 'FTP', 'HTTPS', 'SMTP'], answer: 'HTTPS', difficulty: 'Easy', type: 'mcq', domain: 'technical' },
+  { id: 't21', question: 'In which scheduling algorithm does the process with shortest burst time get the CPU first?', options: ['FCFS', 'Round Robin', 'SJF', 'Priority'], answer: 'SJF', difficulty: 'Medium', type: 'mcq', domain: 'technical' },
+  { id: 't22', question: 'What is polymorphism in OOP?', options: ['Same name, different implementations', 'Inheriting from multiple classes', 'Hiding data', 'Creating objects'], answer: 'Same name, different implementations', difficulty: 'Easy', type: 'mcq', domain: 'technical' },
+  { id: 't23', question: 'Which tree traversal gives sorted output for a BST?', options: ['Pre-order', 'In-order', 'Post-order', 'Level-order'], answer: 'In-order', difficulty: 'Easy', type: 'mcq', domain: 'technical' },
+  { id: 't24', question: 'What is a foreign key in a database?', options: ['Primary key of another table', 'Unique key', 'Composite key', 'Super key'], answer: 'Primary key of another table', difficulty: 'Easy', type: 'mcq', domain: 'technical' },
+  { id: 't25', question: 'Which of the following is a volatile memory?', options: ['SSD', 'Hard Disk', 'RAM', 'ROM'], answer: 'RAM', difficulty: 'Easy', type: 'mcq', domain: 'technical' },
+  { id: 't26', question: 'What does the "virtual" keyword in C++ enable?', options: ['Static binding', 'Dynamic polymorphism', 'Compile-time checking', 'Memory allocation'], answer: 'Dynamic polymorphism', difficulty: 'Medium', type: 'mcq', domain: 'technical' },
+  { id: 't27', question: 'What is the space complexity of an adjacency matrix for a graph with n vertices?', options: ['O(n)', 'O(n + e)', 'O(n²)', 'O(e)'], answer: 'O(n²)', difficulty: 'Medium', type: 'mcq', domain: 'technical' },
+  { id: 't28', question: 'Which design pattern creates an object by cloning an existing one?', options: ['Singleton', 'Factory', 'Prototype', 'Builder'], answer: 'Prototype', difficulty: 'Hard', type: 'mcq', domain: 'technical' },
+  { id: 't29', question: 'In TCP/IP, what does the handshake process involve?', options: ['2-way', '3-way', '4-way', '5-way'], answer: '3-way', difficulty: 'Medium', type: 'mcq', domain: 'technical' },
+  { id: 't30', question: 'What is the output? int x = 5; System.out.println(x++ + ++x);', options: ['11', '12', '13', '10'], answer: '12', difficulty: 'Hard', type: 'code_output', domain: 'technical' },
+];
+
+// ============================================================
+// DEBUGGING QUESTIONS
+// ============================================================
+export const DEBUGGING_QUESTIONS = [
+  {
+    id: 'd1',
+    question: 'Find the bug in this code:\n```python\ndef factorial(n):\n    if n == 0:\n        return 0\n    return n * factorial(n - 1)\n```',
+    options: ['Line 1: function name wrong', 'Line 2-3: base case should return 1, not 0', 'Line 4: should be n + factorial(n-1)', 'No bug exists'],
+    answer: 'Line 2-3: base case should return 1, not 0',
+    difficulty: 'Easy', type: 'debugging', domain: 'technical',
+    explanation: 'Factorial of 0 is 1, not 0. The base case is wrong.'
+  },
+  {
+    id: 'd2',
+    question: 'What is wrong with this code?\n```javascript\nfor (var i = 0; i < 5; i++) {\n    setTimeout(() => console.log(i), 1000);\n}\n```',
+    options: ['Syntax error in setTimeout', 'It prints 0,1,2,3,4 after 1 second each', 'It prints 5 five times due to closure with var', 'It prints nothing'],
+    answer: 'It prints 5 five times due to closure with var',
+    difficulty: 'Medium', type: 'debugging', domain: 'technical',
+    explanation: 'var is function-scoped, so by the time setTimeout fires, i is already 5'
+  },
+  {
+    id: 'd3',
+    question: 'Identify the error:\n```java\npublic class Main {\n    public static void main(String[] args) {\n        int[] arr = new int[5];\n        System.out.println(arr[5]);\n    }\n}```',
+    options: ['Compilation error', 'ArrayIndexOutOfBoundsException at runtime', 'Prints 0', 'NullPointerException'],
+    answer: 'ArrayIndexOutOfBoundsException at runtime',
+    difficulty: 'Easy', type: 'debugging', domain: 'technical',
+    explanation: 'arr has indices 0-4, accessing index 5 throws ArrayIndexOutOfBoundsException'
+  },
+  {
+    id: 'd4',
+    question: 'What is the issue?\n```python\ndef add(a, b=[]):\n    b.append(a)\n    return b\nprint(add(1))\nprint(add(2))```',
+    options: ['Syntax error', 'Prints [1] then [2]', 'Prints [1] then [1, 2] due to mutable default argument', 'Runtime error'],
+    answer: 'Prints [1] then [1, 2] due to mutable default argument',
+    difficulty: 'Hard', type: 'debugging', domain: 'technical',
+    explanation: 'Mutable default arguments in Python are shared across calls'
+  },
+  {
+    id: 'd5',
+    question: 'Find the bug:\n```c\nint* createArray() {\n    int arr[5] = {1, 2, 3, 4, 5};\n    return arr;\n}```',
+    options: ['Missing return type', 'Returning pointer to local variable (undefined behavior)', 'Array initialization error', 'No bug'],
+    answer: 'Returning pointer to local variable (undefined behavior)',
+    difficulty: 'Hard', type: 'debugging', domain: 'technical',
+    explanation: 'Local arrays are stack-allocated and deallocated when function returns'
+  },
+  {
+    id: 'd6',
+    question: 'What is wrong?\n```python\nx = [1, 2, 3]\ny = x\ny.append(4)\nprint(x)```',
+    options: ['Prints [1, 2, 3]', 'Prints [1, 2, 3, 4] — y is a reference, not a copy', 'Prints [4]', 'Error'],
+    answer: 'Prints [1, 2, 3, 4] — y is a reference, not a copy',
+    difficulty: 'Medium', type: 'debugging', domain: 'technical'
+  },
+  {
+    id: 'd7',
+    question: 'Spot the issue:\n```java\nString s = null;\nif (s.equals("hello")) {\n    System.out.println("Match");\n}```',
+    options: ['Compilation error', 'NullPointerException', 'Prints Match', 'Prints nothing'],
+    answer: 'NullPointerException',
+    difficulty: 'Easy', type: 'debugging', domain: 'technical'
+  },
+];
+
+// ============================================================
+// CODING PROBLEMS
+// ============================================================
+export const CODING_PROBLEMS = {
+  easy: [
+    {
+      id: 'cp1',
+      title: 'Two Sum',
+      difficulty: 'Easy',
+      topic: 'Arrays',
+      companies: ['amazon', 'microsoft', 'google'],
+      description: `Given an array of integers \`nums\` and an integer \`target\`, return indices of the two numbers such that they add up to target.
+
+You may assume that each input would have exactly one solution, and you may not use the same element twice.
+
+You can return the answer in any order.`,
+      examples: [
+        { input: 'nums = [2,7,11,15], target = 9', output: '[0,1]', explanation: 'nums[0] + nums[1] == 9, return [0, 1]' },
+        { input: 'nums = [3,2,4], target = 6', output: '[1,2]', explanation: 'nums[1] + nums[2] == 6' },
+      ],
+      constraints: ['2 ≤ nums.length ≤ 10^4', '-10^9 ≤ nums[i] ≤ 10^9', 'Only one valid answer exists'],
+      testCases: [
+        { input: '[2,7,11,15]\n9', output: '[0,1]', visible: true },
+        { input: '[3,2,4]\n6', output: '[1,2]', visible: true },
+        { input: '[3,3]\n6', output: '[0,1]', visible: false },
+        { input: '[1,5,7,3,9]\n12', output: '[2,4]', visible: false },
+      ],
+      starterCode: {
+        python: 'def twoSum(nums, target):\n    # Write your solution here\n    pass\n\n# Read input\nimport sys\nlines = sys.stdin.read().split("\\n")\nnums = list(map(int, lines[0][1:-1].split(",")))\ntarget = int(lines[1])\nprint(twoSum(nums, target))',
+        java: 'import java.util.*;\npublic class Solution {\n    public int[] twoSum(int[] nums, int target) {\n        // Write your solution here\n        return new int[]{};\n    }\n    public static void main(String[] args) {\n        // Test your solution\n    }\n}',
+        cpp: '#include <bits/stdc++.h>\nusing namespace std;\nvector<int> twoSum(vector<int>& nums, int target) {\n    // Write your solution here\n    return {};\n}\nint main() {\n    // Test\n    return 0;\n}',
+        javascript: 'function twoSum(nums, target) {\n    // Write your solution here\n}',
+      },
+    },
+    {
+      id: 'cp2',
+      title: 'Reverse a String',
+      difficulty: 'Easy',
+      topic: 'Strings',
+      companies: ['tcs', 'infosys', 'wipro'],
+      description: `Write a function that reverses a string. The input string is given as an array of characters \`s\`.
+
+You must do this by modifying the input array in-place with O(1) extra memory.`,
+      examples: [
+        { input: 's = ["h","e","l","l","o"]', output: '["o","l","l","e","h"]' },
+        { input: 's = ["H","a","n","n","a","h"]', output: '["h","a","n","n","a","H"]' },
+      ],
+      constraints: ['1 ≤ s.length ≤ 10^5', 's[i] is a printable ASCII character'],
+      testCases: [
+        { input: '["h","e","l","l","o"]', output: '["o","l","l","e","h"]', visible: true },
+        { input: '["H","a","n","n","a","h"]', output: '["h","a","n","n","a","H"]', visible: true },
+        { input: '["A"]', output: '["A"]', visible: false },
+      ],
+      starterCode: {
+        python: 'def reverseString(s):\n    # Write your solution here\n    pass',
+        java: 'public class Solution {\n    public void reverseString(char[] s) {\n        // Write your solution here\n    }\n}',
+        cpp: '#include <bits/stdc++.h>\nusing namespace std;\nvoid reverseString(vector<char>& s) {\n    // Write your solution here\n}',
+        javascript: 'function reverseString(s) {\n    // Write your solution here\n}',
+      },
+    },
+    {
+      id: 'cp3',
+      title: 'Fibonacci Number',
+      difficulty: 'Easy',
+      topic: 'Dynamic Programming',
+      companies: ['tcs', 'cognizant', 'accenture'],
+      description: `The Fibonacci numbers, commonly denoted F(n) form a sequence, called the Fibonacci sequence, such that each number is the sum of the two preceding ones, starting from 0 and 1.
+
+Given n, calculate F(n).`,
+      examples: [
+        { input: 'n = 4', output: '3', explanation: 'F(4) = F(3) + F(2) = 2 + 1 = 3' },
+        { input: 'n = 10', output: '55' },
+      ],
+      constraints: ['0 ≤ n ≤ 30'],
+      testCases: [
+        { input: '4', output: '3', visible: true },
+        { input: '10', output: '55', visible: true },
+        { input: '0', output: '0', visible: false },
+        { input: '1', output: '1', visible: false },
+      ],
+      starterCode: {
+        python: 'def fib(n):\n    # Write your solution here\n    pass\n\nprint(fib(int(input())))',
+        java: 'public class Solution {\n    public int fib(int n) {\n        // Write your solution here\n        return 0;\n    }\n}',
+        cpp: '#include<bits/stdc++.h>\nusing namespace std;\nint fib(int n) {\n    // Write your solution here\n    return 0;\n}\nint main(){\n    int n; cin>>n;\n    cout<<fib(n);\n    return 0;\n}',
+        javascript: 'function fib(n) {\n    // Write your solution here\n}',
+      },
+    },
+    {
+      id: 'cp4',
+      title: 'Find Maximum in Array',
+      difficulty: 'Easy',
+      topic: 'Arrays',
+      companies: ['wipro', 'capgemini', 'deloitte'],
+      description: `Given an array of n integers, find and return the maximum element in the array.
+
+Write an efficient solution with O(n) time complexity.`,
+      examples: [
+        { input: 'arr = [1, 5, 3, 9, 2]', output: '9' },
+        { input: 'arr = [-1, -5, -3]', output: '-1' },
+      ],
+      constraints: ['1 ≤ n ≤ 10^5', '-10^9 ≤ arr[i] ≤ 10^9'],
+      testCases: [
+        { input: '5\n1 5 3 9 2', output: '9', visible: true },
+        { input: '3\n-1 -5 -3', output: '-1', visible: true },
+        { input: '1\n42', output: '42', visible: false },
+      ],
+      starterCode: {
+        python: 'def findMax(arr):\n    # Write your solution here\n    pass\n\nn = int(input())\narr = list(map(int, input().split()))\nprint(findMax(arr))',
+        java: 'import java.util.*;\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int n = sc.nextInt();\n        int[] arr = new int[n];\n        for(int i=0;i<n;i++) arr[i]=sc.nextInt();\n        // Find max and print\n    }\n}',
+        cpp: '#include<bits/stdc++.h>\nusing namespace std;\nint main(){\n    int n; cin>>n;\n    vector<int> arr(n);\n    for(int i=0;i<n;i++) cin>>arr[i];\n    // Find max and print\n    return 0;\n}',
+        javascript: 'const lines = require("fs").readFileSync("/dev/stdin","utf8").split("\\n");\nconst n = parseInt(lines[0]);\nconst arr = lines[1].split(" ").map(Number);\n// Find and print max',
+      },
+    },
+    {
+      id: 'cp5',
+      title: 'Count Vowels',
+      difficulty: 'Easy',
+      topic: 'Strings',
+      companies: ['tcs', 'infosys', 'capgemini'],
+      description: `Given a string, count the number of vowels (a, e, i, o, u) in it. Both uppercase and lowercase vowels should be counted.`,
+      examples: [
+        { input: 'hello', output: '2', explanation: 'e, o are vowels' },
+        { input: 'AEIOU', output: '5' },
+      ],
+      constraints: ['1 ≤ |s| ≤ 10^5', 's contains only alphabetic characters'],
+      testCases: [
+        { input: 'hello', output: '2', visible: true },
+        { input: 'AEIOU', output: '5', visible: true },
+        { input: 'rhythm', output: '0', visible: false },
+        { input: 'InterviewX', output: '4', visible: false },
+      ],
+      starterCode: {
+        python: 'def countVowels(s):\n    # Write your solution here\n    pass\n\nprint(countVowels(input()))',
+        java: 'import java.util.*;\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String s = sc.nextLine();\n        // Count and print vowels\n    }\n}',
+        cpp: '#include<bits/stdc++.h>\nusing namespace std;\nint main(){\n    string s; cin>>s;\n    // Count and print vowels\n    return 0;\n}',
+        javascript: 'const s = require("fs").readFileSync("/dev/stdin","utf8").trim();\n// Count and print vowels',
+      },
+    },
+  ],
+  medium: [
+    {
+      id: 'cp6',
+      title: 'Longest Substring Without Repeating Characters',
+      difficulty: 'Medium',
+      topic: 'Sliding Window',
+      companies: ['amazon', 'microsoft', 'google'],
+      description: `Given a string \`s\`, find the length of the longest substring without repeating characters.`,
+      examples: [
+        { input: 's = "abcabcbb"', output: '3', explanation: 'The answer is "abc", with the length of 3.' },
+        { input: 's = "bbbbb"', output: '1', explanation: 'The answer is "b", with the length of 1.' },
+        { input: 's = "pwwkew"', output: '3', explanation: 'The answer is "wke", with the length of 3.' },
+      ],
+      constraints: ['0 ≤ s.length ≤ 5 * 10^4', 's consists of English letters, digits, symbols and spaces'],
+      testCases: [
+        { input: 'abcabcbb', output: '3', visible: true },
+        { input: 'bbbbb', output: '1', visible: true },
+        { input: 'pwwkew', output: '3', visible: false },
+        { input: '', output: '0', visible: false },
+      ],
+      starterCode: {
+        python: 'def lengthOfLongestSubstring(s):\n    # Write your solution here\n    pass\n\nprint(lengthOfLongestSubstring(input()))',
+        java: 'public class Solution {\n    public int lengthOfLongestSubstring(String s) {\n        // Write your solution here\n        return 0;\n    }\n}',
+        cpp: '#include<bits/stdc++.h>\nusing namespace std;\nint lengthOfLongestSubstring(string s) {\n    // Write your solution here\n    return 0;\n}\nint main(){\n    string s; getline(cin,s);\n    cout<<lengthOfLongestSubstring(s);\n    return 0;\n}',
+        javascript: 'function lengthOfLongestSubstring(s) {\n    // Write your solution here\n}',
+      },
+    },
+    {
+      id: 'cp7',
+      title: 'Valid Parentheses',
+      difficulty: 'Medium',
+      topic: 'Stack',
+      companies: ['amazon', 'microsoft', 'nvidia'],
+      description: `Given a string s containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid.
+
+An input string is valid if:
+- Open brackets must be closed by the same type of brackets.
+- Open brackets must be closed in the correct order.
+- Every close bracket has a corresponding open bracket of the same type.`,
+      examples: [
+        { input: 's = "()"', output: 'true' },
+        { input: 's = "()[]{}"', output: 'true' },
+        { input: 's = "(]"', output: 'false' },
+      ],
+      constraints: ['1 ≤ s.length ≤ 10^4', 's consists of parentheses only'],
+      testCases: [
+        { input: '()', output: 'true', visible: true },
+        { input: '()[]{}\n', output: 'true', visible: true },
+        { input: '(]', output: 'false', visible: false },
+        { input: '([)]', output: 'false', visible: false },
+      ],
+      starterCode: {
+        python: 'def isValid(s):\n    # Write your solution here\n    pass\n\nprint(str(isValid(input())).lower())',
+        java: 'public class Solution {\n    public boolean isValid(String s) {\n        // Write your solution here\n        return false;\n    }\n}',
+        cpp: '#include<bits/stdc++.h>\nusing namespace std;\nbool isValid(string s) {\n    // Write your solution here\n    return false;\n}\nint main(){\n    string s; cin>>s;\n    cout<<(isValid(s)?"true":"false");\n    return 0;\n}',
+        javascript: 'function isValid(s) {\n    // Write your solution here\n}',
+      },
+    },
+    {
+      id: 'cp8',
+      title: 'Maximum Subarray (Kadane\'s Algorithm)',
+      difficulty: 'Medium',
+      topic: 'Dynamic Programming',
+      companies: ['amazon', 'jpmorgan', 'deloitte'],
+      description: `Given an integer array nums, find the subarray with the largest sum, and return its sum.`,
+      examples: [
+        { input: 'nums = [-2,1,-3,4,-1,2,1,-5,4]', output: '6', explanation: 'The subarray [4,-1,2,1] has the largest sum 6.' },
+        { input: 'nums = [1]', output: '1' },
+      ],
+      constraints: ['1 ≤ nums.length ≤ 10^5', '-10^4 ≤ nums[i] ≤ 10^4'],
+      testCases: [
+        { input: '9\n-2 1 -3 4 -1 2 1 -5 4', output: '6', visible: true },
+        { input: '1\n1', output: '1', visible: true },
+        { input: '5\n-2 -3 4 -1 -2', output: '4', visible: false },
+      ],
+      starterCode: {
+        python: 'def maxSubArray(nums):\n    # Write your solution here\n    pass\n\nn = int(input())\nnums = list(map(int, input().split()))\nprint(maxSubArray(nums))',
+        java: 'import java.util.*;\npublic class Solution {\n    public int maxSubArray(int[] nums) {\n        // Write your solution here\n        return 0;\n    }\n}',
+        cpp: '#include<bits/stdc++.h>\nusing namespace std;\nint maxSubArray(vector<int>& nums) {\n    // Write your solution here\n    return 0;\n}\nint main(){\n    int n; cin>>n;\n    vector<int> nums(n);\n    for(int i=0;i<n;i++) cin>>nums[i];\n    cout<<maxSubArray(nums);\n    return 0;\n}',
+        javascript: 'function maxSubArray(nums) {\n    // Write your solution here\n}',
+      },
+    },
+    {
+      id: 'cp9',
+      title: 'Binary Search',
+      difficulty: 'Medium',
+      topic: 'Binary Search',
+      companies: ['amazon', 'microsoft', 'nvidia'],
+      description: `Given an array of integers nums which is sorted in ascending order, and an integer target, write a function to search target in nums. If target exists, then return its index. Otherwise, return -1.
+
+You must write an algorithm with O(log n) runtime complexity.`,
+      examples: [
+        { input: 'nums = [-1,0,3,5,9,12], target = 9', output: '4', explanation: '9 exists in nums and its index is 4' },
+        { input: 'nums = [-1,0,3,5,9,12], target = 2', output: '-1' },
+      ],
+      constraints: ['1 ≤ nums.length ≤ 10^4', 'All integers are unique', 'nums is sorted in ascending order'],
+      testCases: [
+        { input: '6\n-1 0 3 5 9 12\n9', output: '4', visible: true },
+        { input: '6\n-1 0 3 5 9 12\n2', output: '-1', visible: true },
+        { input: '1\n5\n5', output: '0', visible: false },
+      ],
+      starterCode: {
+        python: 'def search(nums, target):\n    # Write your solution here with O(log n)\n    pass\n\nn = int(input())\nnums = list(map(int, input().split()))\ntarget = int(input())\nprint(search(nums, target))',
+        java: 'public class Solution {\n    public int search(int[] nums, int target) {\n        // Write your solution here\n        return -1;\n    }\n}',
+        cpp: '#include<bits/stdc++.h>\nusing namespace std;\nint search(vector<int>& nums, int target){\n    // Write your solution here\n    return -1;\n}\nint main(){\n    int n,t;\n    cin>>n;\n    vector<int> nums(n);\n    for(int i=0;i<n;i++) cin>>nums[i];\n    cin>>t;\n    cout<<search(nums,t);\n    return 0;\n}',
+        javascript: 'function search(nums, target) {\n    // Write your solution here\n}',
+      },
+    },
+    {
+      id: 'cp10',
+      title: 'Number of Islands',
+      difficulty: 'Medium',
+      topic: 'BFS/DFS',
+      companies: ['amazon', 'google', 'microsoft'],
+      description: `Given an m x n 2D binary grid grid which represents a map of '1's (land) and '0's (water), return the number of islands.
+
+An island is surrounded by water and is formed by connecting adjacent lands horizontally or vertically.`,
+      examples: [
+        { input: 'grid = [["1","1","1","1","0"],["1","1","0","1","0"],["1","1","0","0","0"],["0","0","0","0","0"]]', output: '1' },
+        { input: 'grid = [["1","1","0","0","0"],["1","1","0","0","0"],["0","0","1","0","0"],["0","0","0","1","1"]]', output: '3' },
+      ],
+      constraints: ['m == grid.length', 'n == grid[i].length', '1 ≤ m, n ≤ 300'],
+      testCases: [
+        { input: '4 5\n1 1 1 1 0\n1 1 0 1 0\n1 1 0 0 0\n0 0 0 0 0', output: '1', visible: true },
+        { input: '4 5\n1 1 0 0 0\n1 1 0 0 0\n0 0 1 0 0\n0 0 0 1 1', output: '3', visible: true },
+      ],
+      starterCode: {
+        python: 'def numIslands(grid):\n    # Write your solution here\n    pass\n\nn, m = map(int, input().split())\ngrid = []\nfor _ in range(n):\n    grid.append(input().split())\nprint(numIslands(grid))',
+        java: 'public class Solution {\n    public int numIslands(char[][] grid) {\n        // Write your solution here\n        return 0;\n    }\n}',
+        cpp: '#include<bits/stdc++.h>\nusing namespace std;\nint numIslands(vector<vector<char>>& grid){\n    // Write your solution here\n    return 0;\n}\nint main(){\n    // Read grid\n    return 0;\n}',
+        javascript: 'function numIslands(grid) {\n    // Write your solution here\n}',
+      },
+    },
+  ],
+  hard: [
+    {
+      id: 'cp11',
+      title: 'Merge K Sorted Lists',
+      difficulty: 'Hard',
+      topic: 'Heap / Divide & Conquer',
+      companies: ['google', 'amazon', 'nvidia'],
+      description: `You are given an array of k linked-lists lists, each linked-list is sorted in ascending order.
+
+Merge all the linked-lists into one sorted linked-list and return it.`,
+      examples: [
+        { input: 'lists = [[1,4,5],[1,3,4],[2,6]]', output: '[1,1,2,3,4,4,5,6]' },
+        { input: 'lists = []', output: '[]' },
+      ],
+      constraints: ['k == lists.length', '0 ≤ k ≤ 10^4', '0 ≤ lists[i].length ≤ 500'],
+      testCases: [
+        { input: '3\n1 4 5\n1 3 4\n2 6', output: '1 1 2 3 4 4 5 6', visible: true },
+        { input: '0', output: '', visible: true },
+      ],
+      starterCode: {
+        python: '# Definition for singly-linked list.\nclass ListNode:\n    def __init__(self, val=0, next=None):\n        self.val = val\n        self.next = next\n\nclass Solution:\n    def mergeKLists(self, lists):\n        # Write your solution here\n        pass',
+        java: 'class ListNode {\n    int val; ListNode next;\n    ListNode(int val) { this.val = val; }\n}\npublic class Solution {\n    public ListNode mergeKLists(ListNode[] lists) {\n        // Write your solution here\n        return null;\n    }\n}',
+        cpp: '#include<bits/stdc++.h>\nusing namespace std;\nstruct ListNode {\n    int val; ListNode* next;\n    ListNode(int v): val(v), next(nullptr){}\n};\nListNode* mergeKLists(vector<ListNode*>& lists) {\n    // Write your solution here\n    return nullptr;\n}',
+        javascript: 'function mergeKLists(lists) {\n    // Write your solution here\n}',
+      },
+    },
+    {
+      id: 'cp12',
+      title: 'Word Search II',
+      difficulty: 'Hard',
+      topic: 'Trie + Backtracking',
+      companies: ['google', 'microsoft'],
+      description: `Given an m x n board of characters and a list of strings words, return all words on the board.
+
+Each word must be constructed from letters of sequentially adjacent cells, where adjacent cells are horizontally or vertically neighboring. The same letter cell may not be used more than once in a word.`,
+      examples: [
+        { input: 'board = [["o","a","a","n"],["e","t","a","e"],["i","h","k","r"],["i","f","l","v"]], words = ["oath","pea","eat","rain"]', output: '["eat","oath"]' },
+      ],
+      constraints: ['m == board.length', 'n == board[i].length', '1 ≤ m, n ≤ 12'],
+      testCases: [
+        { input: 'See problem description', output: '["eat","oath"]', visible: true },
+      ],
+      starterCode: {
+        python: 'def findWords(board, words):\n    # Use Trie + DFS backtracking\n    pass',
+        java: 'import java.util.*;\npublic class Solution {\n    public List<String> findWords(char[][] board, String[] words) {\n        // Write your solution here\n        return new ArrayList<>();\n    }\n}',
+        cpp: '#include<bits/stdc++.h>\nusing namespace std;\nvector<string> findWords(vector<vector<char>>& board, vector<string>& words) {\n    // Write your solution here\n    return {};\n}',
+        javascript: 'function findWords(board, words) {\n    // Write your solution here\n}',
+      },
+    },
+    {
+      id: 'cp13',
+      title: 'Median of Two Sorted Arrays',
+      difficulty: 'Hard',
+      topic: 'Binary Search',
+      companies: ['google', 'amazon', 'microsoft'],
+      description: `Given two sorted arrays nums1 and nums2 of size m and n respectively, return the median of the two sorted arrays.
+
+The overall run time complexity should be O(log (m+n)).`,
+      examples: [
+        { input: 'nums1 = [1,3], nums2 = [2]', output: '2.00000', explanation: 'merged array = [1,2,3] and median is 2.' },
+        { input: 'nums1 = [1,2], nums2 = [3,4]', output: '2.50000' },
+      ],
+      constraints: ['nums1.length == m', 'nums2.length == n', '0 ≤ m, n ≤ 1000'],
+      testCases: [
+        { input: '2\n1 3\n1\n2', output: '2.00000', visible: true },
+        { input: '2\n1 2\n2\n3 4', output: '2.50000', visible: true },
+      ],
+      starterCode: {
+        python: 'def findMedianSortedArrays(nums1, nums2):\n    # Write your O(log(m+n)) solution\n    pass',
+        java: 'public class Solution {\n    public double findMedianSortedArrays(int[] nums1, int[] nums2) {\n        // Write your solution here\n        return 0.0;\n    }\n}',
+        cpp: '#include<bits/stdc++.h>\nusing namespace std;\ndouble findMedianSortedArrays(vector<int>& nums1, vector<int>& nums2){\n    // Write your solution here\n    return 0;\n}',
+        javascript: 'function findMedianSortedArrays(nums1, nums2) {\n    // Write your solution here\n}',
+      },
+    },
+    {
+      id: 'cp14',
+      title: 'LRU Cache',
+      difficulty: 'Hard',
+      topic: 'Design / HashMap + DLL',
+      companies: ['amazon', 'google', 'nvidia'],
+      description: `Design a data structure that follows the constraints of a Least Recently Used (LRU) cache.
+
+Implement the LRUCache class:
+- LRUCache(int capacity) Initialize the LRU cache with positive size capacity.
+- int get(int key) Return the value of the key if the key exists, otherwise return -1.
+- void put(int key, int value) Update the value if the key exists. Otherwise, add the key-value pair. Evict the least recently used key if the capacity is exceeded.`,
+      examples: [
+        { input: '["LRUCache","put","put","get","put","get","put","get","get","get"]\n[[2],[1,1],[2,2],[1],[3,3],[2],[4,4],[1],[3],[4]]', output: '[null,null,null,1,null,-1,null,-1,3,4]' },
+      ],
+      constraints: ['1 ≤ capacity ≤ 3000', '0 ≤ key ≤ 10^4'],
+      testCases: [
+        { input: 'See problem description', output: '[null,null,null,1,null,-1,null,-1,3,4]', visible: true },
+      ],
+      starterCode: {
+        python: 'class LRUCache:\n    def __init__(self, capacity: int):\n        # Initialize your data structure\n        pass\n\n    def get(self, key: int) -> int:\n        # Return value or -1\n        pass\n\n    def put(self, key: int, value: int) -> None:\n        # Insert or update key\n        pass',
+        java: 'import java.util.*;\npublic class LRUCache {\n    public LRUCache(int capacity) {\n    }\n    public int get(int key) {\n        return -1;\n    }\n    public void put(int key, int value) {\n    }\n}',
+        cpp: '#include<bits/stdc++.h>\nusing namespace std;\nclass LRUCache {\npublic:\n    LRUCache(int capacity) {\n    }\n    int get(int key) {\n        return -1;\n    }\n    void put(int key, int value) {\n    }\n};',
+        javascript: 'class LRUCache {\n    constructor(capacity) {\n    }\n    get(key) {\n        return -1;\n    }\n    put(key, value) {\n    }\n}',
+      },
+    },
+  ],
 };
 
+// ============================================================
+// QUESTION BANK ACCESSOR
+// ============================================================
+
+export const getQuestionsForSection = (section, count = 20) => {
+  const { domains = [], questionTypes = [], difficulty = 'Easy' } = section;
+
+  let pool = [];
+
+  if (domains.includes('numerical')) pool = [...pool, ...NUMERICAL_QUESTIONS];
+  if (domains.includes('verbal')) pool = [...pool, ...VERBAL_QUESTIONS];
+  if (domains.includes('reasoning')) pool = [...pool, ...REASONING_QUESTIONS];
+  if (domains.includes('technical') || domains.includes('cs_fundamentals')) pool = [...pool, ...TECHNICAL_QUESTIONS];
+  if (questionTypes.includes('debugging')) pool = [...pool, ...DEBUGGING_QUESTIONS];
+
+  // Filter by difficulty
+  const diffMap = { easy: ['Easy'], medium: ['Easy', 'Medium'], hard: ['Easy', 'Medium', 'Hard'] };
+  const allowedDiffs = diffMap[difficulty?.toLowerCase()] || ['Easy', 'Medium'];
+  pool = pool.filter(q => allowedDiffs.includes(q.difficulty));
+
+  // Shuffle
+  const shuffled = pool.sort(() => Math.random() - 0.5);
+
+  // Take count
+  return shuffled.slice(0, count).map(q => ({
+    ...q,
+    shuffledOptions: q.options ? [...q.options].sort(() => Math.random() - 0.5) : q.options,
+  }));
+};
+
+export const getCodingProblemsForSection = (difficulty = 'medium', count = 2) => {
+  const diffKey = difficulty?.toLowerCase();
+  const pool = CODING_PROBLEMS[diffKey] || CODING_PROBLEMS.medium;
+  return pool.sort(() => Math.random() - 0.5).slice(0, count);
+};
+
+export const getDebuggingQuestions = (count = 5) => {
+  return [...DEBUGGING_QUESTIONS].sort(() => Math.random() - 0.5).slice(0, count).map(q => ({
+    ...q,
+    shuffledOptions: [...q.options].sort(() => Math.random() - 0.5),
+  }));
+};
+
+// ============================================================
+// LEGACY EXPORTS — Backward compatibility with CodingHub.jsx
+// ============================================================
+
 export const CATEGORIES = [
-  {
-    id: 'dsa',
-    name: 'Coding Practice',
-    icon: '🧠',
-    color: 'from-indigo-500 to-purple-600',
-    borderColor: 'border-indigo-500/30',
-    description: 'Arrays, Trees, Graphs, Dynamic Programming. Real coding problems for FAANG interviews.',
-    subtopics: ['Arrays', 'Strings', 'Linked List', 'Stack', 'Queue', 'HashMap', 'Trees', 'Graph', 'Greedy', 'DP', 'Two Pointer'],
+  { 
+    id: 'arrays', 
+    name: 'Arrays & Hashing', 
+    label: 'Arrays',
+    description: 'Master sliding window, two-pointer techniques, grid traversal, and frequency hashing.',
+    icon: '📊', 
+    color: 'from-indigo-500 to-purple-500',
+    subtopics: ['Two Pointers', 'Sliding Window', 'Hashing', 'Prefix Sum']
   },
-  {
-    id: 'sql',
-    name: 'SQL (MCQ)',
-    icon: '🗄️',
-    color: 'from-blue-500 to-cyan-600',
-    borderColor: 'border-blue-500/30',
-    description: 'SELECT, JOINs, GROUP BY, Window Functions, CTEs. Essential database theory.',
-    subtopics: ['SELECT Queries', 'JOINs', 'Subqueries', 'Grouping & Aggregation', 'Window Functions', 'CTEs'],
+  { 
+    id: 'strings', 
+    name: 'String Manipulation', 
+    label: 'Strings',
+    description: 'Practice string matching, regex operations, palindromes, and complex character parsing.',
+    icon: '🔤', 
+    color: 'from-purple-500 to-pink-500',
+    subtopics: ['Anagrams', 'Substrings', 'Palindromes', 'Regex']
   },
-  {
-    id: 'javascript',
-    name: 'JavaScript (MCQ)',
-    icon: '⚡',
-    color: 'from-yellow-400 to-amber-500',
-    borderColor: 'border-yellow-500/30',
-    description: 'Closures, promises, async/await, DOM manipulation. Theoretical concepts and outputs.',
-    subtopics: ['Closures', 'Promises', 'Event Loops', 'Array Methods', 'Objects', 'DOM'],
+  { 
+    id: 'linkedlist', 
+    name: 'Linked Lists', 
+    label: 'Linked List',
+    description: 'Learn slow & fast pointer algorithms, list reversals, cycle detection, and list merges.',
+    icon: '🔗', 
+    color: 'from-cyan-500 to-blue-500',
+    subtopics: ['Singly Linked List', 'Doubly Linked List', 'Fast & Slow Pointer']
   },
-  {
-    id: 'aptitude',
-    name: 'Aptitude (MCQ)',
-    icon: '🧩',
-    color: 'from-purple-500 to-indigo-600',
-    borderColor: 'border-purple-500/30',
-    description: 'Puzzles, analytical logic, patterns, and riddles. Essential assessment phase.',
-    subtopics: ['Puzzles', 'Math Puzzles', 'Logic Riddles', 'Analytical Reasoning']
+  { 
+    id: 'trees', 
+    name: 'Trees & BST', 
+    label: 'Trees',
+    description: 'Practice recursive tree traversals, lowest common ancestors, and depth-first search (DFS).',
+    icon: '🌳', 
+    color: 'from-emerald-500 to-teal-500',
+    subtopics: ['Binary Tree', 'BST', 'BFS / DFS Traversals']
   },
-  {
-    id: 'quant',
-    name: 'Quantitative Aptitude (MCQ)',
-    icon: '📊',
-    color: 'from-amber-500 to-yellow-600',
-    borderColor: 'border-amber-500/30',
-    description: 'Time & work, ratios, speed & distance, permutations, and probability.',
-    subtopics: ['Time & Work', 'Speed & Distance', 'Probability', 'Permutations', 'Percentages', 'Profit & Loss', 'Ratios']
+  { 
+    id: 'graphs', 
+    name: 'Graph Theory', 
+    label: 'Graphs',
+    description: 'Master topological sort, Dijkstra\'s shortest path, Prim\'s algorithms, and union-find.',
+    icon: '🕸️', 
+    color: 'from-amber-500 to-orange-500',
+    subtopics: ['Dijkstra', 'BFS / DFS', 'Union Find', 'Kruskal']
   },
-  {
-    id: 'reasoning',
-    name: 'Logical Reasoning (MCQ)',
-    icon: '🤔',
-    color: 'from-indigo-500 to-sky-600',
-    borderColor: 'border-indigo-500/30',
-    description: 'Blood relations, arrangements, syllogisms, and sequence codes.',
-    subtopics: ['Blood Relations', 'Seating Arrangement', 'Syllogism', 'Coding-Decoding', 'Series Completion', 'Clocks & Calendars']
+  { 
+    id: 'dp', 
+    name: 'Dynamic Programming', 
+    label: 'Dynamic Programming',
+    description: 'Solve optimization problems with memoization, tabulations, and knapsack variations.',
+    icon: '⚡', 
+    color: 'from-red-500 to-rose-500',
+    subtopics: ['1D DP', '2D DP', 'Knapsack', 'LCS']
   },
-  {
-    id: 'verbal',
-    name: 'Verbal Ability (MCQ)',
-    icon: '✍️',
-    color: 'from-teal-500 to-emerald-600',
-    borderColor: 'border-teal-500/30',
-    description: 'Synonyms, reading comprehensions, grammar correction, and spelling checks.',
-    subtopics: ['Synonyms & Antonyms', 'Sentence Correction', 'Reading Comprehension', 'Idioms & Phrases', 'Grammar Rules']
+  { 
+    id: 'sorting', 
+    name: 'Sorting Algorithms', 
+    label: 'Sorting',
+    description: 'Understand quicksort, mergesort, heapsort, bubble sort, and custom comparison functions.',
+    icon: '📈', 
+    color: 'from-pink-500 to-fuchsia-500',
+    subtopics: ['Quick Sort', 'Merge Sort', 'Heap Sort', 'Custom Comparator']
   },
-  {
-    id: 'dbms',
-    name: 'DBMS (MCQ)',
-    icon: '📦',
-    color: 'from-teal-500 to-green-600',
-    borderColor: 'border-teal-500/30',
-    description: 'Database concepts, normalization, transactions, ACID properties. Theory + viva questions.',
-    subtopics: ['Normalization', 'Transactions', 'Concurrency Control', 'Indexing', 'NoSQL Basics', 'ACID Properties'],
+  { 
+    id: 'searching', 
+    name: 'Binary Search', 
+    label: 'Searching',
+    description: 'Implement binary search variations, search in rotated sorted arrays, and search space reduction.',
+    icon: '🔍', 
+    color: 'from-teal-500 to-green-500',
+    subtopics: ['Binary Search', 'Rotated Search', 'Lower/Upper Bounds']
   },
-  {
-    id: 'os',
-    name: 'Operating System (MCQ)',
-    icon: '💻',
-    color: 'from-orange-500 to-red-600',
-    borderColor: 'border-orange-500/30',
-    description: 'Processes, threads, scheduling, memory management, deadlocks. Core CS fundamentals.',
-    subtopics: ['Processes & Threads', 'Scheduling Algorithms', 'Memory Management', 'Deadlocks', 'Virtual Memory', 'File Systems'],
+  { 
+    id: 'stack', 
+    name: 'Stacks & Queues', 
+    label: 'Stack & Queue',
+    description: 'Design custom stacks, monotonic stacks, priority queues, and double-ended queues.',
+    icon: '📚', 
+    color: 'from-orange-500 to-red-500',
+    subtopics: ['Monotonic Stack', 'Min Stack', 'Deconstruct Priority Queue']
   },
-  {
-    id: 'cn',
-    name: 'Computer Networks (MCQ)',
-    icon: '🌐',
-    color: 'from-sky-500 to-blue-600',
-    borderColor: 'border-sky-500/30',
-    description: 'OSI model, TCP/IP, HTTP, DNS, routing, and networking protocols.',
-    subtopics: ['OSI Layer Model', 'TCP/IP Protocol', 'IP Addressing', 'Routing Algorithms', 'HTTP/HTTPS Protocols', 'DNS & Security'],
-  },
-  {
-    id: 'oop',
-    name: 'OOP Concepts (MCQ)',
-    icon: '🏗️',
-    color: 'from-violet-500 to-purple-600',
-    borderColor: 'border-violet-500/30',
-    description: 'Encapsulation, Inheritance, Polymorphism, Abstraction. Design patterns.',
-    subtopics: ['Classes & Objects', 'Inheritance', 'Polymorphism', 'Encapsulation', 'Abstraction', 'SOLID Design Principles'],
-  },
-  {
-    id: 'frontend',
-    name: 'Frontend Development (MCQ)',
-    icon: '🎨',
-    color: 'from-pink-500 to-rose-600',
-    borderColor: 'border-pink-500/30',
-    description: 'HTML, CSS, JavaScript, React, Next.js. For frontend developer roles.',
-    subtopics: ['DOM Events', 'CSS Grid & Flexbox', 'Async Fetching', 'Webpack & Vite', 'Local Storage State', 'Web Accessibility'],
-  },
-  {
-    id: 'backend',
-    name: 'Backend Development (MCQ)',
-    icon: '⚙️',
-    color: 'from-amber-500 to-orange-600',
-    borderColor: 'border-amber-500/30',
-    description: 'Node.js, Express, APIs, Authentication, Databases. For backend developer roles.',
-    subtopics: ['REST API Routing', 'Middleware Pipes', 'Token Authentication', 'Rate Limiting', 'CORs Policies', 'Event Loops'],
-  },
-  {
-    id: 'java',
-    name: 'Java (MCQ)',
-    icon: '☕',
-    color: 'from-red-500 to-orange-600',
-    borderColor: 'border-red-500/30',
-    description: 'Core Java, collections, multithreading, Spring Boot. Widely used in enterprise.',
-    subtopics: ['JVM Internals', 'Garbage Collectors', 'Multithreading', 'Collections Framework', 'Lambda Expressions', 'Stream APIs'],
-  },
-  {
-    id: 'python',
-    name: 'Python (MCQ)',
-    icon: '🐍',
-    color: 'from-yellow-500 to-green-600',
-    borderColor: 'border-yellow-500/30',
-    description: 'Python fundamentals, OOP, libraries, data science tools. Versatile language.',
-    subtopics: ['GIL Lock', 'Decorators', 'Generators & Iterators', 'List Comprehensions', 'Pandas & Data Science', 'Django Frameworks'],
-  },
-  {
-    id: 'react',
-    name: 'React (MCQ)',
-    icon: '⚛️',
-    color: 'from-cyan-400 to-blue-500',
-    borderColor: 'border-cyan-500/30',
-    description: 'Virtual DOM, components lifecycle, state contexts, and reconciliation.',
-    subtopics: ['Virtual DOM', 'React Hooks', 'Component Context', 'State Reducers', 'Reconciliation Algorithms', 'Next.js Routing']
-  },
-  {
-    id: 'node',
-    name: 'Node.js (MCQ)',
-    icon: '🟢',
-    color: 'from-green-600 to-emerald-700',
-    borderColor: 'border-green-600/30',
-    description: 'Event Loop phases, file streams, clusters, packaging and child processes.',
-    subtopics: ['Event Loop Stages', 'File Streams', 'Buffer Buffs', 'Cluster Scaling', 'Package Modules', 'Child Processes']
-  },
-  {
-    id: 'express',
-    name: 'Express.js (MCQ)',
-    icon: '🛤️',
-    color: 'from-slate-600 to-zinc-700',
-    borderColor: 'border-slate-600/30',
-    description: 'Routing systems, custom middlewares, CORS control, and error handling pipes.',
-    subtopics: ['Routing Pipes', 'Custom Middleware', 'Error Handlers', 'Templating engines', 'Security Headers']
-  },
-  {
-    id: 'mongodb',
-    name: 'MongoDB (MCQ)',
-    icon: '🍃',
-    color: 'from-emerald-500 to-green-600',
-    borderColor: 'border-emerald-500/30',
-    description: 'BSON format schemas, aggregations, queries optimization, and clusters.',
-    subtopics: ['BSON Schema', 'Aggregations', 'Indexes', 'Sharding Clusters', 'Replication Sets', 'Mongoose Hooks']
-  },
-  {
-    id: 'system-design',
-    name: 'System Design (MCQ)',
-    icon: '🏛️',
-    color: 'from-slate-500 to-gray-600',
-    borderColor: 'border-slate-500/30',
-    description: 'Design scalable systems, databases, caching, load balancing. Senior-level topic.',
-    subtopics: ['Load Balancers', 'Microservices Architecture', 'Database Sharding', 'Consistent Hashing', 'DNS & CDNs', 'Message Queues'],
-  },
-  {
-    id: 'debugging',
-    name: 'Debugging Challenges (MCQ)',
-    icon: '🐛',
-    color: 'from-red-500 to-rose-600',
-    borderColor: 'border-red-500/30',
-    description: 'Find compile-time syntax errors and run-time logic defects in starter code blocks.',
-    subtopics: ['Syntax Errors', 'Null Pointer Dereference', 'Infinite Loops', 'Memory Leaks', 'State Updates', 'Off-by-One Errors']
-  },
-  {
-    id: 'mixed',
-    name: 'Mixed Interview (MCQ)',
-    icon: '🎯',
-    color: 'from-green-500 to-emerald-600',
-    borderColor: 'border-green-500/30',
-    description: 'Mixed bag of HR, behavioral, technical and aptitude questions. Full mock prep.',
-    subtopics: ['HR Questions', 'Behavioral', 'Aptitude', 'Puzzles', 'Situational'],
-  },
+  { 
+    id: 'math', 
+    name: 'Math & Number Theory', 
+    label: 'Math & Logic',
+    description: 'Solve modular arithmetic, prime factorization, greatest common divisors, and combination theory.',
+    icon: '🔢', 
+    color: 'from-blue-500 to-indigo-500',
+    subtopics: ['GCD / LCM', 'Prime Factorization', 'Combinatorics']
+  }
 ];
 
-// ============================================================
-// DSA QUESTIONS — 60 questions
-// ============================================================
-const dsaQuestions = [
-  { id: 'dsa-1', category: 'dsa', title: 'Two Sum', difficulty: 'Easy', topic: 'Arrays', companies: ['Google', 'Amazon', 'Microsoft'], description: 'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.\n\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.\n\nYou can return the answer in any order.', examples: [{ input: 'nums = [2,7,11,15], target = 9', output: '[0,1]', explanation: 'Because nums[0] + nums[1] == 9, we return [0, 1].' }, { input: 'nums = [3,2,4], target = 6', output: '[1,2]' }], constraints: ['2 <= nums.length <= 10^4', '-10^9 <= nums[i] <= 10^9', 'Only one valid answer exists.'], hints: ['Use a hash map to store the complement of each number.', 'For each element, check if (target - element) exists in the map.'], expectedComplexity: { time: 'O(n)', space: 'O(n)' }, starterCode: { javascript: 'function twoSum(nums, target) {\n    const map = new Map();\n    for (let i = 0; i < nums.length; i++) {\n        // your logic here\n    }\n}', python: 'def two_sum(nums, target):\n    seen = {}\n    for i, num in enumerate(nums):\n        # your logic here\n        pass', java: 'public int[] twoSum(int[] nums, int target) {\n    Map<Integer, Integer> map = new HashMap<>();\n    // your logic here\n    return new int[]{};\n}', cpp: 'vector<int> twoSum(vector<int>& nums, int target) {\n    unordered_map<int,int> mp;\n    // your logic here\n    return {};\n}' } },
-  { id: 'dsa-2', category: 'dsa', title: 'Best Time to Buy and Sell Stock', difficulty: 'Easy', topic: 'Arrays', companies: ['Amazon', 'Facebook', 'Goldman Sachs'], description: 'You are given an array prices where prices[i] is the price of a given stock on the ith day.\n\nYou want to maximize your profit by choosing a single day to buy one stock and choosing a different day in the future to sell that stock.\n\nReturn the maximum profit you can achieve from this transaction. If you cannot achieve any profit, return 0.', examples: [{ input: 'prices = [7,1,5,3,6,4]', output: '5', explanation: 'Buy on day 2 (price = 1) and sell on day 5 (price = 6), profit = 6-1 = 5.' }], constraints: ['1 <= prices.length <= 10^5', '0 <= prices[i] <= 10^4'], hints: ['Track the minimum price seen so far and the maximum profit.'], expectedComplexity: { time: 'O(n)', space: 'O(1)' }, starterCode: starterTemplates },
-  { id: 'dsa-3', category: 'dsa', title: 'Maximum Subarray (Kadane\'s Algorithm)', difficulty: 'Medium', topic: 'Arrays', companies: ['Google', 'Microsoft', 'Adobe'], description: 'Given an integer array nums, find the subarray with the largest sum, and return its sum.', examples: [{ input: 'nums = [-2,1,-3,4,-1,2,1,-5,4]', output: '6', explanation: 'The subarray [4,-1,2,1] has the largest sum 6.' }], constraints: ['1 <= nums.length <= 10^5', '-10^4 <= nums[i] <= 10^4'], hints: ['Kadane\'s: at each index, decide if extending the current subarray or starting fresh is better.'], expectedComplexity: { time: 'O(n)', space: 'O(1)' }, starterCode: starterTemplates },
-  { id: 'dsa-4', category: 'dsa', title: 'Merge Intervals', difficulty: 'Medium', topic: 'Arrays', companies: ['Google', 'Amazon', 'Uber'], description: 'Given an array of intervals where intervals[i] = [starti, endi], merge all overlapping intervals, and return an array of the non-overlapping intervals that cover all the intervals in the input.', examples: [{ input: 'intervals = [[1,3],[2,6],[8,10],[15,18]]', output: '[[1,6],[8,10],[15,18]]' }], constraints: ['1 <= intervals.length <= 10^4'], hints: ['Sort by start time, then greedily merge.'], expectedComplexity: { time: 'O(n log n)', space: 'O(n)' }, starterCode: starterTemplates },
-  { id: 'dsa-5', category: 'dsa', title: 'Trapping Rain Water', difficulty: 'Hard', topic: 'Arrays', companies: ['Amazon', 'Google', 'Microsoft'], description: 'Given n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining.', examples: [{ input: 'height = [0,1,0,2,1,0,1,3,2,1,2,1]', output: '6' }], constraints: ['n == height.length', '1 <= n <= 2 * 10^4'], hints: ['Use two-pointer approach or precompute left/right max arrays.'], expectedComplexity: { time: 'O(n)', space: 'O(1)' }, starterCode: starterTemplates },
-  { id: 'dsa-6', category: 'dsa', title: 'Valid Parentheses', difficulty: 'Easy', topic: 'Stack & Queue', companies: ['Google', 'Facebook', 'Amazon'], description: 'Given a string s containing just the characters \'(\', \')\', \'{\', \'}\', \'[\' and \']\', determine if the input string is valid.\n\nAn input string is valid if:\n- Open brackets must be closed by the same type of brackets.\n- Open brackets must be closed in the correct order.', examples: [{ input: 's = "()"', output: 'true' }, { input: 's = "()[]{}"', output: 'true' }, { input: 's = "(]"', output: 'false' }], constraints: ['1 <= s.length <= 10^4', 's consists of parentheses only'], hints: ['Use a stack. Push open brackets, pop and compare on closing brackets.'], expectedComplexity: { time: 'O(n)', space: 'O(n)' }, starterCode: starterTemplates },
-  { id: 'dsa-7', category: 'dsa', title: 'Reverse Linked List', difficulty: 'Easy', topic: 'Linked List', companies: ['Microsoft', 'Amazon', 'Adobe'], description: 'Given the head of a singly linked list, reverse the list, and return the reversed list.', examples: [{ input: 'head = [1,2,3,4,5]', output: '[5,4,3,2,1]' }], constraints: ['The number of nodes in the list is the range [0, 5000].'], hints: ['Use three pointers: prev, curr, next.'], expectedComplexity: { time: 'O(n)', space: 'O(1)' }, starterCode: starterTemplates },
-  { id: 'dsa-8', category: 'dsa', title: 'Detect Cycle in Linked List', difficulty: 'Easy', topic: 'Linked List', companies: ['Amazon', 'Google', 'Infosys'], description: 'Given head, the head of a linked list, determine if the linked list has a cycle in it.', examples: [{ input: 'head = [3,2,0,-4], pos = 1', output: 'true' }], constraints: ['The list may have at most 10^4 nodes.'], hints: ['Floyd\'s Tortoise and Hare — use slow and fast pointers.'], expectedComplexity: { time: 'O(n)', space: 'O(1)' }, starterCode: starterTemplates },
-  { id: 'dsa-9', category: 'dsa', title: 'Merge Two Sorted Lists', difficulty: 'Easy', topic: 'Linked List', companies: ['Google', 'Amazon', 'TCS'], description: 'You are given the heads of two sorted linked lists list1 and list2. Merge the two lists in a sorted order. The list should be made by splicing together the nodes of the first two lists. Return the head of the merged linked list.', examples: [{ input: 'list1 = [1,2,4], list2 = [1,3,4]', output: '[1,1,2,3,4,4]' }], constraints: ['The number of nodes in both lists is in the range [0, 50].'], hints: ['Use a dummy node. Compare heads recursively or iteratively.'], expectedComplexity: { time: 'O(n+m)', space: 'O(1)' }, starterCode: starterTemplates },
-  { id: 'dsa-10', category: 'dsa', title: 'Binary Search', difficulty: 'Easy', topic: 'Binary Search', companies: ['Google', 'Microsoft', 'Wipro'], description: 'Given an array of integers nums which is sorted in ascending order, and an integer target, write a function to search target in nums. If target exists, return its index. Otherwise, return -1.', examples: [{ input: 'nums = [-1,0,3,5,9,12], target = 9', output: '4' }], constraints: ['1 <= nums.length <= 10^4', 'All integers in nums are unique.'], hints: ['Use left and right pointers. Check mid each iteration.'], expectedComplexity: { time: 'O(log n)', space: 'O(1)' }, starterCode: starterTemplates },
-  { id: 'dsa-11', category: 'dsa', title: 'Invert Binary Tree', difficulty: 'Easy', topic: 'Trees', companies: ['Google', 'Amazon', 'Facebook'], description: 'Given the root of a binary tree, invert the tree, and return its root.', examples: [{ input: 'root = [4,2,7,1,3,6,9]', output: '[4,7,2,9,6,3,1]' }], constraints: ['The number of nodes in the tree is in the range [0, 100].'], hints: ['Recursively swap left and right children.'], expectedComplexity: { time: 'O(n)', space: 'O(h)' }, starterCode: starterTemplates },
-  { id: 'dsa-12', category: 'dsa', title: 'Maximum Depth of Binary Tree', difficulty: 'Easy', topic: 'Trees', companies: ['Amazon', 'Google', 'Accenture'], description: 'Given the root of a binary tree, return its maximum depth.', examples: [{ input: 'root = [3,9,20,null,null,15,7]', output: '3' }], constraints: ['The number of nodes in the tree is in the range [0, 10^4].'], hints: ['DFS: return 1 + max(depth(left), depth(right))'], expectedComplexity: { time: 'O(n)', space: 'O(h)' }, starterCode: starterTemplates },
-  { id: 'dsa-13', category: 'dsa', title: 'Level Order Traversal of Binary Tree', difficulty: 'Medium', topic: 'Trees', companies: ['Amazon', 'Microsoft', 'Flipkart'], description: 'Given the root of a binary tree, return the level order traversal of its nodes\' values (i.e., from left to right, level by level).', examples: [{ input: 'root = [3,9,20,null,null,15,7]', output: '[[3],[9,20],[15,7]]' }], constraints: ['The number of nodes in the tree is in the range [0, 2000].'], hints: ['Use a BFS queue. Process nodes level by level.'], expectedComplexity: { time: 'O(n)', space: 'O(n)' }, starterCode: starterTemplates },
-  { id: 'dsa-14', category: 'dsa', title: 'Validate Binary Search Tree', difficulty: 'Medium', topic: 'Trees', companies: ['Google', 'Amazon', 'Bloomberg'], description: 'Given the root of a binary tree, determine if it is a valid binary search tree (BST).', examples: [{ input: 'root = [2,1,3]', output: 'true' }, { input: 'root = [5,1,4,null,null,3,6]', output: 'false' }], constraints: ['The number of nodes in the tree is in the range [1, 10^4].'], hints: ['Pass min and max bounds through recursion.'], expectedComplexity: { time: 'O(n)', space: 'O(h)' }, starterCode: starterTemplates },
-  { id: 'dsa-15', category: 'dsa', title: 'Lowest Common Ancestor of a BST', difficulty: 'Medium', topic: 'Trees', companies: ['Amazon', 'Facebook', 'LinkedIn'], description: 'Given a binary search tree (BST), find the lowest common ancestor (LCA) node of two given nodes in the BST.', examples: [{ input: 'root = [6,2,8,0,4,7,9], p = 2, q = 8', output: '6' }], constraints: ['The number of nodes in the tree is in the range [2, 10^5].'], hints: ['If both p and q are less than root, LCA is in left subtree. If both greater, right subtree. Otherwise, root is LCA.'], expectedComplexity: { time: 'O(h)', space: 'O(1)' }, starterCode: starterTemplates },
-  { id: 'dsa-16', category: 'dsa', title: 'Number of Islands', difficulty: 'Medium', topic: 'Graphs', companies: ['Amazon', 'Google', 'Microsoft'], description: 'Given an m x n 2D binary grid which represents a map of \'1\'s (land) and \'0\'s (water), return the number of islands.', examples: [{ input: 'grid = [["1","1","1","1","0"],["1","1","0","1","0"],["1","1","0","0","0"],["0","0","0","0","0"]]', output: '1' }], constraints: ['m == grid.length', 'n == grid[i].length', '1 <= m, n <= 300'], hints: ['Use DFS or BFS. Mark visited islands by changing \'1\' to \'0\'.'], expectedComplexity: { time: 'O(m*n)', space: 'O(m*n)' }, starterCode: starterTemplates },
-  { id: 'dsa-17', category: 'dsa', title: 'Course Schedule (Cycle Detection)', difficulty: 'Medium', topic: 'Graphs', companies: ['Google', 'Facebook', 'Uber'], description: 'There are numCourses courses you have to take, labeled from 0 to numCourses - 1. You are given an array prerequisites where prerequisites[i] = [ai, bi] indicates that you must take course bi first if you want to take course ai. Return true if you can finish all courses. Otherwise, return false.', examples: [{ input: 'numCourses = 2, prerequisites = [[1,0]]', output: 'true' }, { input: 'numCourses = 2, prerequisites = [[1,0],[0,1]]', output: 'false' }], constraints: ['1 <= numCourses <= 2000'], hints: ['Build a directed graph and detect if there is a cycle using DFS or Kahn\'s algorithm (topological sort).'], expectedComplexity: { time: 'O(V+E)', space: 'O(V+E)' }, starterCode: starterTemplates },
-  { id: 'dsa-18', category: 'dsa', title: 'Climbing Stairs', difficulty: 'Easy', topic: 'Dynamic Programming', companies: ['Amazon', 'Microsoft', 'TCS'], description: 'You are climbing a staircase. It takes n steps to reach the top. Each time you can either climb 1 or 2 steps. In how many distinct ways can you climb to the top?', examples: [{ input: 'n = 3', output: '3', explanation: '1+1+1, 1+2, 2+1' }], constraints: ['1 <= n <= 45'], hints: ['This is essentially Fibonacci. dp[n] = dp[n-1] + dp[n-2]'], expectedComplexity: { time: 'O(n)', space: 'O(n)' }, starterCode: starterTemplates },
-  { id: 'dsa-19', category: 'dsa', title: 'Coin Change', difficulty: 'Medium', topic: 'Dynamic Programming', companies: ['Google', 'Amazon', 'Goldman Sachs'], description: 'You are given an integer array coins representing coins of different denominations and an integer amount representing a total amount of money. Return the fewest number of coins that you need to make up that amount. If that amount of money cannot be made up by any combination of the coins, return -1.', examples: [{ input: 'coins = [1,5,11,25], amount = 36', output: '3', explanation: '25 + 11 = 36, three coins. Wait: 25 + 1 + 1 + 1 ... actually 25+11=36 is 2 coins.' }], constraints: ['1 <= coins.length <= 12', '0 <= amount <= 10^4'], hints: ['Bottom-up DP. dp[i] = min coins to make amount i.'], expectedComplexity: { time: 'O(n*amount)', space: 'O(amount)' }, starterCode: starterTemplates },
-  { id: 'dsa-20', category: 'dsa', title: 'Longest Common Subsequence', difficulty: 'Medium', topic: 'Dynamic Programming', companies: ['Google', 'Amazon', 'Microsoft'], description: 'Given two strings text1 and text2, return the length of their longest common subsequence. If there is no common subsequence, return 0.', examples: [{ input: 'text1 = "abcde", text2 = "ace"', output: '3', explanation: 'The LCS is "ace".' }], constraints: ['1 <= text1.length, text2.length <= 1000'], hints: ['2D DP table. dp[i][j] = LCS of first i chars of text1 and first j of text2.'], expectedComplexity: { time: 'O(m*n)', space: 'O(m*n)' }, starterCode: starterTemplates },
-  { id: 'dsa-21', category: 'dsa', title: 'Longest Palindromic Substring', difficulty: 'Medium', topic: 'Strings', companies: ['Amazon', 'Google', 'Microsoft'], description: 'Given a string s, return the longest palindromic substring in s.', examples: [{ input: 's = "babad"', output: '"bab"' }, { input: 's = "cbbd"', output: '"bb"' }], constraints: ['1 <= s.length <= 1000'], hints: ['Expand around center. For each character, expand outward checking palindrome.'], expectedComplexity: { time: 'O(n²)', space: 'O(1)' }, starterCode: starterTemplates },
-  { id: 'dsa-22', category: 'dsa', title: 'Group Anagrams', difficulty: 'Medium', topic: 'Strings', companies: ['Amazon', 'Google', 'Facebook'], description: 'Given an array of strings strs, group the anagrams together. You can return the answer in any order.', examples: [{ input: 'strs = ["eat","tea","tan","ate","nat","bat"]', output: '[["bat"],["nat","tan"],["ate","eat","tea"]]' }], constraints: ['1 <= strs.length <= 10^4'], hints: ['Sort each string as the key of a hash map.'], expectedComplexity: { time: 'O(n*k log k)', space: 'O(n*k)' }, starterCode: starterTemplates },
-  { id: 'dsa-23', category: 'dsa', title: 'Find Minimum in Rotated Sorted Array', difficulty: 'Medium', topic: 'Binary Search', companies: ['Amazon', 'Microsoft', 'Infosys'], description: 'Suppose an array of length n sorted in ascending order is rotated between 1 and n times. Given the sorted rotated array nums of unique elements, return the minimum element of this array.', examples: [{ input: 'nums = [3,4,5,1,2]', output: '1' }], constraints: ['n == nums.length', '1 <= n <= 5000'], hints: ['Binary search. If mid > right, minimum is in right half.'], expectedComplexity: { time: 'O(log n)', space: 'O(1)' }, starterCode: starterTemplates },
-  { id: 'dsa-24', category: 'dsa', title: 'Kth Largest Element in Array', difficulty: 'Medium', topic: 'Heap', companies: ['Facebook', 'Amazon', 'Google'], description: 'Given an integer array nums and an integer k, return the kth largest element in the array.', examples: [{ input: 'nums = [3,2,1,5,6,4], k = 2', output: '5' }], constraints: ['1 <= k <= nums.length <= 10^5'], hints: ['Use a min-heap of size k, or QuickSelect algorithm.'], expectedComplexity: { time: 'O(n log k)', space: 'O(k)' }, starterCode: starterTemplates },
-  { id: 'dsa-25', category: 'dsa', title: 'Implement Trie (Prefix Tree)', difficulty: 'Medium', topic: 'Trie', companies: ['Google', 'Microsoft', 'Amazon'], description: 'A trie (pronounced as "try") or prefix tree is a tree data structure used to efficiently store and retrieve keys in a dataset of strings. Implement the Trie class with insert, search, and startsWith methods.', examples: [{ input: 'Insert "apple", search "apple"', output: 'true' }, { input: 'startsWith("app")', output: 'true' }], constraints: ['1 <= word.length, prefix.length <= 2000'], hints: ['Use a children array of size 26. Each node has children and an isEnd flag.'], expectedComplexity: { time: 'O(m) per operation', space: 'O(m*n)' }, starterCode: starterTemplates },
-  { id: 'dsa-26', category: 'dsa', title: 'Merge Sort', difficulty: 'Medium', topic: 'Sorting', companies: ['Google', 'Microsoft', 'Accenture'], description: 'Implement Merge Sort algorithm to sort an array of integers in ascending order. Explain its time and space complexity.', examples: [{ input: 'arr = [64, 34, 25, 12, 22, 11, 90]', output: '[11, 12, 22, 25, 34, 64, 90]' }], constraints: ['1 <= arr.length <= 10^5'], hints: ['Divide array in half recursively, then merge sorted halves.'], expectedComplexity: { time: 'O(n log n)', space: 'O(n)' }, starterCode: starterTemplates },
-  { id: 'dsa-27', category: 'dsa', title: 'Quick Sort', difficulty: 'Medium', topic: 'Sorting', companies: ['Google', 'Wipro', 'TCS'], description: 'Implement Quick Sort algorithm. Pick a pivot and partition the array around it recursively.', examples: [{ input: 'arr = [10, 7, 8, 9, 1, 5]', output: '[1, 5, 7, 8, 9, 10]' }], constraints: ['1 <= arr.length <= 10^5'], hints: ['Choose pivot (last element). Partition: elements smaller go left, larger go right.'], expectedComplexity: { time: 'O(n log n) avg, O(n²) worst', space: 'O(log n)' }, starterCode: starterTemplates },
-  { id: 'dsa-28', category: 'dsa', title: 'Word Search', difficulty: 'Medium', topic: 'Backtracking', companies: ['Amazon', 'Google', 'Facebook'], description: 'Given an m x n grid of characters board and a string word, return true if word exists in the grid. The word can be constructed from letters of sequentially adjacent cells (horizontal or vertical neighbors).', examples: [{ input: 'board = [["A","B","C","E"],["S","F","C","S"],["A","D","E","E"]], word = "ABCCED"', output: 'true' }], constraints: ['m == board.length', 'n = board[i].length', '1 <= m, n <= 6'], hints: ['DFS with backtracking. Mark visited cells temporarily.'], expectedComplexity: { time: 'O(m*n*4^L)', space: 'O(L)' }, starterCode: starterTemplates },
-  { id: 'dsa-29', category: 'dsa', title: 'Sliding Window Maximum', difficulty: 'Hard', topic: 'Sliding Window', companies: ['Google', 'Amazon', 'Uber'], description: 'You are given an array of integers nums, there is a sliding window of size k which is moving from the very left to the very right. Return the max sliding window.', examples: [{ input: 'nums = [1,3,-1,-3,5,3,6,7], k = 3', output: '[3,3,5,5,6,7]' }], constraints: ['1 <= nums.length <= 10^5', '1 <= k <= nums.length'], hints: ['Use a monotonic deque to maintain the maximum in the current window.'], expectedComplexity: { time: 'O(n)', space: 'O(k)' }, starterCode: starterTemplates },
-  { id: 'dsa-30', category: 'dsa', title: 'Minimum Window Substring', difficulty: 'Hard', topic: 'Sliding Window', companies: ['Amazon', 'Google', 'Facebook'], description: 'Given two strings s and t of lengths m and n respectively, return the minimum window substring of s such that every character in t (including duplicates) is included in the window.', examples: [{ input: 's = "ADOBECODEBANC", t = "ABC"', output: '"BANC"' }], constraints: ['m == s.length', 'n == t.length', '1 <= m, n <= 10^5'], hints: ['Use two pointers and character frequency maps.'], expectedComplexity: { time: 'O(m+n)', space: 'O(m+n)' }, starterCode: starterTemplates },
-  { id: 'dsa-31', category: 'dsa', title: 'Product of Array Except Self', difficulty: 'Medium', topic: 'Arrays', companies: ['Amazon', 'Google', 'Microsoft'], description: 'Given an integer array nums, return an array answer such that answer[i] is equal to the product of all the elements of nums except nums[i]. Do not use division.', examples: [{ input: 'nums = [1,2,3,4]', output: '[24,12,8,6]' }], constraints: ['2 <= nums.length <= 10^5'], hints: ['Compute prefix products and suffix products.'], expectedComplexity: { time: 'O(n)', space: 'O(1)' }, starterCode: starterTemplates },
-  { id: 'dsa-32', category: 'dsa', title: 'Container With Most Water', difficulty: 'Medium', topic: 'Two Pointer', companies: ['Google', 'Amazon', 'Bloomberg'], description: 'You are given an integer array height of length n. Find two lines that together with the x-axis form a container, such that the container contains the most water.', examples: [{ input: 'height = [1,8,6,2,5,4,8,3,7]', output: '49' }], constraints: ['n == height.length', '2 <= n <= 10^5'], hints: ['Two pointer: start from both ends, move the pointer with smaller height inward.'], expectedComplexity: { time: 'O(n)', space: 'O(1)' }, starterCode: starterTemplates },
-  { id: 'dsa-33', category: 'dsa', title: 'Subsets (Power Set)', difficulty: 'Medium', topic: 'Backtracking', companies: ['Amazon', 'Facebook', 'Google'], description: 'Given an integer array nums of unique elements, return all possible subsets (the power set). The solution set must not contain duplicate subsets.', examples: [{ input: 'nums = [1,2,3]', output: '[[],[1],[2],[1,2],[3],[1,3],[2,3],[1,2,3]]' }], constraints: ['1 <= nums.length <= 10'], hints: ['Backtrack: at each step, include or exclude the current element.'], expectedComplexity: { time: 'O(n * 2^n)', space: 'O(n * 2^n)' }, starterCode: starterTemplates },
-  { id: 'dsa-34', category: 'dsa', title: 'Dijkstra\'s Shortest Path', difficulty: 'Hard', topic: 'Graphs', companies: ['Google', 'Amazon', 'Uber'], description: 'Given a weighted directed graph with n nodes and edges, find the shortest path from source node 0 to all other nodes using Dijkstra\'s algorithm.', examples: [{ input: 'n = 5, edges = [[0,1,10],[0,3,5],[1,2,1],[3,1,3]], source = 0', output: '[0,8,9,5,inf]' }], constraints: ['1 <= n <= 300', '0 <= edges.length <= 10000'], hints: ['Use a min-heap priority queue. Relax edges greedily.'], expectedComplexity: { time: 'O((V+E) log V)', space: 'O(V+E)' }, starterCode: starterTemplates },
-  { id: 'dsa-35', category: 'dsa', title: '0/1 Knapsack Problem', difficulty: 'Hard', topic: 'Dynamic Programming', companies: ['Amazon', 'Google', 'Infosys'], description: 'Given weights and values of n items, put these items in a knapsack of capacity W. Find the maximum value subset such that sum of weights is not more than W.', examples: [{ input: 'val = [60,100,120], wt = [10,20,30], W = 50', output: '220' }], constraints: ['1 <= n <= 1000', '1 <= W <= 1000'], hints: ['2D DP. dp[i][w] = max value using first i items with capacity w.'], expectedComplexity: { time: 'O(n*W)', space: 'O(n*W)' }, starterCode: starterTemplates },
-  { id: 'dsa-36', category: 'dsa', title: 'Find All Duplicates in Array', difficulty: 'Medium', topic: 'Arrays', companies: ['Amazon', 'Google', 'TCS'], description: 'Given an integer array nums of length n where all integers are in the range [1, n] and each integer appears once or twice, return an array of all the integers that appear twice.', examples: [{ input: 'nums = [4,3,2,7,8,2,3,1]', output: '[2,3]' }], constraints: ['n == nums.length', '1 <= n <= 10^5'], hints: ['Use negative indexing trick: mark visited by negating nums[abs(nums[i])-1].'], expectedComplexity: { time: 'O(n)', space: 'O(1)' }, starterCode: starterTemplates },
-  { id: 'dsa-37', category: 'dsa', title: 'Longest Increasing Subsequence', difficulty: 'Medium', topic: 'Dynamic Programming', companies: ['Google', 'Microsoft', 'Amazon'], description: 'Given an integer array nums, return the length of the longest strictly increasing subsequence.', examples: [{ input: 'nums = [10,9,2,5,3,7,101,18]', output: '4', explanation: 'LIS is [2,3,7,101]' }], constraints: ['1 <= nums.length <= 2500'], hints: ['DP: dp[i] = length of LIS ending at i. O(n²). Or use patience sorting for O(n log n).'], expectedComplexity: { time: 'O(n log n)', space: 'O(n)' }, starterCode: starterTemplates },
-  { id: 'dsa-38', category: 'dsa', title: 'Top K Frequent Elements', difficulty: 'Medium', topic: 'Heap', companies: ['Amazon', 'Google', 'Facebook'], description: 'Given an integer array nums and an integer k, return the k most frequent elements. You may return the answer in any order.', examples: [{ input: 'nums = [1,1,1,2,2,3], k = 2', output: '[1,2]' }], constraints: ['1 <= nums.length <= 10^5', 'k is in the range [1, the number of unique elements in the array].', 'It is guaranteed that the answer is unique.'], hints: ['Count frequencies with a hash map, then use a min-heap of size k.'], expectedComplexity: { time: 'O(n log k)', space: 'O(n)' }, starterCode: starterTemplates },
-  { id: 'dsa-39', category: 'dsa', title: 'Rotate Image (Matrix)', difficulty: 'Medium', topic: 'Arrays', companies: ['Google', 'Amazon', 'Microsoft'], description: 'You are given an n x n 2D matrix representing an image. Rotate the image by 90 degrees (clockwise) in-place.', examples: [{ input: 'matrix = [[1,2,3],[4,5,6],[7,8,9]]', output: '[[7,4,1],[8,5,2],[9,6,3]]' }], constraints: ['n == matrix.length == matrix[i].length', '1 <= n <= 20'], hints: ['Transpose the matrix, then reverse each row.'], expectedComplexity: { time: 'O(n²)', space: 'O(1)' }, starterCode: starterTemplates },
-  { id: 'dsa-40', category: 'dsa', title: 'Serialize and Deserialize Binary Tree', difficulty: 'Hard', topic: 'Trees', companies: ['Google', 'Facebook', 'Amazon'], description: 'Design an algorithm to serialize and deserialize a binary tree. Serialization is the process of converting a data structure into a sequence of bits. Your encode/decode algorithms should be inverses of each other.', examples: [{ input: 'root = [1,2,3,null,null,4,5]', output: '[1,2,3,null,null,4,5]' }], constraints: ['The number of nodes in the tree is in the range [0, 10^4].'], hints: ['Use preorder traversal with null markers for serialization.'], expectedComplexity: { time: 'O(n)', space: 'O(n)' }, starterCode: starterTemplates },
-];
-
-// ============================================================
-// SQL QUESTIONS — 30 questions
-// ============================================================
-const sqlQuestions = [
-  { id: 'sql-1', category: 'sql', title: 'Second Highest Salary', difficulty: 'Easy', topic: 'SELECT', companies: ['TCS', 'Infosys', 'Amazon'], description: 'Write a SQL query to get the second highest salary from the Employee table.\n\nTable: Employee\n| Id | Salary |\n|----|--------|\n| 1  | 100    |\n| 2  | 200    |\n| 3  | 300    |', examples: [{ input: 'Employee table as shown', output: '200' }], constraints: ['Return null if no second highest salary.'], hints: ['Use LIMIT with OFFSET, or use subquery with MAX.'], expectedComplexity: { time: 'O(n log n)', space: 'O(1)' }, starterCode: { sql: 'SELECT MAX(Salary) AS SecondHighestSalary\nFROM Employee\nWHERE Salary < (SELECT MAX(Salary) FROM Employee);', javascript: starterTemplates.javascript, python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp } },
-  { id: 'sql-2', category: 'sql', title: 'Customers Who Never Order', difficulty: 'Easy', topic: 'JOINs', companies: ['Amazon', 'Google', 'Wipro'], description: 'Find all customers who never placed an order.\n\nTable: Customers(Id, Name)\nTable: Orders(Id, CustomerId)', examples: [{ input: 'Customers with no matching Orders', output: 'List of customer names' }], constraints: ['Return names sorted alphabetically.'], hints: ['Use LEFT JOIN and check for NULL in Orders, or use NOT IN / NOT EXISTS.'], expectedComplexity: { time: 'O(n*m)', space: 'O(1)' }, starterCode: { sql: 'SELECT Name AS Customers\nFROM Customers\nWHERE Id NOT IN (SELECT CustomerId FROM Orders);', javascript: starterTemplates.javascript, python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp } },
-  { id: 'sql-3', category: 'sql', title: 'Department Highest Salary', difficulty: 'Medium', topic: 'GROUP BY', companies: ['Google', 'Amazon', 'Deloitte'], description: 'Find employees who have the highest salary in each of the departments.\n\nTable: Employee(Id, Name, Salary, DepartmentId)\nTable: Department(Id, Name)', examples: [{ input: 'Employee and Department tables', output: 'Department, Employee, Salary for top earner in each dept' }], constraints: ['Multiple employees can share the highest salary.'], hints: ['Use GROUP BY with MAX, then join back.'], expectedComplexity: { time: 'O(n)', space: 'O(n)' }, starterCode: { sql: 'SELECT d.Name AS Department, e.Name AS Employee, e.Salary\nFROM Employee e\nJOIN Department d ON e.DepartmentId = d.Id\nWHERE (e.DepartmentId, e.Salary) IN (\n    SELECT DepartmentId, MAX(Salary)\n    FROM Employee\n    GROUP BY DepartmentId\n);', javascript: starterTemplates.javascript, python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp } },
-  { id: 'sql-4', category: 'sql', title: 'Rank Scores', difficulty: 'Medium', topic: 'Window Functions', companies: ['Facebook', 'Amazon', 'Google'], description: 'Write a SQL query to rank the scores. The ranking should be calculated according to the following rules:\n- Scores are ranked from highest to lowest.\n- If there is a tie, both should have the same ranking.\n- After a tie, the next ranking number should be the next consecutive integer (DENSE_RANK).', examples: [{ input: 'Scores = [3.50, 3.65, 4.00, 3.85, 4.00, 3.65]', output: '4.00 rank 1, 3.85 rank 2, 3.65 rank 3, ...' }], constraints: ['Use DENSE_RANK, not regular RANK.'], hints: ['Use DENSE_RANK() OVER (ORDER BY Score DESC)'], expectedComplexity: { time: 'O(n log n)', space: 'O(n)' }, starterCode: { sql: 'SELECT Score, DENSE_RANK() OVER (ORDER BY Score DESC) AS `Rank`\nFROM Scores\nORDER BY Score DESC;', javascript: starterTemplates.javascript, python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp } },
-  { id: 'sql-5', category: 'sql', title: 'Consecutive Numbers', difficulty: 'Medium', topic: 'Subqueries', companies: ['LinkedIn', 'Google', 'Cognizant'], description: 'Find all numbers that appear at least three times consecutively.\n\nTable: Logs(Id, Num)', examples: [{ input: 'Logs = [(1,1),(2,1),(3,1),(4,2),(5,1),(6,2),(7,2)]', output: '1' }], constraints: ['Id is always consecutive.'], hints: ['Self-join Logs three times: l1, l2, l3 where l1.Id+1=l2.Id and l2.Id+1=l3.Id.'], expectedComplexity: { time: 'O(n)', space: 'O(n)' }, starterCode: { sql: 'SELECT DISTINCT l1.Num AS ConsecutiveNums\nFROM Logs l1, Logs l2, Logs l3\nWHERE l1.Id + 1 = l2.Id\nAND l2.Id + 1 = l3.Id\nAND l1.Num = l2.Num\nAND l2.Num = l3.Num;', javascript: starterTemplates.javascript, python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp } },
-  { id: 'sql-6', category: 'sql', title: 'Employees Earning More Than Managers', difficulty: 'Easy', topic: 'Self JOIN', companies: ['Amazon', 'Accenture', 'TCS'], description: 'Find all employees who earn more than their managers.\n\nTable: Employee(Id, Name, Salary, ManagerId)', examples: [{ input: 'Joe earns 70000, his manager earns 60000', output: 'Joe' }], constraints: ['Self-join on the same table.'], hints: ['JOIN Employee with itself: e1 (employee) and e2 (manager), where e1.ManagerId = e2.Id.'], expectedComplexity: { time: 'O(n)', space: 'O(1)' }, starterCode: { sql: 'SELECT e1.Name AS Employee\nFROM Employee e1\nJOIN Employee e2 ON e1.ManagerId = e2.Id\nWHERE e1.Salary > e2.Salary;', javascript: starterTemplates.javascript, python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp } },
-  { id: 'sql-7', category: 'sql', title: 'Rising Temperature', difficulty: 'Easy', topic: 'Self JOIN', companies: ['Google', 'Wipro', 'Infosys'], description: 'Write a query to find all dates with higher temperature compared to the previous date.\n\nTable: Weather(Id, RecordDate, Temperature)', examples: [{ input: 'Consecutive days with temperature 20, 25', output: 'Id of day with 25' }], constraints: ['Use DATEDIFF or date arithmetic.'], hints: ['Self join on DATEDIFF(w2.RecordDate, w1.RecordDate) = 1'], expectedComplexity: { time: 'O(n)', space: 'O(1)' }, starterCode: { sql: 'SELECT w2.Id\nFROM Weather w1\nJOIN Weather w2 ON DATEDIFF(w2.RecordDate, w1.RecordDate) = 1\nWHERE w2.Temperature > w1.Temperature;', javascript: starterTemplates.javascript, python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp } },
-  { id: 'sql-8', category: 'sql', title: 'Delete Duplicate Emails', difficulty: 'Easy', topic: 'DELETE', companies: ['TCS', 'Accenture', 'Amazon'], description: 'Write a SQL query to delete all duplicate email entries from the Person table, keeping only the entry with the smallest Id.\n\nTable: Person(Id, Email)', examples: [{ input: 'Person = [(1,john@example.com),(2,bob@example.com),(3,john@example.com)]', output: 'Keep Id=1, delete Id=3' }], constraints: ['You must use a DELETE statement.'], hints: ['Self-join: DELETE p1 FROM Person p1, Person p2 WHERE p1.Email=p2.Email AND p1.Id > p2.Id'], expectedComplexity: { time: 'O(n²)', space: 'O(1)' }, starterCode: { sql: 'DELETE p1 FROM Person p1\nJOIN Person p2\nON p1.Email = p2.Email AND p1.Id > p2.Id;', javascript: starterTemplates.javascript, python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp } },
-  { id: 'sql-9', category: 'sql', title: 'Nth Highest Salary', difficulty: 'Medium', topic: 'Window Functions', companies: ['Google', 'Microsoft', 'Deloitte'], description: 'Write a function to get the Nth highest salary from the Employee table. Return null if there is no Nth highest salary.', examples: [{ input: 'Employee table, N = 2', output: '200' }], constraints: ['If no Nth highest, return NULL.'], hints: ['Use LIMIT N-1, 1 or ROW_NUMBER() / DENSE_RANK().'], expectedComplexity: { time: 'O(n log n)', space: 'O(1)' }, starterCode: { sql: 'CREATE FUNCTION getNthHighestSalary(N INT) RETURNS INT\nBEGIN\n  SET N = N - 1;\n  RETURN (\n    SELECT IFNULL(\n      (SELECT DISTINCT Salary FROM Employee ORDER BY Salary DESC LIMIT N, 1),\n      NULL\n    )\n  );\nEND', javascript: starterTemplates.javascript, python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp } },
-  { id: 'sql-10', category: 'sql', title: 'Running Total with Window Function', difficulty: 'Medium', topic: 'Window Functions', companies: ['Amazon', 'Google', 'Goldman Sachs'], description: 'Calculate the running total of sales per employee ordered by date.\n\nTable: Sales(EmployeeId, SaleDate, Amount)', examples: [{ input: 'Sales amounts: 100, 200, 300 for same employee', output: 'Running: 100, 300, 600' }], constraints: ['Partition by employee, order by date.'], hints: ['SUM(Amount) OVER (PARTITION BY EmployeeId ORDER BY SaleDate ROWS UNBOUNDED PRECEDING)'], expectedComplexity: { time: 'O(n log n)', space: 'O(n)' }, starterCode: { sql: 'SELECT EmployeeId, SaleDate, Amount,\n  SUM(Amount) OVER (\n    PARTITION BY EmployeeId\n    ORDER BY SaleDate\n    ROWS UNBOUNDED PRECEDING\n  ) AS RunningTotal\nFROM Sales;', javascript: starterTemplates.javascript, python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp } },
-];
-
-// ============================================================
-// FRONTEND QUESTIONS — 30 questions
-// ============================================================
-const frontendQuestions = [
-  { id: 'fe-1', category: 'frontend', title: 'What is the Virtual DOM in React?', difficulty: 'Easy', topic: 'React', companies: ['Facebook', 'Uber', 'Airbnb'], description: 'Explain the Virtual DOM concept in React. How does it differ from the real DOM? What are the benefits of using Virtual DOM?\n\nAlso explain the reconciliation process and how React decides what to update.', examples: [{ input: 'Conceptual question', output: 'Detailed explanation' }], constraints: ['Cover: real DOM vs virtual DOM, reconciliation, diffing algorithm, performance benefits'], hints: ['Think about why direct DOM manipulation is slow.', 'React creates a lightweight JS object copy of the DOM.'], expectedComplexity: { time: 'N/A', space: 'N/A' }, starterCode: { javascript: '// Demonstrate Virtual DOM concept\n// Real DOM manipulation (slow)\ndocument.getElementById("counter").innerHTML = count;\n\n// React way: state triggers re-render of virtual DOM\nconst [count, setCount] = useState(0);\n// React compares new vDOM with old vDOM and updates only changed parts\nsetCount(count + 1);', python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-  { id: 'fe-2', category: 'frontend', title: 'Explain JavaScript Closures', difficulty: 'Medium', topic: 'JavaScript', companies: ['Google', 'Facebook', 'Amazon'], description: 'Explain what a closure is in JavaScript with examples. Why are closures useful? What problems can they cause?\n\nProvide a practical example of closure usage like a counter or private variables.', examples: [{ input: 'function makeCounter() { let count = 0; return () => ++count; }', output: 'counter() => 1, counter() => 2, ...' }], constraints: ['Cover: lexical scope, practical use cases, memory leaks'], hints: ['A closure gives access to the outer function\'s scope from an inner function.'], expectedComplexity: { time: 'N/A', space: 'N/A' }, starterCode: { javascript: '// Closure example — private counter\nfunction makeCounter() {\n    let count = 0; // private variable\n    return {\n        increment: () => ++count,\n        decrement: () => --count,\n        getCount: () => count\n    };\n}\n\nconst counter = makeCounter();\nconsole.log(counter.increment()); // 1\nconsole.log(counter.increment()); // 2\nconsole.log(counter.decrement()); // 1', python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-  { id: 'fe-3', category: 'frontend', title: 'Implement Debounce Function', difficulty: 'Medium', topic: 'JavaScript', companies: ['Facebook', 'Google', 'Uber'], description: 'Implement a debounce function in JavaScript. A debounce function delays invoking the provided function until at least N milliseconds have passed since the last invocation.\n\nThis is commonly used in search inputs to avoid firing API calls on every keystroke.', examples: [{ input: 'debounce(searchFn, 300)', output: 'Returns a function that only fires searchFn after 300ms of inactivity' }], constraints: ['Clear the previous timeout on each new call.'], hints: ['Use setTimeout and clearTimeout.'], expectedComplexity: { time: 'O(1)', space: 'O(1)' }, starterCode: { javascript: 'function debounce(fn, delay) {\n    let timerId;\n    return function(...args) {\n        clearTimeout(timerId);\n        timerId = setTimeout(() => {\n            fn.apply(this, args);\n        }, delay);\n    };\n}\n\n// Usage\nconst debouncedSearch = debounce((query) => {\n    console.log("Searching for:", query);\n}, 300);', python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-  { id: 'fe-4', category: 'frontend', title: 'Implement Throttle Function', difficulty: 'Medium', topic: 'JavaScript', companies: ['Google', 'Twitter', 'LinkedIn'], description: 'Implement a throttle function. A throttled function is called at most once per N milliseconds, regardless of how many times it\'s invoked. Different from debounce — throttle ensures regular execution.', examples: [{ input: 'throttle(scrollHandler, 100)', output: 'scrollHandler fires at most once every 100ms during scrolling' }], constraints: ['Ensure the function executes immediately on first call.'], hints: ['Track last execution time. Skip if within the delay window.'], expectedComplexity: { time: 'O(1)', space: 'O(1)' }, starterCode: { javascript: 'function throttle(fn, limit) {\n    let lastCall = 0;\n    return function(...args) {\n        const now = Date.now();\n        if (now - lastCall >= limit) {\n            lastCall = now;\n            fn.apply(this, args);\n        }\n    };\n}\n\n// Usage\nwindow.addEventListener("scroll", throttle(() => {\n    console.log("Scroll event handled");\n}, 100));', python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-  { id: 'fe-5', category: 'frontend', title: 'Event Loop and Call Stack', difficulty: 'Hard', topic: 'JavaScript', companies: ['Google', 'Facebook', 'Netflix'], description: 'Explain the JavaScript Event Loop, Call Stack, Task Queue (Macro-tasks), and Microtask Queue. What is the output of the following code?\n\n```js\nconsole.log(1);\nsetTimeout(() => console.log(2), 0);\nPromise.resolve().then(() => console.log(3));\nconsole.log(4);\n```', examples: [{ input: 'Code above', output: '1, 4, 3, 2' }], constraints: ['Explain WHY the output is in this order.'], hints: ['Call stack runs first, then microtasks (Promises), then macrotasks (setTimeout).'], expectedComplexity: { time: 'N/A', space: 'N/A' }, starterCode: { javascript: '// Output prediction:\nconsole.log(1);                          // 1 - synchronous\nsetTimeout(() => console.log(2), 0);    // 4 - macrotask (task queue)\nPromise.resolve().then(() => console.log(3)); // 3 - microtask\nconsole.log(4);                          // 2 - synchronous\n\n// Order: 1 → 4 → 3 → 2\n// Reason: synchronous runs first, then microtasks, then macrotasks', python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-  { id: 'fe-6', category: 'frontend', title: 'CSS Box Model', difficulty: 'Easy', topic: 'CSS', companies: ['Google', 'Adobe', 'Accenture'], description: 'Explain the CSS Box Model. What are the components? What is the difference between box-sizing: content-box and border-box?\n\nGiven a div with width=100px, padding=10px, border=5px, what is the total width with content-box vs border-box?', examples: [{ input: 'width:100px, padding:10px, border:5px', output: 'content-box: 130px total | border-box: 100px total' }], constraints: ['Explain margin, border, padding, content'], hints: ['content-box: width = content only. border-box: width includes padding + border.'], expectedComplexity: { time: 'N/A', space: 'N/A' }, starterCode: { javascript: '/* CSS Box Model\n   content-box (default):\n   total width = content + padding*2 + border*2\n   = 100 + 20 + 10 = 130px\n   \n   border-box:\n   total width = 100px (padding & border included)\n   actual content = 100 - 20 - 10 = 70px\n*/\n.box {\n    width: 100px;\n    padding: 10px;\n    border: 5px solid black;\n    box-sizing: border-box; /* recommended */\n}', python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-  { id: 'fe-7', category: 'frontend', title: 'React useEffect Hook', difficulty: 'Medium', topic: 'React', companies: ['Facebook', 'Netflix', 'Uber'], description: 'Explain the useEffect hook in React. What are the different ways to use it? What is the cleanup function for? Identify the bug in the following code:\n\n```jsx\nuseEffect(() => {\n  const interval = setInterval(fetchData, 1000);\n}, []);\n```', examples: [{ input: 'Code with missing cleanup', output: 'Memory leak — interval never cleared' }], constraints: ['Cover: dependency array, cleanup, common pitfalls'], hints: ['The cleanup function is returned from useEffect and runs on unmount.'], expectedComplexity: { time: 'N/A', space: 'N/A' }, starterCode: { javascript: 'import { useEffect } from "react";\n\n// WRONG: Memory leak — interval never cleared\nuseEffect(() => {\n    const interval = setInterval(fetchData, 1000);\n}, []);\n\n// CORRECT: Cleanup function clears the interval\nuseEffect(() => {\n    const interval = setInterval(fetchData, 1000);\n    return () => clearInterval(interval); // cleanup\n}, []);\n\n// Runs whenever "userId" changes\nuseEffect(() => {\n    fetchUser(userId);\n}, [userId]);', python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-  { id: 'fe-8', category: 'frontend', title: 'Implement a Custom React Hook', difficulty: 'Hard', topic: 'React', companies: ['Facebook', 'Airbnb', 'Twitter'], description: 'Create a custom React hook called `useFetch` that handles API calls with loading and error states. It should:\n- Accept a URL as argument\n- Return { data, loading, error }\n- Handle cleanup on unmount\n- Abort ongoing requests when URL changes', examples: [{ input: 'const { data, loading, error } = useFetch("/api/users")', output: 'Returns data from API, manages states automatically' }], constraints: ['Use AbortController for cleanup.'], hints: ['Return loading=true initially, set data on success, set error on failure.'], expectedComplexity: { time: 'N/A', space: 'N/A' }, starterCode: { javascript: 'import { useState, useEffect } from "react";\n\nfunction useFetch(url) {\n    const [data, setData] = useState(null);\n    const [loading, setLoading] = useState(true);\n    const [error, setError] = useState(null);\n    \n    useEffect(() => {\n        const controller = new AbortController();\n        \n        const fetchData = async () => {\n            try {\n                setLoading(true);\n                const res = await fetch(url, { signal: controller.signal });\n                const json = await res.json();\n                setData(json);\n            } catch (err) {\n                if (err.name !== "AbortError") setError(err);\n            } finally {\n                setLoading(false);\n            }\n        };\n        \n        fetchData();\n        return () => controller.abort(); // cleanup\n    }, [url]);\n    \n    return { data, loading, error };\n}\n\nexport default useFetch;', python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-  { id: 'fe-9', category: 'frontend', title: 'Flexbox Layout Challenge', difficulty: 'Easy', topic: 'CSS', companies: ['Google', 'Accenture', 'TCS'], description: 'Create a CSS layout using Flexbox where:\n- A header spans full width\n- A sidebar is 250px wide on the left\n- Main content fills remaining space\n- A footer spans full width\n- The layout is responsive (sidebar stacks below on mobile)', examples: [{ input: 'HTML structure given', output: 'Properly styled 2-column layout' }], constraints: ['No CSS Grid. Use Flexbox only.'], hints: ['Use flex-direction: column on wrapper, flex-direction: row for middle section.'], expectedComplexity: { time: 'N/A', space: 'N/A' }, starterCode: { javascript: '/* Flexbox layout */\n.layout { display: flex; flex-direction: column; min-height: 100vh; }\n.header, .footer { flex: 0 0 auto; background: #333; padding: 1rem; }\n.middle { display: flex; flex: 1; }\n.sidebar { flex: 0 0 250px; background: #555; }\n.content { flex: 1; padding: 1rem; }\n\n/* Responsive */\n@media (max-width: 768px) {\n    .middle { flex-direction: column; }\n    .sidebar { flex: 0 0 auto; }\n}', python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-  { id: 'fe-10', category: 'frontend', title: 'What is CORS and How to Fix It?', difficulty: 'Medium', topic: 'Browser Security', companies: ['Amazon', 'Google', 'Facebook'], description: 'Explain Cross-Origin Resource Sharing (CORS). What causes CORS errors? How do you fix them on the frontend and backend?\n\nScenario: Your React app at http://localhost:3000 calls an API at http://localhost:5000. You get a CORS error. How do you fix it?', examples: [{ input: 'React on port 3000, API on port 5000', output: 'Add CORS headers on backend, or proxy in dev' }], constraints: ['Cover: preflight requests, CORS headers, proxy setup'], hints: ['Add Access-Control-Allow-Origin header on the backend.'], expectedComplexity: { time: 'N/A', space: 'N/A' }, starterCode: { javascript: '// Backend fix (Express.js)\nconst cors = require("cors");\napp.use(cors({ origin: "http://localhost:3000" }));\n\n// Or manual headers\napp.use((req, res, next) => {\n    res.setHeader("Access-Control-Allow-Origin", "*");\n    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE");\n    res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");\n    next();\n});\n\n// Frontend dev fix (Vite)\n// vite.config.js\nserver: { proxy: { "/api": "http://localhost:5000" } }', python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-];
-
-// ============================================================
-// BACKEND QUESTIONS — 25 questions
-// ============================================================
-const backendQuestions = [
-  { id: 'be-1', category: 'backend', title: 'Design RESTful API for a Blog', difficulty: 'Medium', topic: 'REST APIs', companies: ['Amazon', 'Google', 'Infosys'], description: 'Design a complete RESTful API for a blog application. Define all endpoints for:\n- Posts (CRUD)\n- Comments (CRUD)\n- User authentication\n- Categories\n\nFollow REST naming conventions and HTTP method best practices.', examples: [{ input: 'Blog requirements', output: 'API endpoints with HTTP methods, paths, request/response structure' }], constraints: ['Follow REST conventions. Use proper HTTP methods and status codes.'], hints: ['GET for read, POST for create, PUT/PATCH for update, DELETE for delete.'], expectedComplexity: { time: 'N/A', space: 'N/A' }, starterCode: { javascript: '// RESTful Blog API Design\n// Posts\nGET    /api/posts              // Get all posts\nGET    /api/posts/:id          // Get single post\nPOST   /api/posts              // Create post (Auth required)\nPUT    /api/posts/:id          // Update post (Auth + Owner required)\nDELETE /api/posts/:id          // Delete post (Auth + Owner required)\n\n// Comments\nGET    /api/posts/:id/comments // Get comments for post\nPOST   /api/posts/:id/comments // Add comment (Auth required)\nDELETE /api/comments/:id       // Delete comment\n\n// Auth\nPOST   /api/auth/register      // Register\nPOST   /api/auth/login         // Login → returns JWT\nPOST   /api/auth/logout        // Logout', python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-  { id: 'be-2', category: 'backend', title: 'Implement JWT Authentication', difficulty: 'Medium', topic: 'Authentication', companies: ['Amazon', 'Google', 'Stripe'], description: 'Implement a complete JWT-based authentication system in Node.js/Express:\n- User registration with bcrypt password hashing\n- Login that returns access token + refresh token\n- Protected route middleware\n- Token refresh endpoint\n- Logout', examples: [{ input: 'POST /api/auth/login { email, password }', output: '{ accessToken, refreshToken }' }], constraints: ['Access token: 15min expiry. Refresh token: 7 days.'], hints: ['Use bcrypt for hashing, jsonwebtoken for JWT, store refresh tokens in DB.'], expectedComplexity: { time: 'N/A', space: 'N/A' }, starterCode: { javascript: 'const jwt = require("jsonwebtoken");\nconst bcrypt = require("bcrypt");\n\n// Registration\nconst register = async (req, res) => {\n    const { email, password } = req.body;\n    const hashedPassword = await bcrypt.hash(password, 12);\n    const user = await User.create({ email, password: hashedPassword });\n    res.status(201).json({ message: "User created" });\n};\n\n// Login\nconst login = async (req, res) => {\n    const { email, password } = req.body;\n    const user = await User.findOne({ email });\n    const valid = await bcrypt.compare(password, user.password);\n    if (!valid) return res.status(401).json({ message: "Invalid credentials" });\n    \n    const accessToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "15m" });\n    const refreshToken = jwt.sign({ id: user._id }, process.env.REFRESH_SECRET, { expiresIn: "7d" });\n    res.json({ accessToken, refreshToken });\n};\n\n// Protect middleware\nconst protect = (req, res, next) => {\n    const token = req.headers.authorization?.split(" ")[1];\n    if (!token) return res.status(401).json({ message: "No token" });\n    const decoded = jwt.verify(token, process.env.JWT_SECRET);\n    req.user = decoded;\n    next();\n};', python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-  { id: 'be-3', category: 'backend', title: 'MongoDB Aggregation Pipeline', difficulty: 'Hard', topic: 'MongoDB', companies: ['Amazon', 'Google', 'Airbnb'], description: 'Write a MongoDB aggregation pipeline to find the top 5 products by total revenue (quantity × price) per category, from an Orders collection.\n\nOrders schema: { orderId, customerId, products: [{ productId, category, quantity, price }], orderDate }', examples: [{ input: 'Orders collection', output: 'Top 5 products per category with total revenue' }], constraints: ['Use $unwind, $group, $sort, $limit stages.'], hints: ['$unwind the products array, then $group by category and productId.'], expectedComplexity: { time: 'O(n)', space: 'O(n)' }, starterCode: { javascript: "db.orders.aggregate([\n    { $unwind: '$products' },\n    {\n        $group: {\n            _id: { category: '$products.category', productId: '$products.productId' },\n            totalRevenue: { $sum: { $multiply: ['$products.quantity', '$products.price'] } },\n            totalSold: { $sum: '$products.quantity' }\n        }\n    },\n    { $sort: { totalRevenue: -1 } },\n    {\n        $group: {\n            _id: '$_id.category',\n            topProducts: { $push: { productId: '$_id.productId', revenue: '$totalRevenue' } }\n        }\n    },\n    { $project: { topProducts: { $slice: ['$topProducts', 5] } } }\n]);", python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-];
-
-// ============================================================
-// JAVASCRIPT QUESTIONS
-// ============================================================
-const javascriptQuestions = [
-  { id: 'js-1', category: 'javascript', title: 'Flatten Nested Array', difficulty: 'Easy', topic: 'Arrays', companies: ['Google', 'Facebook', 'Airbnb'], description: 'Write a function to flatten a deeply nested array without using Array.flat().\n\nExample: [1, [2, [3, [4]], 5]] → [1, 2, 3, 4, 5]', examples: [{ input: '[1, [2, [3, [4]], 5]]', output: '[1, 2, 3, 4, 5]' }], constraints: ['Do not use Array.flat(). Handle arbitrary depth.'], hints: ['Use recursion or a stack-based iterative approach.'], expectedComplexity: { time: 'O(n)', space: 'O(n)' }, starterCode: { javascript: 'function flatten(arr) {\n    const result = [];\n    for (const item of arr) {\n        if (Array.isArray(item)) {\n            result.push(...flatten(item));\n        } else {\n            result.push(item);\n        }\n    }\n    return result;\n}\n\nconsole.log(flatten([1, [2, [3, [4]], 5]])); // [1, 2, 3, 4, 5]', python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-  { id: 'js-2', category: 'javascript', title: 'Deep Clone an Object', difficulty: 'Medium', topic: 'Objects', companies: ['Google', 'Facebook', 'Microsoft'], description: 'Implement a deep clone function for a JavaScript object without using JSON.parse(JSON.stringify()) or structuredClone().\n\nHandle: nested objects, arrays, Date, null, undefined.', examples: [{ input: '{ a: 1, b: { c: 2 } }', output: 'A new object with the same structure, not a reference' }], constraints: ['Do not use JSON.parse/stringify or structuredClone.'], hints: ['Use recursion. Check for different types: Date, Array, Object.'], expectedComplexity: { time: 'O(n)', space: 'O(n)' }, starterCode: { javascript: 'function deepClone(obj) {\n    if (obj === null || typeof obj !== "object") return obj;\n    if (obj instanceof Date) return new Date(obj);\n    if (Array.isArray(obj)) return obj.map(deepClone);\n    \n    const cloned = {};\n    for (const key in obj) {\n        if (obj.hasOwnProperty(key)) {\n            cloned[key] = deepClone(obj[key]);\n        }\n    }\n    return cloned;\n}', python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-  { id: 'js-3', category: 'javascript', title: 'Implement Promise.all()', difficulty: 'Hard', topic: 'Promises', companies: ['Google', 'Facebook', 'Netflix'], description: 'Implement your own version of Promise.all() from scratch.\n\nPromise.all() takes an iterable of promises and returns a single Promise that resolves when all promises resolve, or rejects if any promise rejects.', examples: [{ input: '[Promise.resolve(1), Promise.resolve(2), Promise.resolve(3)]', output: '[1, 2, 3]' }], constraints: ['Maintain the order of results, regardless of resolution order.'], hints: ['Track count of resolved promises. Reject immediately on first rejection.'], expectedComplexity: { time: 'O(n)', space: 'O(n)' }, starterCode: { javascript: 'function myPromiseAll(promises) {\n    return new Promise((resolve, reject) => {\n        const results = [];\n        let count = 0;\n        \n        if (promises.length === 0) resolve([]);\n        \n        promises.forEach((promise, index) => {\n            Promise.resolve(promise).then((value) => {\n                results[index] = value;\n                count++;\n                if (count === promises.length) resolve(results);\n            }).catch(reject);\n        });\n    });\n}', python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-];
-
-// ============================================================
-// PYTHON QUESTIONS
-// ============================================================
-const pythonQuestions = [
-  { id: 'py-1', category: 'python', title: 'List Comprehensions vs Loops', difficulty: 'Easy', topic: 'Basics', companies: ['Google', 'Infosys', 'TCS'], description: 'Write a list comprehension to generate a list of squares of even numbers from 1 to 20. Then explain when to use list comprehensions vs regular for loops.', examples: [{ input: 'Range 1 to 20', output: '[4, 16, 36, 64, 100, 144, 196, 256, 324, 400]' }], constraints: ['Must use list comprehension.'], hints: ['[expr for item in iterable if condition]'], expectedComplexity: { time: 'O(n)', space: 'O(n)' }, starterCode: { python: '# List comprehension\nsquares = [x**2 for x in range(1, 21) if x % 2 == 0]\nprint(squares)  # [4, 16, 36, 64, 100, 144, 196, 256, 324, 400]\n\n# Equivalent for loop\nresult = []\nfor x in range(1, 21):\n    if x % 2 == 0:\n        result.append(x**2)', javascript: starterTemplates.javascript, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-  { id: 'py-2', category: 'python', title: 'Decorators in Python', difficulty: 'Medium', topic: 'Decorators', companies: ['Google', 'Facebook', 'Amazon'], description: 'Explain Python decorators. Implement a @timer decorator that measures the execution time of any function, and a @retry decorator that retries a function up to N times on exception.', examples: [{ input: '@timer\ndef slow_function(): time.sleep(1)', output: 'Prints: "slow_function took 1.001s"' }], constraints: ['Use functools.wraps to preserve function metadata.'], hints: ['A decorator is a function that takes a function and returns a modified function.'], expectedComplexity: { time: 'O(1)', space: 'O(1)' }, starterCode: { python: 'import time\nfrom functools import wraps\n\ndef timer(func):\n    @wraps(func)\n    def wrapper(*args, **kwargs):\n        start = time.time()\n        result = func(*args, **kwargs)\n        end = time.time()\n        print(f"{func.__name__} took {end - start:.3f}s")\n        return result\n    return wrapper\n\ndef retry(n=3):\n    def decorator(func):\n        @wraps(func)\n        def wrapper(*args, **kwargs):\n            for attempt in range(n):\n                try:\n                    return func(*args, **kwargs)\n                except Exception as e:\n                    print(f"Attempt {attempt+1} failed: {e}")\n            raise Exception("All retries exhausted")\n        return wrapper\n    return decorator\n\n@timer\n@retry(3)\ndef fetch_data():\n    # some flaky API call\n    pass', javascript: starterTemplates.javascript, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-];
-
-// ============================================================
-// JAVA QUESTIONS
-// ============================================================
-const javaQuestions = [
-  { id: 'java-1', category: 'java', title: 'Java Collections Framework', difficulty: 'Easy', topic: 'Collections', companies: ['TCS', 'Infosys', 'Accenture'], description: 'Explain the Java Collections Framework. What is the difference between ArrayList and LinkedList? When would you use HashMap vs TreeMap vs LinkedHashMap?\n\nProvide code examples for each.', examples: [{ input: 'Conceptual question', output: 'Comparison with code examples' }], constraints: ['Cover: time complexity of operations, use cases'], hints: ['ArrayList: O(1) get, O(n) insert. LinkedList: O(n) get, O(1) insert at head.'], expectedComplexity: { time: 'N/A', space: 'N/A' }, starterCode: { java: '// ArrayList vs LinkedList\nList<String> arrayList = new ArrayList<>();  // O(1) get, O(n) insert\nList<String> linkedList = new LinkedList<>(); // O(n) get, O(1) add at head/tail\n\n// HashMap vs TreeMap vs LinkedHashMap\nMap<String, Integer> hashMap = new HashMap<>();       // O(1), no order\nMap<String, Integer> treeMap = new TreeMap<>();       // O(log n), sorted by key\nMap<String, Integer> linkedHashMap = new LinkedHashMap<>(); // O(1), insertion order\n\n// Use HashMap when: speed matters, no order needed\n// Use TreeMap when: sorted keys needed\n// Use LinkedHashMap when: insertion order matters (like LRU cache)', python: starterTemplates.python, javascript: starterTemplates.javascript, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-  { id: 'java-2', category: 'java', title: 'Multithreading and Synchronization', difficulty: 'Hard', topic: 'Multithreading', companies: ['Google', 'Amazon', 'Oracle'], description: 'Implement a thread-safe singleton class using Double-Checked Locking. Also explain the difference between synchronized, volatile, and Atomic classes. When would you use each?', examples: [{ input: 'Multiple threads trying to get singleton instance', output: 'Only one instance created, thread-safe' }], constraints: ['Use volatile keyword. Explain why it is needed.'], hints: ['volatile prevents CPU caching, ensuring visibility across threads.'], expectedComplexity: { time: 'O(1)', space: 'O(1)' }, starterCode: { java: '// Thread-safe Singleton with Double-Checked Locking\npublic class Singleton {\n    private static volatile Singleton instance;\n    \n    private Singleton() {} // private constructor\n    \n    public static Singleton getInstance() {\n        if (instance == null) {           // First check (no lock)\n            synchronized (Singleton.class) {\n                if (instance == null) {  // Second check (with lock)\n                    instance = new Singleton();\n                }\n            }\n        }\n        return instance;\n    }\n}\n\n// volatile: ensures changes visible to all threads\n// synchronized: ensures mutual exclusion\n// AtomicInteger: for atomic operations on single variables', python: starterTemplates.python, javascript: starterTemplates.javascript, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-];
-
-// ============================================================
-// OOP QUESTIONS
-// ============================================================
-const oopQuestions = [
-  { id: 'oop-1', category: 'oop', title: 'SOLID Principles Explained', difficulty: 'Medium', topic: 'SOLID', companies: ['Google', 'Microsoft', 'Amazon'], description: 'Explain each of the 5 SOLID principles with a code example showing a violation and the correct approach:\n- S: Single Responsibility\n- O: Open/Closed\n- L: Liskov Substitution\n- I: Interface Segregation\n- D: Dependency Inversion', examples: [{ input: 'God class violating SRP', output: 'Split into focused classes' }], constraints: ['Show violation AND correct code for each principle.'], hints: ['SRP: A class should have only one reason to change.'], expectedComplexity: { time: 'N/A', space: 'N/A' }, starterCode: { javascript: '// S - Single Responsibility\n// WRONG: User class handles auth, db, and email\nclass User {\n    login() { /* ... */ }\n    saveToDatabase() { /* ... */ }\n    sendWelcomeEmail() { /* ... */ }\n}\n// RIGHT: Separate concerns\nclass UserAuthService { login() {} }\nclass UserRepository { save() {} }\nclass EmailService { sendWelcome() {} }\n\n// O - Open/Closed\n// Wrong: if/else for each shape\n// Right: extend Shape, override area()\nclass Shape { area() {} }\nclass Circle extends Shape { area() { return Math.PI * this.r ** 2; } }\nclass Square extends Shape { area() { return this.side ** 2; } }', python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-  { id: 'oop-2', category: 'oop', title: 'Design Pattern: Observer', difficulty: 'Medium', topic: 'Design Patterns', companies: ['Google', 'Facebook', 'Uber'], description: 'Implement the Observer design pattern. Create a simple event system where:\n- EventEmitter can register listeners for events\n- EventEmitter can emit events with data\n- Multiple listeners can subscribe to the same event\n- Listeners can be removed', examples: [{ input: 'on("click", handler), emit("click", data)', output: 'handler called with data' }], constraints: ['Implement in pure JavaScript/Java.'], hints: ['Maintain a map of event name → array of callbacks.'], expectedComplexity: { time: 'O(n)', space: 'O(n)' }, starterCode: { javascript: 'class EventEmitter {\n    constructor() {\n        this.events = {};\n    }\n    \n    on(event, listener) {\n        if (!this.events[event]) this.events[event] = [];\n        this.events[event].push(listener);\n        return this; // for chaining\n    }\n    \n    off(event, listener) {\n        if (this.events[event]) {\n            this.events[event] = this.events[event].filter(l => l !== listener);\n        }\n    }\n    \n    emit(event, ...args) {\n        if (this.events[event]) {\n            this.events[event].forEach(listener => listener(...args));\n        }\n    }\n}\n\n// Usage\nconst emitter = new EventEmitter();\nemitter.on("data", (msg) => console.log("Received:", msg));\nemitter.emit("data", "Hello World"); // Received: Hello World', python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-];
-
-// ============================================================
-// SYSTEM DESIGN QUESTIONS
-// ============================================================
-const systemDesignQuestions = [
-  { id: 'sd-1', category: 'system-design', title: 'Design a URL Shortener', difficulty: 'Medium', topic: 'System Design', companies: ['Google', 'Amazon', 'Twitter'], description: 'Design a URL shortening service like bit.ly.\n\nRequirements:\n- Given a long URL, generate a short unique code\n- Given a short code, redirect to the original URL\n- 100M URLs/day, 10:1 read:write ratio\n- URLs should expire after 1 year\n- Analytics: track click counts\n\nDesign the system architecture, database schema, and API.', examples: [{ input: 'POST /shorten { url: "https://very-long-url.com" }', output: '{ shortUrl: "https://short.ly/abc123" }' }], constraints: ['Handle 100M/day, 10:1 read:write, global traffic'], hints: ['Use base62 encoding, consistent hashing, Redis cache, CDN for redirects.'], expectedComplexity: { time: 'O(1) read/write', space: 'O(n) storage' }, starterCode: { javascript: '// URL Shortener System Design\n\n// 1. API Design\n// POST /api/shorten   { originalUrl, userId, expiresAt? }\n// GET  /:code         → Redirect 301 to original URL\n// GET  /api/stats/:code → Click analytics\n\n// 2. Encoding Strategy\nconst BASE62 = "0-9A-Za-z"; // 62^6 = 56 billion unique codes\nfunction encode(id) {\n    let code = "";\n    while (id > 0) {\n        code = BASE62[id % 62] + code;\n        id = Math.floor(id / 62);\n    }\n    return code.padStart(6, "0");\n}\n\n// 3. Database Schema\n// Table: urls { id, short_code, original_url, user_id, created_at, expires_at, clicks }\n\n// 4. Caching: Redis (short_code → original_url), TTL = 24h\n// 5. Horizontal scaling: stateless servers behind load balancer\n// 6. Read replicas for DB', python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-  { id: 'sd-2', category: 'system-design', title: 'Design WhatsApp Messaging System', difficulty: 'Hard', topic: 'System Design', companies: ['Facebook', 'Google', 'Amazon'], description: 'Design a WhatsApp-like messaging system supporting:\n- 1-on-1 and group messaging\n- Message delivery status (sent/delivered/read)\n- Media file sharing\n- Push notifications for offline users\n- End-to-end encryption (high-level)\n- 2 billion users, 100B messages/day', examples: [{ input: 'User sends message to friend', output: 'Message queued, pushed via WebSocket or FCM' }], constraints: ['2B users, 100B messages/day, low latency'], hints: ['WebSockets for real-time. Message queue (Kafka). Cassandra for messages. Fan-out on write for groups.'], expectedComplexity: { time: 'Low latency O(1)', space: 'Distributed storage' }, starterCode: { javascript: '// WhatsApp System Design\n\n// Key Components:\n// 1. WebSocket servers for real-time messaging\n// 2. Message queue (Apache Kafka) for reliability\n// 3. Cassandra DB for message storage (wide-column for time-series)\n// 4. Redis for online status, session management\n// 5. FCM/APNs for push notifications (offline users)\n// 6. CDN + S3 for media storage\n// 7. Load balancers + consistent hashing for user routing\n\n// Message Schema (Cassandra)\n// Table: messages (\n//   conversation_id UUID,\n//   message_id TIMEUUID,\n//   sender_id UUID,\n//   content TEXT,\n//   type ENUM(text, image, video),\n//   status ENUM(sent, delivered, read),\n//   PRIMARY KEY (conversation_id, message_id)\n// ) WITH CLUSTERING ORDER BY (message_id DESC);', python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-];
-
-// ============================================================
-// OS QUESTIONS
-// ============================================================
-const osQuestions = [
-  { id: 'os-1', category: 'os', title: 'Process vs Thread', difficulty: 'Easy', topic: 'Processes', companies: ['Google', 'Amazon', 'TCS'], description: 'Explain the difference between a Process and a Thread. What resources do they share? What is a context switch? What are the advantages and disadvantages of threads vs processes?', examples: [{ input: 'Conceptual question', output: 'Detailed comparison' }], constraints: ['Cover: memory model, context switch cost, IPC vs shared memory'], hints: ['Threads share the same memory space. Processes have separate memory spaces.'], expectedComplexity: { time: 'N/A', space: 'N/A' }, starterCode: { javascript: '// Process vs Thread Summary\n// Process:\n// - Independent memory space\n// - Own PCB (Process Control Block)\n// - Heavier to create (fork)\n// - Communication via IPC (pipes, sockets, shared memory)\n// - Crash isolation: one process crash doesnt affect others\n\n// Thread:\n// - Shares memory with other threads in same process\n// - Own stack and registers\n// - Lightweight (create/switch faster)\n// - Communication via shared variables (need synchronization)\n// - One thread crash can crash entire process\n\n// Context Switch:\n// OS saves current thread/process state (CPU registers, PC, stack pointer)\n// Loads state of next thread/process\n// Overhead: cache invalidation, TLB flush for process switch', python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-  { id: 'os-2', category: 'os', title: 'Deadlock Conditions and Prevention', difficulty: 'Medium', topic: 'Deadlocks', companies: ['Amazon', 'Google', 'Microsoft'], description: 'Explain the four necessary conditions for a deadlock (Coffman conditions). Then explain how each deadlock handling strategy works:\n1. Prevention (deny a Coffman condition)\n2. Avoidance (Banker\'s algorithm)\n3. Detection and Recovery\n4. Ignore (Ostrich algorithm)', examples: [{ input: 'Deadlock scenario: P1 holds R1, waits R2. P2 holds R2, waits R1.', output: 'Circular wait — all 4 conditions met' }], constraints: ['Cover all 4 Coffman conditions and prevention strategy for each.'], hints: ['Mutual Exclusion, Hold & Wait, No Preemption, Circular Wait.'], expectedComplexity: { time: 'N/A', space: 'N/A' }, starterCode: { javascript: '// Four Coffman Conditions for Deadlock:\n// 1. Mutual Exclusion: Resource held by only one process at a time\n// 2. Hold and Wait: Process holds resources while waiting for more\n// 3. No Preemption: Resources cannot be forcibly taken from a process\n// 4. Circular Wait: P1 → R1 → P2 → R2 → P1 (circular dependency)\n\n// Prevention Strategies:\n// 1. Remove Mutual Exclusion: Make resources shareable (not always possible)\n// 2. Remove Hold & Wait: Request all resources at once\n// 3. Allow Preemption: OS can forcibly reclaim resources\n// 4. Remove Circular Wait: Impose ordering on resource types\n\n// Banker\'s Algorithm (Avoidance):\n// Before granting a resource, check if system remains in safe state', python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-];
-
-// ============================================================
-// COMPUTER NETWORKS QUESTIONS
-// ============================================================
-const cnQuestions = [
-  { id: 'cn-1', category: 'cn', title: 'OSI Model — All 7 Layers', difficulty: 'Easy', topic: 'OSI Model', companies: ['TCS', 'Infosys', 'Wipro'], description: 'Explain all 7 layers of the OSI model. For each layer state:\n- What it does\n- Example protocols\n- What PDU (Protocol Data Unit) it uses\n\nAlso explain how data encapsulation works as it travels down the layers.', examples: [{ input: 'Conceptual question', output: 'Layer-by-layer explanation' }], constraints: ['Cover all 7 layers with protocol examples.'], hints: ['Mnemonic: "Please Do Not Throw Sausage Pizza Away"'], expectedComplexity: { time: 'N/A', space: 'N/A' }, starterCode: { javascript: '// OSI Model - 7 Layers (Top to Bottom)\n// 7. Application  | HTTP, HTTPS, FTP, SMTP, DNS, Telnet | Data\n// 6. Presentation | SSL/TLS, JPEG, MPEG, ASCII           | Data\n// 5. Session      | NetBIOS, RPC, SQL sessions           | Data\n// 4. Transport    | TCP, UDP                             | Segment\n// 3. Network      | IP, ICMP, OSPF, BGP                  | Packet\n// 2. Data Link    | Ethernet, MAC, PPP, ARP              | Frame\n// 1. Physical     | Cables, Hubs, Repeaters              | Bits\n\n// Encapsulation (Sending):\n// App data → Transport adds header (segment) → \n// Network adds IP header (packet) → Data Link adds MAC (frame) → \n// Physical: bits on wire\n\n// Decapsulation: reverse process at receiver', python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-  { id: 'cn-2', category: 'cn', title: 'TCP vs UDP', difficulty: 'Easy', topic: 'TCP/IP', companies: ['Google', 'Amazon', 'Accenture'], description: 'Compare TCP and UDP. For each, explain:\n- Connection type\n- Reliability guarantees\n- Ordering\n- Speed\n- Use cases\n\nAlso explain the TCP 3-way handshake process.', examples: [{ input: 'When to use TCP vs UDP?', output: 'TCP: web, email. UDP: video streaming, gaming, DNS.' }], constraints: ['Cover: 3-way handshake, flow control, congestion control'], hints: ['TCP: SYN → SYN-ACK → ACK.'], expectedComplexity: { time: 'N/A', space: 'N/A' }, starterCode: { javascript: '// TCP vs UDP Comparison\n// TCP (Transmission Control Protocol):\n// - Connection-oriented (3-way handshake first)\n// - Reliable: guaranteed delivery, ACKs, retransmission\n// - Ordered: packets arrive in sequence\n// - Slower: overhead of acknowledgments\n// - Use: HTTP, HTTPS, FTP, SMTP, SSH\n\n// UDP (User Datagram Protocol):\n// - Connectionless (fire and forget)\n// - Unreliable: no delivery guarantee\n// - Unordered: packets may arrive out of order\n// - Faster: no handshake, no ACKs\n// - Use: Video streaming, VoIP, Gaming, DNS, DHCP\n\n// TCP 3-Way Handshake:\n// Client → SYN → Server   (I want to connect)\n// Client ← SYN-ACK ← Server (OK, I acknowledge)\n// Client → ACK → Server   (Got it, connection established)\n// Now data transfer begins', python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-];
-
-// ============================================================
-// DBMS QUESTIONS
-// ============================================================
-const dbmsQuestions = [
-  { id: 'dbms-1', category: 'dbms', title: 'ACID Properties', difficulty: 'Easy', topic: 'ACID', companies: ['Amazon', 'Google', 'Infosys'], description: 'Explain all 4 ACID properties of database transactions with examples:\n- Atomicity\n- Consistency\n- Isolation\n- Durability\n\nAlso explain what happens if each property is violated.', examples: [{ input: 'Bank transfer transaction', output: 'Example showing each ACID property' }], constraints: ['Use a real-world banking example.'], hints: ['Atomicity: all or nothing. Consistency: data remains valid. Isolation: transactions don\'t interfere. Durability: committed data persists.'], expectedComplexity: { time: 'N/A', space: 'N/A' }, starterCode: { sql: '-- ACID Properties Demo: Bank Transfer\n-- Transfer $100 from Account A to Account B\n\nBEGIN TRANSACTION;\n\n-- Atomicity: BOTH updates happen or NEITHER does\nUPDATE accounts SET balance = balance - 100 WHERE id = 1; -- Debit A\nUPDATE accounts SET balance = balance + 100 WHERE id = 2; -- Credit B\n\n-- Consistency: balance cannot go negative (CHECK constraint)\n-- Isolation: another transaction cannot see partial state\n-- Durability: once committed, survives crashes (write-ahead log)\n\n-- If any error:\nROLLBACK; -- Atomicity: undo everything\n\nCOMMIT; -- Makes changes permanent (Durability)', javascript: starterTemplates.javascript, python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp } },
-  { id: 'dbms-2', category: 'dbms', title: 'Database Normalization', difficulty: 'Medium', topic: 'Normalization', companies: ['TCS', 'Infosys', 'Accenture'], description: 'Explain database normalization. What is 1NF, 2NF, 3NF, and BCNF? Show a denormalized table and normalize it step-by-step to 3NF.\n\nAlso explain when denormalization is intentionally used.', examples: [{ input: 'Denormalized Student-Course table', output: 'Step-by-step normalization to 3NF' }], constraints: ['Show violations and fixes for each normal form.'], hints: ['1NF: atomic values. 2NF: no partial dependency. 3NF: no transitive dependency.'], expectedComplexity: { time: 'N/A', space: 'N/A' }, starterCode: { sql: '-- BEFORE (Denormalized):\n-- Student(StudentID, Name, CourseID, CourseName, InstructorID, InstructorName)\n-- Problems: redundancy, update/insert/delete anomalies\n\n-- 1NF: Atomic values (no multi-valued attributes)\n-- Already met if each cell has one value\n\n-- 2NF: No partial dependency (non-key attr must depend on WHOLE PK)\n-- Violation: CourseName depends only on CourseID, not (StudentID, CourseID)\n-- Fix: separate Courses(CourseID, CourseName, InstructorID)\n\n-- 3NF: No transitive dependency (non-key must NOT depend on another non-key)\n-- Violation: InstructorName depends on InstructorID (not on CourseID directly)\n-- Fix: separate Instructors(InstructorID, InstructorName)\n\n-- AFTER 3NF:\n-- Students(StudentID, Name)\n-- Courses(CourseID, CourseName, InstructorID)\n-- Instructors(InstructorID, InstructorName)\n-- Enrollments(StudentID, CourseID) -- join table', javascript: starterTemplates.javascript, python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp } },
-];
-
-// ============================================================
-// MIXED INTERVIEW QUESTIONS
-// ============================================================
-const mixedQuestions = [
-  { id: 'mix-1', category: 'mixed', title: 'Tell Me About Yourself', difficulty: 'Easy', topic: 'HR Questions', companies: ['TCS', 'Infosys', 'Accenture', 'Wipro', 'Google'], description: 'This is typically the first question in every interview. Structure your answer using the "Present-Past-Future" formula:\n\n1. Present: Who you are and what you currently do\n2. Past: Your relevant background and key achievements\n3. Future: Why you\'re interested in this specific role and company\n\nKeep it to 2-3 minutes. Tailor it to the job description.', examples: [{ input: 'Fresher applying for SDE role', output: 'Structured 2-minute introduction' }], constraints: ['Keep it professional, relevant, and under 2-3 minutes.'], hints: ['Don\'t just read your resume. Tell a compelling story.', 'End with enthusiasm for the specific role.'], expectedComplexity: { time: 'N/A', space: 'N/A' }, starterCode: { javascript: '// Sample Structure: "Tell Me About Yourself"\n\n// PRESENT:\n// "I\'m a final-year Computer Science student at [University] with\n// a strong focus on full-stack web development."\n\n// PAST:\n// "During my internship at XYZ, I built a REST API using Node.js\n// that reduced response time by 40%. I\'ve also completed personal\n// projects including [Project Name] using React and MongoDB."\n\n// FUTURE:\n// "I\'m passionate about building scalable backend systems and I\'m\n// particularly excited about this role because [specific reason\n// relevant to company\'s technology stack / mission]."\n\n// CLOSING:\n// "I believe my skills in [Skill1] and [Skill2] make me a strong\n// fit for your team, and I\'m eager to contribute."', python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-  { id: 'mix-2', category: 'mixed', title: 'What Are Your Strengths and Weaknesses?', difficulty: 'Easy', topic: 'HR Questions', companies: ['TCS', 'Infosys', 'Amazon', 'Google', 'Accenture'], description: 'A classic HR question that every interviewer asks. For strengths:\n- Choose ones relevant to the job\n- Back them up with specific examples\n\nFor weaknesses:\n- Choose REAL weaknesses (not fake ones like "I work too hard")\n- Show self-awareness AND what you\'re doing to improve\n- Avoid mentioning weaknesses critical to the role', examples: [{ input: 'Junior developer interview', output: 'Strength: problem-solving. Weakness: public speaking (with improvement plan)' }], constraints: ['Be genuine. Don\'t say "I\'m a perfectionist" as your weakness.'], hints: ['STAR method for strengths: Situation, Task, Action, Result.', 'Weakness: Name it → Acknowledge impact → Share your improvement plan.'], expectedComplexity: { time: 'N/A', space: 'N/A' }, starterCode: { javascript: '// Strengths (choose relevant to the role):\n// - Problem-solving: "When our API was failing under load, I diagnosed\n//   the bottleneck, implemented connection pooling, and reduced latency by 60%."\n// - Quick learner: "Learned React in 3 weeks for an internship project\n//   and delivered a working dashboard on time."\n// - Attention to detail: "Caught a security vulnerability in code review\n//   that would have exposed user data."\n\n// Weaknesses (REAL ones with improvement plans):\n// WRONG: "I work too hard" / "I\'m a perfectionist"\n// RIGHT:\n// - "I sometimes overthink solutions before starting. I\'ve been\n//   using time-boxing (max 30 min research before coding) to fix this."\n// - "Public speaking used to make me nervous. I joined a local\n//   Toastmasters club 6 months ago and have given 4 presentations."', python: starterTemplates.python, java: starterTemplates.java, cpp: starterTemplates.cpp, sql: starterTemplates.sql } },
-];
-
-// ============================================================
-// C++ QUESTIONS
-// ============================================================
-const cppQuestions = [
-  { id: 'cpp-1', category: 'cpp', title: 'Pointers and References', difficulty: 'Easy', topic: 'Pointers', companies: ['Google', 'Microsoft', 'Amazon'], description: 'Explain the difference between pointers and references in C++. When would you use each?\n\nAlso explain:\n- Pointer arithmetic\n- NULL vs nullptr\n- Smart pointers (unique_ptr, shared_ptr, weak_ptr)', examples: [{ input: 'int x = 10; int* ptr = &x; int& ref = x;', output: 'Difference in usage and behavior' }], constraints: ['Cover memory safety issues with raw pointers.'], hints: ['Reference: alias for existing variable. Pointer: stores memory address.'], expectedComplexity: { time: 'N/A', space: 'N/A' }, starterCode: { cpp: '#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    int x = 10;\n    \n    // Pointer: stores memory address, can be null, can be reassigned\n    int* ptr = &x;\n    cout << "Pointer value: " << *ptr << endl;  // dereference\n    cout << "Address: " << ptr << endl;\n    ptr = nullptr; // can be null\n    \n    // Reference: alias, cannot be null, cannot be reassigned\n    int& ref = x;\n    ref = 20; // modifies x directly\n    cout << "x after ref change: " << x << endl; // 20\n    \n    // Smart Pointers (C++11)\n    unique_ptr<int> up = make_unique<int>(42); // sole ownership\n    shared_ptr<int> sp = make_shared<int>(42); // shared ownership\n    weak_ptr<int> wp = sp; // non-owning reference\n    \n    return 0;\n}', javascript: starterTemplates.javascript, python: starterTemplates.python, java: starterTemplates.java, sql: starterTemplates.sql } },
-];
-
-import { extraQuestions } from './extraQuestions';
-
-// ============================================================
-// Combine all questions into one array
-// ============================================================
 export const ALL_QUESTIONS = [
-  ...dsaQuestions,
-  ...sqlQuestions,
-  ...frontendQuestions,
-  ...backendQuestions,
-  ...javascriptQuestions,
-  ...pythonQuestions,
-  ...javaQuestions,
-  ...oopQuestions,
-  ...systemDesignQuestions,
-  ...osQuestions,
-  ...cnQuestions,
-  ...dbmsQuestions,
-  ...mixedQuestions,
-  ...cppQuestions,
-  ...extraQuestions,
+  ...NUMERICAL_QUESTIONS.map(q => ({ ...q, category: 'math', topicTag: 'Numerical' })),
+  ...REASONING_QUESTIONS.map(q => ({ ...q, category: 'sorting', topicTag: 'Reasoning' })),
+  ...TECHNICAL_QUESTIONS.map(q => ({ ...q, category: 'arrays', topicTag: 'Technical' })),
+  ...VERBAL_QUESTIONS.map(q => ({ ...q, category: 'strings', topicTag: 'Verbal' })),
+  ...Object.values(CODING_PROBLEMS).flat().map(q => ({ ...q, category: q.topic?.toLowerCase().replace(/\s+/g, '') || 'arrays', topicTag: q.topic })),
 ];
 
-// Helper: get questions by category
-export const getQuestionsByCategory = (categoryId) =>
-  ALL_QUESTIONS.filter(q => q.category === categoryId);
-
-// Helper: get single question by id
-export const getQuestionById = (id) =>
-  ALL_QUESTIONS.find(q => q.id === id);
-
-// Helper: get difficulty counts per category
-export const getDifficultyCounts = (categoryId) => {
-  const questions = getQuestionsByCategory(categoryId);
+export const getDifficultyCounts = () => {
+  const all = ALL_QUESTIONS;
   return {
-    Easy: questions.filter(q => q.difficulty === 'Easy').length,
-    Medium: questions.filter(q => q.difficulty === 'Medium').length,
-    Hard: questions.filter(q => q.difficulty === 'Hard').length,
-    total: questions.length,
+    Easy: all.filter(q => q.difficulty === 'Easy').length,
+    Medium: all.filter(q => q.difficulty === 'Medium').length,
+    Hard: all.filter(q => q.difficulty === 'Hard').length,
+    Total: all.length,
   };
 };

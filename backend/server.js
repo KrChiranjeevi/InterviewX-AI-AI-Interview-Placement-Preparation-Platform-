@@ -69,7 +69,7 @@ app.get('/', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-// Trigger restart
+// Trigger reload after syntax fix
 app.listen(PORT, console.log(`Server running on port ${PORT}`));
 
 

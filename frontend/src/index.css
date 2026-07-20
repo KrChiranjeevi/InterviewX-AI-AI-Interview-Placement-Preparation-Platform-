@@ -3,6 +3,7 @@
 
 
 :root {
+  color-scheme: dark;
   --primary: #6366f1;
   --primary-hover: #4f46e5;
   --secondary: #8b5cf6;
@@ -26,6 +27,10 @@
   --color-background: #0a0a0f;
   --color-border: rgba(99, 102, 241, 0.15);
   --color-card: rgba(10, 10, 20, 0.4);
+}
+
+.light {
+  color-scheme: light;
 }
 
 * {

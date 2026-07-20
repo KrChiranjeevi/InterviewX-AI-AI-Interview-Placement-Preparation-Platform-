@@ -135,7 +135,7 @@ const CompanyList = () => {
                         {/* Logo + Difficulty */}
                         <div className="flex items-start justify-between mb-4">
                           <motion.div whileHover={{ scale: 1.08 }} className="h-14 w-14 rounded-xl border border-white/10 bg-white p-2 flex items-center justify-center shadow-lg overflow-hidden flex-shrink-0">
-                            <img src={company.logo} alt={company.name} className="max-h-full max-w-full object-contain" onError={e => { e.target.style.display='none'; e.target.parentNode.innerHTML = company.name.charAt(0); }} />
+                            <img src={company.logo} alt={company.name} className="max-h-full max-w-full object-contain" onError={e => { e.target.onerror = null; e.target.src = `https://placehold.co/100x100?text=${encodeURIComponent(company.name.charAt(0))}`; }} />
                           </motion.div>
                           <div className="flex items-center gap-2 flex-shrink-0">
                             {isCompleted && <span className="text-[10px] font-bold rounded-full bg-emerald-500/15 border border-emerald-500/20 text-emerald-400 px-2 py-0.5">Done ✓</span>}

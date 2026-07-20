@@ -1,6 +1,7 @@
 const { OpenAI } = require('openai');
 const { GoogleGenAI } = require('@google/genai');
 const fs = require('fs');
+const { rolesDb, companiesDb } = require('./atsDb');
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const gemini = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -18,86 +19,98 @@ const openrouter = new OpenAI({
 });
 
 // Industry-level AI Provider Abstraction with Fallback
-// Order: OpenAI -> OpenRouter (Gemini) -> OpenRouter (Llama 3 Free) -> Gemini -> Groq
+// Order: Groq (Verified Working & Fastest) -> OpenAI -> OpenRouter (Gemini) -> OpenRouter (Llama 3 Free) -> Gemini
 const ai = {
   models: {
     generateContent: async ({ contents }) => {
-      // 1. Try OpenAI
+      // 1. Try Groq (Working key, ultra fast)
       try {
-        const response = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
+        const response = await groq.chat.completions.create({
+          model: "llama-3.3-70b-versatile",
           messages: [{ role: "user", content: contents }],
-          max_tokens: 8000,
+          max_tokens: 4096,
+        }, {
+          timeout: 8000
         });
         return { text: response.choices[0].message.content };
-      } catch (err1) {
-        console.error("⚠️ OpenAI failed:", err1.message);
-        
-        // 2. Try OpenRouter (Gemini 2.5 Flash)
+      } catch (errGroq) {
+        console.error("⚠️ Groq failed:", errGroq.message);
+
+        // 2. Try OpenAI
         try {
-          const response = await openrouter.chat.completions.create({
-            model: "google/gemini-2.5-flash",
+          const response = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
             messages: [{ role: "user", content: contents }],
             max_tokens: 8000,
+          }, {
+            timeout: 8000
           });
           return { text: response.choices[0].message.content };
-        } catch (err2) {
-          console.error("⚠️ OpenRouter (Gemini 2.5 Flash) failed:", err2.message);
+        } catch (err1) {
+          console.error("⚠️ OpenAI failed:", err1.message);
           
-          // 3. Try OpenRouter (Llama 3.3 70B Free)
+          // 3. Try OpenRouter (Gemini 2.5 Flash)
           try {
             const response = await openrouter.chat.completions.create({
-              model: "meta-llama/llama-3.3-70b-instruct:free",
+              model: "google/gemini-2.5-flash",
               messages: [{ role: "user", content: contents }],
               max_tokens: 8000,
+            }, {
+              timeout: 8000
             });
             return { text: response.choices[0].message.content };
-          } catch (err3) {
-            console.error("⚠️ OpenRouter (Llama 3.3 Free) failed:", err3.message);
+          } catch (err2) {
+            console.error("⚠️ OpenRouter (Gemini 2.5 Flash) failed:", err2.message);
             
-            // 3.5. Try OpenRouter (Gemma 4 31B Free)
+            // 4. Try OpenRouter (Llama 3.3 70B Free)
             try {
               const response = await openrouter.chat.completions.create({
-                model: "google/gemma-4-31b-it:free",
+                model: "meta-llama/llama-3.3-70b-instruct:free",
                 messages: [{ role: "user", content: contents }],
                 max_tokens: 8000,
+              }, {
+                timeout: 8000
               });
               return { text: response.choices[0].message.content };
-            } catch (err3_5) {
-              console.error("⚠️ OpenRouter (Gemma 4 Free) failed:", err3_5.message);
+            } catch (err3) {
+              console.error("⚠️ OpenRouter (Llama 3.3 Free) failed:", err3.message);
               
-              // 3.6. Try OpenRouter (General Free Router)
+              // 4.5. Try OpenRouter (Gemma 4 31B Free)
               try {
                 const response = await openrouter.chat.completions.create({
-                  model: "openrouter/free",
+                  model: "google/gemma-4-31b-it:free",
                   messages: [{ role: "user", content: contents }],
                   max_tokens: 8000,
+                }, {
+                  timeout: 8000
                 });
                 return { text: response.choices[0].message.content };
-              } catch (err3_6) {
-                console.error("⚠️ OpenRouter (General Free) failed:", err3_6.message);
+              } catch (err3_5) {
+                console.error("⚠️ OpenRouter (Gemma 4 Free) failed:", err3_5.message);
                 
-                // 4. Try Native Gemini
+                // 4.6. Try OpenRouter (General Free Router)
                 try {
-                  const response = await gemini.models.generateContent({
-                    model: 'gemini-2.5-flash',
-                    contents: contents,
+                  const response = await openrouter.chat.completions.create({
+                    model: "openrouter/free",
+                    messages: [{ role: "user", content: contents }],
+                    max_tokens: 8000,
+                  }, {
+                    timeout: 8000
                   });
-                  return { text: response.text };
-                } catch (err4) {
-                  console.error("⚠️ Native Gemini failed:", err4.message);
+                  return { text: response.choices[0].message.content };
+                } catch (err3_6) {
+                  console.error("⚠️ OpenRouter (General Free) failed:", err3_6.message);
                   
-                  // 5. Try Groq
+                  // 5. Try Native Gemini
                   try {
-                    const response = await groq.chat.completions.create({
-                      model: "llama-3.3-70b-versatile",
-                      messages: [{ role: "user", content: contents }],
-                      max_tokens: 4096,
+                    const response = await gemini.models.generateContent({
+                      model: 'gemini-2.5-flash',
+                      contents: contents,
                     });
-                    return { text: response.choices[0].message.content };
-                  } catch (err5) {
-                    console.error("❌ Groq failed:", err5.message);
-                    fs.writeFileSync('ai_error.log', err5.toString());
+                    return { text: response.text };
+                  } catch (err4) {
+                    console.error("❌ Native Gemini failed:", err4.message);
+                    fs.writeFileSync('ai_error.log', err4.toString());
                     throw new Error("All AI providers failed. Quota exceeded everywhere.");
                   }
                 }
@@ -112,28 +125,16 @@ const ai = {
 
 const parseAIResponse = (text) => {
   try {
-    // Write raw text to file for debugging
-    try {
-      fs.writeFileSync('C:/Users/kchir/.gemini/antigravity-ide/brain/2a259707-2dca-4fa1-aacb-89518349e26a/scratch/raw_ai_response.txt', text);
-    } catch (fsErr) {
-      console.error('Failed to write raw AI response to file:', fsErr.message);
-    }
-    
     let jsonStr = text.trim();
-    // Strip markdown code blocks if present
-    if (jsonStr.startsWith('```json')) {
-      jsonStr = jsonStr.substring(7);
-    } else if (jsonStr.startsWith('```')) {
-      jsonStr = jsonStr.substring(3);
-    }
-    // Strip trailing backticks
-    const lastBacktick = jsonStr.lastIndexOf('```');
-    if (lastBacktick !== -1) {
-      jsonStr = jsonStr.substring(0, lastBacktick);
+    
+    // Extract JSON block between first '{' and last '}'
+    const start = jsonStr.indexOf('{');
+    const end = jsonStr.lastIndexOf('}');
+    if (start !== -1 && end !== -1 && end > start) {
+      jsonStr = jsonStr.substring(start, end + 1);
     }
     
-    // Sanitize literal control characters (like actual unescaped newlines/tabs inside strings)
-    // JSON allows structural whitespace, so replacing them with spaces makes it valid 1-line JSON
+    // Sanitize control characters (unescaped tabs, newlines inside JSON strings)
     jsonStr = jsonStr.replace(/[\u0000-\u001F\u007F-\u009F]+/g, ' ');
     
     return JSON.parse(jsonStr.trim());
@@ -423,76 +424,254 @@ Output as a readable summary.`;
   }
 };
 
-const analyzeResume = async (resumeText, targetRole) => {
+const analyzeResume = async (resumeText, targetRole, targetCompany = 'General ATS') => {
   try {
-    const prompt = `You are an Enterprise ATS (Applicant Tracking System) and an expert Tech Recruiter.
-Analyze the following resume text strictly, objectively, and critically for the specific target role of: "${targetRole}". 
-Provide a highly realistic and accurate assessment. Do NOT sugarcoat.
+    const roleProfile = rolesDb[targetRole] || rolesDb['Software Engineer'];
+    const companyProfile = companiesDb[targetCompany] || companiesDb['General ATS'];
+
+    const prompt = `You are an Enterprise Applicant Tracking System (ATS) and an elite Tech Recruiter.
+Analyze the following resume text strictly, objectively, and critically for the specific target role of: "${targetRole}" at target company: "${targetCompany}".
+
+Target Role Database Specifications:
+${JSON.stringify(roleProfile, null, 2)}
+
+Target Company Database Specifications:
+${JSON.stringify(companyProfile, null, 2)}
 
 Resume Text:
 ---
-${resumeText.substring(0, 3500)}
+${resumeText.substring(0, 5000)}
 ---
 
-Perform a deep ATS analysis based on the "${targetRole}" role:
-1. 'skillsFound': Extract ONLY technical/soft skills explicitly mentioned.
-2. 'missingSkills': Critical industry-standard skills for ${targetRole} missing from the resume.
-3. 'score': Realistic ATS pass score (0-100). Deduct for missing metrics, bad format, missing keywords for ${targetRole}. Average is 40-65.
-4. 'strengths' & 'weaknesses': List 3-4 bullet points each.
-5. 'formattingIssues': Any ATS parsing issues, lack of action verbs, or readability problems.
-6. 'resumeStructure', 'projectQuality', 'experienceAnalysis', 'educationAnalysis', 'certificationsAnalysis', 'keywordDensity': Provide a 1-2 sentence critical analysis for each.
-7. 'recommendations', 'aiSuggestions': 4-5 brutally honest, actionable tips to improve this specific resume.
-8. 'matchedKeywords', 'priorityKeywords', 'recommendedSkills': Keywords and skills specifically relevant to ${targetRole}.
-9. 'skillMatchPercentage': 0-100 score based on how well their skills match the typical ${targetRole} requirements.
-10. 'companyCompatibility': Predict compatibility (0-100) with these companies based on their known hiring bar and the candidate's profile: Google, Microsoft, Amazon, Meta, TCS, Infosys, Accenture, Deloitte, Wipro, Cognizant, Capgemini.
-
-Return the result ONLY as raw JSON with NO markdown, NO comments, NO extra text. All 11 companies must be included:
+Perform a complete, dynamic AI-powered ATS scan and return a JSON object with this exact structure (NO extra text, NO backticks, just valid JSON):
 {
-  "skillsFound": ["string"],
-  "missingSkills": ["string"],
-  "score": 0,
-  "aiSuggestions": ["string"],
-  "strengths": ["string"],
-  "weaknesses": ["string"],
-  "formattingIssues": ["string"],
-  "resumeStructure": "string",
-  "projectQuality": "string",
-  "experienceAnalysis": "string",
-  "educationAnalysis": "string",
-  "certificationsAnalysis": "string",
-  "keywordDensity": "string",
-  "recommendations": ["string"],
-  "matchedKeywords": ["string"],
-  "priorityKeywords": ["string"],
-  "recommendedSkills": ["string"],
-  "skillMatchPercentage": 0,
-  "companyCompatibility": [
-    { "company": "Google", "matchPercent": 0 },
-    { "company": "Microsoft", "matchPercent": 0 },
-    { "company": "Amazon", "matchPercent": 0 },
-    { "company": "Meta", "matchPercent": 0 },
-    { "company": "TCS", "matchPercent": 0 },
-    { "company": "Infosys", "matchPercent": 0 },
-    { "company": "Accenture", "matchPercent": 0 },
-    { "company": "Deloitte", "matchPercent": 0 },
-    { "company": "Wipro", "matchPercent": 0 },
-    { "company": "Cognizant", "matchPercent": 0 },
-    { "company": "Capgemini", "matchPercent": 0 }
-  ]
-}`;
+  "personalInfo": {
+    "name": "Extract candidate's full name",
+    "email": "Extract candidate's email address",
+    "phone": "Extract candidate's phone number",
+    "linkedin": "Extract candidate's LinkedIn URL",
+    "github": "Extract candidate's GitHub URL",
+    "portfolio": "Extract candidate's portfolio/website URL"
+  },
+  "education": [
+    {
+      "degree": "Degree name",
+      "institution": "University/College name",
+      "cgpa": "CGPA or percentage",
+      "dates": "Dates attended"
+    }
+  ],
+  "experience": [
+    {
+      "role": "Job title",
+      "company": "Company name",
+      "dates": "Dates worked",
+      "responsibilities": ["Detailed parsed responsibility bullets"],
+      "impact": "Actionable business impact or metrics",
+      "techStack": ["Technologies used in this role"]
+    }
+  ],
+  "projects": [
+    {
+      "title": "Project title",
+      "description": "Short parsed description of what this project does",
+      "techStack": ["Technologies used"],
+      "complexity": "High | Medium | Low (based on technical scope)",
+      "businessValue": "Value or utility this project provides",
+      "architecture": "Architecture style (e.g. MVC, Microservices, Client-Server)",
+      "roleRelevance": "How relevant this project is for a ${targetRole} at ${targetCompany}",
+      "scalability": "Comment on system scalability of the design",
+      "authentication": "Authentication method used (e.g., JWT, OAuth, none)",
+      "database": "Databases utilized",
+      "deployment": "Where/how was it deployed (e.g., AWS, Vercel, Local)",
+      "codingLevel": 7,
+      "resumeImpact": "Critical impact this project adds to the resume",
+      "suggestions": ["Specific suggestions to improve this project description"]
+    }
+  ],
+  "internships": [
+    {
+      "role": "Intern role title",
+      "company": "Company/Organization name",
+      "dates": "Dates worked",
+      "responsibilities": ["Responsibilities during internship"],
+      "actionVerbs": ["Strong action verbs identified"],
+      "technologies": ["Technologies used"],
+      "businessImpact": "Impact of their work",
+      "leadership": "Evidence of leadership or proactive work",
+      "atsStrength": "ATS keyword strength of this internship description"
+    }
+  ],
+  "skills": {
+    "programmingLanguages": ["List extracted programming languages"],
+    "frameworks": ["List extracted frameworks"],
+    "libraries": ["List extracted libraries"],
+    "databases": ["List extracted databases"],
+    "cloud": ["List extracted cloud platforms"],
+    "devopsTools": ["List extracted CI/CD or DevOps tools"],
+    "softSkills": ["List extracted soft skills"],
+    "tools": ["List other developer tools like Git, VSCode, Docker etc."]
+  },
+  "certificates": ["List parsed certifications"],
+  "achievements": ["List parsed achievements/awards"],
+  "training": ["List parsed training/bootcamps"],
 
-  // IMPORTANT: Do NOT output any markdown, backticks, or comments. Only raw JSON.
+  "score": 65,
+  "scoringBreakdown": {
+    "roleSkillMatch": 75,
+    "projectRelevance": 70,
+    "internship": 85,
+    "experience": 60,
+    "keywordMatch": 75,
+    "education": 90,
+    "resumeFormatting": 80,
+    "achievements": 70,
+    "certifications": 60
+  },
+
+  "matchedKeywords": ["List all matching keywords found in the resume matching the target role"],
+  "missingSkills": ["List missing critical skills expected for ${targetRole} at ${targetCompany}"],
+  "priorityKeywords": ["List high-priority keywords the candidate should add for this role/company"],
+  "skillMatchPercentage": 75,
+  "skillMatchLevel": "Excellent | Good | Average | Weak (based on skillMatchPercentage: >=85 is Excellent, >=70 is Good, >=45 is Average, <45 is Weak)",
+  
+  "companyCompatibility": [
+    { "company": "Google", "matchPercent": 60 },
+    { "company": "Microsoft", "matchPercent": 50 },
+    { "company": "Amazon", "matchPercent": 55 },
+    { "company": "NVIDIA", "matchPercent": 40 },
+    { "company": "TCS", "matchPercent": 75 },
+    { "company": "Infosys", "matchPercent": 80 },
+    { "company": "Accenture", "matchPercent": 75 },
+    { "company": "Deloitte", "matchPercent": 70 },
+    { "company": "Wipro", "matchPercent": 75 },
+    { "company": "Cognizant", "matchPercent": 78 },
+    { "company": "Capgemini", "matchPercent": 75 },
+    { "company": "JPMorgan Chase", "matchPercent": 65 }
+  ],
+  
+  "resumeSummary": "Write a concise professional summary of the candidate's parsed profile",
+  "recommendedSkills": ["Specific actionable skills to acquire"],
+  "resumeStructure": "Detailed review of resume structure",
+  "projectQuality": "Critical comment on project complexity and technology choice",
+  "experienceAnalysis": "Critical analysis of experience depth and responsibility formatting",
+  "educationAnalysis": "Review of academic history and CGPA rating",
+  "certificationsAnalysis": "Analysis of the value and impact of listed certifications",
+  "keywordDensity": "E.g., Good density of frontend keywords (3.2%)",
+  "formattingIssues": ["List explicit formatting problems found"],
+  "recommendations": ["Highly personalized recommendations to optimize the resume for this role and company expectation"],
+  "strengths": ["Extract actual strengths from the resume"],
+  "weaknesses": ["Extract ONLY real weaknesses from the resume (do not invent fake ones)"],
+  "formattingAnalysis": {
+    "spacing": "Review of whitespace consistency",
+    "bulletConsistency": "Consistent | Inconsistent",
+    "readability": "High | Medium | Low",
+    "atsCompatibility": "High | Medium | Low",
+    "length": "Review of length",
+    "actionVerbUsage": "Comment on usage of strong action verbs"
+  },
+  "hiringReadiness": {
+    "resumeScore": 70,
+    "technicalReadiness": "Description of technical skills readiness",
+    "projectQuality": "Critique of project complexity and quality",
+    "experienceStrength": "Critique of experience impact",
+    "communication": "Critique of written communication in resume",
+    "overallHiringReadiness": "Excellent | Ready | Needs Polish | Not Ready",
+    "roleReadiness": "Evaluate readiness for the target role",
+    "companyReadiness": "Evaluate alignment with the target company expectations"
+  },
+  "practiceQuestions": [
+    {
+      "source": "Project Name / Internship Name / Skill",
+      "question": "Generated specific interview question probing this item",
+      "context": "Context or reasoning for asking this question"
+    }
+  ]
+}
+
+Instructions for JSON evaluation logic:
+1. "score": Calculate an overall integer score from 0 to 100 using the exact weighted ATS formula:
+   - 25% Role Skill Match: How closely the candidate's skills align with the required/preferred skills in the Role Specification.
+   - 20% Project Relevance: Complexity, architecture, and alignment of projects with Role Expectations.
+   - 15% Internship: Relevance, action verbs, and business impact of internship work.
+   - 10% Experience: Depth, dates, and relevance of work experience.
+   - 10% Keyword Match: Density and relevance of matching keywords.
+   - 5% Education: Degree, CGPA, and alignment of major.
+   - 5% Resume Formatting: Spacing, bullet consistency, readable structure.
+   - 5% Achievements: Competitions, ranks, coding metrics.
+   - 5% Certifications: Cloud practitioner, developer certificates.
+   Calculate the realistic weighted score and return it as an integer between 0 and 100.
+2. "companyCompatibility": Calculate separate realistic percentages based on company hiring focus. E.g.
+   - Google: Evaluate data structures/algorithm strength, complexity of projects, problem solving.
+   - Amazon: Evaluate scale design, microservices, leadership principles.
+   - Microsoft: Evaluate full stack OOP, design patterns, transactional SQL.
+   - TCS/Infosys: Evaluate general computer science basics, OOP foundation, databases.
+3. "matchedKeywords": Extract ALL detected technologies (e.g. React, Node.js, Express, MongoDB, MySQL, Docker, CI/CD, Git, Java, Python). Do not limit this list.
+4. "missingSkills": Generate ONLY role-specific missing skills. Do not recommend AWS or Kubernetes for simple Frontend Developers unless required in the target role profile.
+5. "strengths" & "weaknesses": Dynamically extract real values from the resume. Do not invent weaknesses.`;
 
     const response = await ai.models.generateContent({ contents: prompt });
     return parseAIResponse(response.text);
   } catch (error) {
-    console.error('Gemini Error:', error);
+    console.error('Gemini Error in analyzeResume:', error);
     return {
-      skillsFound: ['JavaScript'], missingSkills: ['Docker'], score: 50, aiSuggestions: ['Error analyzing.'],
-      strengths: [], weaknesses: [], formattingIssues: [], resumeStructure: '', projectQuality: '',
-      experienceAnalysis: '', educationAnalysis: '', certificationsAnalysis: '', keywordDensity: '',
-      recommendations: [], matchedKeywords: [], priorityKeywords: [], recommendedSkills: [],
-      skillMatchPercentage: 50, companyCompatibility: []
+      personalInfo: { name: '', email: '', phone: '', linkedin: '', github: '', portfolio: '' },
+      education: [],
+      experience: [],
+      projects: [],
+      internships: [],
+      skills: { programmingLanguages: [], frameworks: [], libraries: [], databases: [], cloud: [], devopsTools: [], softSkills: [], tools: [] },
+      certificates: [],
+      achievements: [],
+      training: [],
+      score: 50,
+      scoringBreakdown: {
+        roleSkillMatch: 50, projectRelevance: 50, internship: 50, experience: 50, keywordMatch: 50,
+        education: 50, resumeFormatting: 50, achievements: 50, certifications: 50
+      },
+      matchedKeywords: [],
+      missingSkills: [],
+      priorityKeywords: [],
+      skillMatchLevel: 'Average',
+      skillMatchPercentage: 50,
+      strengths: [],
+      weaknesses: [],
+      aiSuggestions: ['Error analyzing resume. Please check your API key.'],
+      formattingAnalysis: {
+        spacing: 'Unknown', bulletConsistency: 'Unknown', readability: 'Unknown', atsCompatibility: 'Unknown',
+        length: 'Unknown', actionVerbUsage: 'Unknown'
+      },
+      hiringReadiness: {
+        resumeScore: 50, technicalReadiness: 'Unknown', projectQuality: 'Unknown',
+        experienceStrength: 'Unknown', communication: 'Unknown', overallHiringReadiness: 'Needs Polish',
+        roleReadiness: 'Unknown', companyReadiness: 'Unknown'
+      },
+      practiceQuestions: [],
+      companyCompatibility: [
+        { "company": "Google", "matchPercent": 30 },
+        { "company": "Microsoft", "matchPercent": 35 },
+        { "company": "Amazon", "matchPercent": 30 },
+        { "company": "NVIDIA", "matchPercent": 30 },
+        { "company": "TCS", "matchPercent": 60 },
+        { "company": "Infosys", "matchPercent": 60 },
+        { "company": "Accenture", "matchPercent": 60 },
+        { "company": "Deloitte", "matchPercent": 60 },
+        { "company": "Wipro", "matchPercent": 60 },
+        { "company": "Cognizant", "matchPercent": 60 },
+        { "company": "Capgemini", "matchPercent": 60 },
+        { "company": "JPMorgan Chase", "matchPercent": 60 }
+      ],
+      resumeSummary: 'Raw parse fallback summary.',
+      skillsFound: [],
+      recommendedSkills: [],
+      resumeStructure: 'Format analysis unavailable',
+      projectQuality: 'Project analysis unavailable',
+      experienceAnalysis: 'Experience analysis unavailable',
+      educationAnalysis: 'Education analysis unavailable',
+      certificationsAnalysis: 'Certifications analysis unavailable',
+      keywordDensity: 'Keyword density unavailable',
+      formattingIssues: [],
+      recommendations: []
     };
   }
 };

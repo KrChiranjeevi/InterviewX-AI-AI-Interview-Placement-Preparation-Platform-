@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { COMPANY_CODING_PYQS } from '../data/companyCodingPYQs';
 import { useParams, useNavigate } from 'react-router-dom';

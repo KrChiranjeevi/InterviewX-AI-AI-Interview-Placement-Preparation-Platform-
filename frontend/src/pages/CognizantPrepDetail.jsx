@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FaLaptopCode, FaBrain, FaUsers, FaCheckCircle, FaLock,
@@ -31,7 +33,297 @@ const C = {
   red: '#EF4444',
   text: '#E2E8F0',
   muted: '#64748B',
-};const startHR = async () => {
+};
+
+// ─────────────────────────────────────────────────────────
+//  STATIC CONSTANTS
+// ─────────────────────────────────────────────────────────
+const TRACKS = [
+  {
+    id: 'genc', name: 'GenC', pkg: '4.0 LPA', diff: 'Medium',
+    elig: 'B.E/B.Tech/MCA/M.Sc (60%+)', coding: 'Basic', iv: 'Medium',
+    prep: '1–2 Weeks', growth: 'Standard', freq: 'Very Frequent',
+  },
+  {
+    id: 'elevate', name: 'GenC Elevate', pkg: '4.5 LPA', diff: 'Medium-Hard',
+    elig: 'B.E/B.Tech/MCA/M.Sc (60%+)', coding: 'Intermediate', iv: 'Medium-Hard',
+    prep: '2–3 Weeks', growth: 'Steady', freq: 'Frequent',
+  },
+  {
+    id: 'next', name: 'GenC Next', pkg: '6.75 - 8.0 LPA', diff: 'Hard',
+    elig: 'B.E/B.Tech/MCA/M.Sc (CGPA >= 8.0)', coding: 'Advanced', iv: 'Hard',
+    prep: '3–4 Weeks', growth: 'Accelerated', freq: 'Annual',
+  },
+];
+
+const ROLES = [
+  'Programmer Analyst Trainee', 'Software Engineer', 'Java Developer',
+  'Frontend Developer', 'Backend Developer', 'Full Stack Developer',
+  'Cloud Engineer', 'QA Engineer', 'Graduate Trainee'
+];
+
+const PIPELINE_STEPS = [
+  { id: 'app', label: 'Application Submitted' },
+  { id: 'resume', label: 'Resume Verification' },
+  { id: 'oa', label: 'Online Assessment' },
+  { id: 'tech', label: 'Technical Interview' },
+  { id: 'hr', label: 'HR Interview' },
+  { id: 'panel', label: 'Hiring Committee Verdict' },
+];
+
+const OA_SECTIONS = [
+  {
+    id: 'quant', name: 'Quantitative Aptitude', icon: FaChartLine, color: '#818CF8', questions: 15, time: 20,
+    analytics: { attempted: 14, correct: 12, wrong: 2, accuracy: 85, avgTime: '48s' },
+    weakTopics: ['Time, Speed & Distance', 'Permutations & Combinations']
+  },
+  {
+    id: 'logical', name: 'Logical Reasoning', icon: FaBrain, color: '#34D399', questions: 15, time: 20,
+    analytics: { attempted: 15, correct: 13, wrong: 2, accuracy: 86, avgTime: '52s' },
+    weakTopics: ['Coding-Decoding', 'Syllogisms']
+  },
+  {
+    id: 'verbal', name: 'Verbal Ability', icon: FaBookOpen, color: '#F472B6', questions: 20, time: 20,
+    analytics: { attempted: 20, correct: 18, wrong: 2, accuracy: 90, avgTime: '35s' },
+    weakTopics: ['Sentence Correction']
+  },
+  {
+    id: 'coding', name: 'Coding Assessment', icon: FaCode, color: '#FBBF24', questions: 2, time: 30,
+    analytics: { passed: 4, hidden: 4, runtime: '12ms', memory: '32 MB', optScore: 95, quality: 'A+', maintainability: 'High' },
+    weakTopics: []
+  }
+];
+
+const SAMPLE_QUESTIONS = {
+  quant: [
+    { q: 'A sum of money doubles itself in 8 years at simple interest. What is the rate of interest per annum?', opts: ['10%', '12.5%', '15%', '20%'], ans: 1 },
+    { q: 'If 15 men can build a wall 100m long in 6 days, how many men will take 3 days to build a wall 200m long?', opts: ['40 men', '50 men', '60 men', '30 men'], ans: 2 }
+  ],
+  logical: [
+    { q: 'In a certain code, "RAIN" is written as "8$#6" and "MORE" is written as "7%89". How is "REMOTE" written in that code?', opts: ['9#7%89', '9#7%98', '99##77', '9#7%8#'], ans: 0 },
+    { q: 'Find the next number in the series: 3, 12, 48, 192, ...', opts: ['384', '576', '768', '960'], ans: 2 }
+  ],
+  verbal: [
+    { q: 'Choose the word nearest in meaning to "PRAGMATIC":', opts: ['Idealistic', 'Practical', 'Arrogant', 'Unstable'], ans: 1 },
+    { q: 'Identify the grammatically correct sentence:', opts: ['Neither he nor his friends was present.', 'Neither he nor his friends were present.', 'Neither he nor his friends is present.', 'Neither he nor his friends are been present.'], ans: 1 }
+  ]
+};
+
+const TECH_FLOW = [
+  { step: 'Introduction & Project', q: "Welcome to your Cognizant Technical Interview. I am your AI Evaluator. Let's begin by discussing your most significant project. Walk me through its architecture and core features." },
+  { step: 'Java Internals', q: "Great. Since you mentioned Java, can you explain the differences between JVM, JRE, and JDK? Also describe how Garbage Collection works internally in Java." },
+  { step: 'Object-Oriented Programming', q: "Let's talk OOP. What is polymorphism? How does runtime polymorphism differ from compile-time polymorphism in Java?" },
+  { step: 'Data Structures & Algorithms', q: "How would you implement a stack using two queues? What would be the time complexities of the push and pop operations?" },
+  { step: 'Database Design & SQL', q: "In a relational database, what are the differences between primary key, foreign key, and unique key? Write a SQL query to find the second highest salary from an Employee table." },
+  { step: 'REST API & Web Tech', q: "Describe REST APIs. What is the difference between GET, POST, PUT, and DELETE methods? What HTTP status codes represent success vs. server error?" },
+  { step: 'System Design Basics', q: "If we need to build a URL shortening service like Bit.ly, how would you design the database and handle high traffic redirection?" },
+  { step: 'Debugging Scenario', q: "Imagine your application is experiencing a memory leak in production. How would you diagnose and locate the leak?" },
+  { step: 'Version Control', q: "Explain git merge vs git rebase, and how you resolve merge conflicts in a collaborative workspace." },
+  { step: 'Conclusion', q: "Perfect. That completes the technical questions. Do you have any questions for me about Cognizant or this track?" }
+];
+
+const HR_FLOW = [
+  { step: 'Introduction', q: "Hello! I am your HR interviewer today. To start, please introduce yourself and tell me a bit about your background and key achievements." },
+  { step: 'Why Cognizant', q: "Why do you want to join Cognizant? What do you know about our GenC Next track?" },
+  { step: 'STAR Behavioral', q: "Tell me about a challenging situation in a team project and how you resolved it using the STAR framework." },
+  { step: 'Strengths & Weaknesses', q: "What is your biggest strength, and what is a weakness you are actively working to improve?" },
+  { step: 'Conflict Resolution', q: "How do you handle disagreement with a peer or a team lead when executing a project?" },
+  { step: 'Work Under Pressure', q: "Describe a situation where you had to meet a tight deadline. How did you organize your tasks?" },
+  { step: 'Adaptability', q: "Cognizant works with global clients, which means you might need to relocate or work in dynamic shifts. Are you flexible with this?" },
+  { step: 'Career Goals', q: "Where do you see yourself in the next 3 to 5 years, both professionally and personally?" },
+  { step: 'Value Alignment', q: "At Cognizant, we value client-centricity and collaboration. Can you share an example where you went out of your way to help a peer or client?" },
+  { step: 'Wrap-Up', q: "Thank you for sharing. Do you have any questions for me about the work culture or next steps?" }
+];
+
+const COMMITTEE_PANELISTS = [
+  { role: 'Assessment Panel', icon: FaChartLine, color: '#818CF8', verdict: 'Strong Hire', rating: 94, comment: 'Cleared cognitive and coding assessments with high accuracy. Displayed strong logical capability.' },
+  { role: 'Technical Panel', icon: FaLaptopCode, color: '#34D399', verdict: 'Strong Hire', rating: 92, comment: 'Sound understanding of Java internals and system architecture. Solved coding problems with optimal O(N) complexity.' },
+  { role: 'HR Panel', icon: FaUsers, color: '#F472B6', verdict: 'Hire', rating: 96, comment: 'Structured communicator with strong alignment to Cognizant work ethics and dynamic schedules.' }
+];
+
+const ALL_BADGES = [
+  { id: 'quant', name: 'Quant Master', icon: FaBrain, color: '#818CF8', desc: 'Scored 85%+ in Quantitative section', earned: true },
+  { id: 'coder', name: 'Coding Champion', icon: FaCode, color: '#34D399', desc: 'Passed all coding test cases optimally', earned: true },
+  { id: 'comms', name: 'Communication Star', icon: FaUsers, color: '#F472B6', desc: 'Outstanding HR mock round performance', earned: true },
+  { id: 'ready', name: 'Cognizant Ready', icon: FaShieldAlt, color: '#A78BFA', desc: 'Completed full simulation pipeline', earned: false }
+];
+
+const HISTORY_DATA = [
+  { date: '2026-05-10', track: 'GenC', oa: '75%', coding: '50%', tech: '60%', hr: '70%', overall: '65%', hire: 45, status: 'Borderline' },
+  { date: '2026-06-12', track: 'GenC Elevate', oa: '85%', coding: '75%', tech: '80%', hr: '85%', overall: '81%', hire: 75, status: 'Borderline' },
+  { date: '2026-07-20', track: 'GenC Next', oa: '94%', coding: '98%', tech: '92%', hr: '96%', overall: '95%', hire: 94, status: 'Selected' }
+];
+
+// ─────────────────────────────────────────────────────────
+//  UTILITY COMPONENTS
+// ─────────────────────────────────────────────────────────
+const ProgressBar = ({ label, value, color = C.accent, sub }) => (
+  <div className="space-y-1.5">
+    {label && (
+      <div className="flex justify-between text-xs font-semibold">
+        <span style={{ color: C.muted }}>{label}</span>
+        <span className="text-white font-bold">{value}%</span>
+      </div>
+    )}
+    <div className="w-full h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
+      <motion.div initial={{ width: 0 }} animate={{ width: `${value}%` }} transition={{ duration: 1.1, ease: 'easeOut' }}
+        className="h-full rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 8px ${color}60` }} />
+    </div>
+    {sub && <div className="text-[10px]" style={{ color: C.muted }}>{sub}</div>}
+  </div>
+);
+
+const Pill = ({ children, color }) => (
+  <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border"
+    style={{ color, backgroundColor: `${color}15`, borderColor: `${color}30` }}>
+    {children}
+  </span>
+);
+
+const StatCard = ({ label, value, sub, icon: Icon, color, glow }) => (
+  <div className="relative rounded-2xl border p-6 flex flex-col gap-3 group transition-all hover:-translate-y-0.5 overflow-hidden"
+    style={{ backgroundColor: C.card, borderColor: C.border }}>
+    <div className="absolute top-0 right-0 w-32 h-32 blur-[60px] rounded-full opacity-10 group-hover:opacity-30 transition-all" style={{ backgroundColor: color }} />
+    <div className="flex items-center justify-between relative z-10">
+      <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: C.muted }}>{label}</span>
+      {Icon && <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${color}20` }}><Icon className="text-sm" style={{ color }} /></div>}
+    </div>
+    <div className="text-3xl font-black text-white relative z-10">{value}</div>
+    {sub && <div className="text-xs font-semibold relative z-10" style={{ color: C.muted }}>{sub}</div>}
+  </div>
+);
+
+// ─────────────────────────────────────────────────────────
+//  MAIN COMPONENT
+// ─────────────────────────────────────────────────────────
+const CognizantPrepDetail = () => {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [pipelineStep, setPipelineStep] = useState(2);
+
+  // OA states
+  const [oaSectionId, setOaSectionId] = useState('quant');
+  const [oaQuestionIdx, setOaQuestionIdx] = useState(0);
+  const [oaAnswers, setOaAnswers] = useState({});
+  const [reviewLater, setReviewLater] = useState(new Set());
+  const [oaTimer, setOaTimer] = useState(90 * 60);
+  const [tabWarnings, setTabWarnings] = useState(0);
+  const [isProctored, setIsProctored] = useState(false);
+  const [oaDone, setOaDone] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [analyticsSection, setAnalyticsSection] = useState('quant');
+
+  // Coding states
+  const [lang, setLang] = useState('java');
+  const [code, setCode] = useState('// Write your optimized code here\n');
+  const [codeResult, setCodeResult] = useState(null);
+  const [compiling, setCompiling] = useState(false);
+
+  // UI state
+  const [showPalette, setShowPalette] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+
+  // Interview states
+  const [techStep, setTechStep] = useState(-1);
+  const [hrStep, setHrStep] = useState(-1);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+  const [evalRunning, setEvalRunning] = useState(false);
+  const [eval_, setEval] = useState({
+    assessment: 94,
+    coding: 98,
+    tech: 0,
+    comms: 0,
+    leadership: 0,
+    confidence: 0,
+    professionalism: 0,
+    problemSolving: 0,
+    overall: 0
+  });
+  const [interviewDone, setInterviewDone] = useState({ tech: false, hr: false });
+
+  // Other states
+  const [qbankCat, setQbankCat] = useState('Arrays');
+  const [finalResult, setFinalResult] = useState(null);
+  const [showOffer, setShowOffer] = useState(false);
+
+  const chatEndRef = useRef(null);
+  const oaRef = useRef(null);
+
+  // Timer Effect
+  useEffect(() => {
+    if (!oaDone && oaTimer > 0) {
+      const interval = setInterval(() => setOaTimer(t => t - 1), 1000);
+      return () => clearInterval(interval);
+    } else if (oaTimer === 0 && !oaDone) {
+      handleSubmitOA();
+    }
+  }, [oaDone, oaTimer]);
+
+  const fmtTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Proctor Mode Listeners
+  useEffect(() => {
+    if (!isProctored) return;
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        setTabWarnings(v => v + 1);
+        toast.error('⚠️ Tab switch detected! Flagged in report.', { duration: 4000 });
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isProctored]);
+
+  const enterProctor = async () => {
+    try { await oaRef.current?.requestFullscreen(); } catch {}
+    setIsProctored(true);
+    toast.success('Proctor Mode Enabled — Auto-save active.', { icon: '🛡️' });
+  };
+
+  const exitProctor = async () => {
+    try { if (document.fullscreenElement) await document.exitFullscreen(); } catch {}
+    setIsProctored(false);
+  };
+
+  const handleSubmitOA = () => {
+    exitProctor();
+    setShowSubmitConfirm(false);
+    setOaDone(true);
+    setShowAnalytics(true);
+    setPipelineStep(3);
+  };
+
+  // Live evaluation metrics generator
+  useEffect(() => {
+    if (!evalRunning) return;
+    const iv = setInterval(() => {
+      setEval(p => ({
+        ...p,
+        tech: Math.min(92, p.tech + Math.random() * 2),
+        comms: Math.min(96, p.comms + Math.random() * 2),
+        leadership: Math.min(90, p.leadership + Math.random() * 2),
+        confidence: Math.min(95, p.confidence + Math.random() * 2),
+        professionalism: Math.min(97, p.professionalism + Math.random() * 2),
+        problemSolving: Math.min(93, p.problemSolving + Math.random() * 2),
+        overall: Math.min(95, p.overall + Math.random() * 2),
+      }));
+    }, 4000);
+    return () => clearInterval(iv);
+  }, [evalRunning]);
+
+  const startTech = () => {
+    setTechStep(0);
+    setMessages([{ from: 'ai', text: TECH_FLOW[0].q, step: TECH_FLOW[0].step }]);
+    setEvalRunning(true);
+    setEval(prev => ({ ...prev, tech: 55, comms: 60, leadership: 50, confidence: 55, professionalism: 65, overall: 60 }));
+  };
+
+  const startHR = async () => {
     try {
       toast.loading('Initializing Live HR Interview...', { id: 'hr-start' });
       const res = await api.post('/interviews/create', {
@@ -47,11 +339,6 @@ const C = {
       console.error(err);
       toast.error('Failed to start interview', { id: 'hr-start' });
     }
-  };const startHR = () => {
-    setHrStep(0);
-    setMessages([{ from: 'ai', text: HR_FLOW[0].q, step: HR_FLOW[0].step }]);
-    setEvalRunning(true);
-    setEval(prev => ({ ...prev, comms: 65, leadership: 55, confidence: 60, professionalism: 70, overall: 65 }));
   };
 
   const sendMessage = () => {
@@ -1206,6 +1493,6 @@ const C = {
       </div>
     </div>
   );
-
+};
 
 export default CognizantPrepDetail;

@@ -84,7 +84,7 @@ const Navbar = ({ title, subtitle }) => {
   };
 
   return (
-    <header className="sticky top-0 z-[100] h-16 w-full">
+    <header className="sticky top-0 z-[100] h-16 w-full print:hidden">
       {/* Glass backdrop */}
       <div className="absolute inset-0 border-b border-white/[0.06] bg-[#070711]/80 backdrop-blur-2xl" />
       {/* Top accent line */}

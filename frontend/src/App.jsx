@@ -28,17 +28,8 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const CompanyCodingQuestionsPage = lazy(() => import('./pages/CompanyCodingQuestionsPage'));
-const GooglePrepDetail = lazy(() => import('./pages/GooglePrepDetail'));
-const AmazonPrepDetail = lazy(() => import('./pages/AmazonPrepDetail'));
-const MicrosoftPrepDetail = lazy(() => import('./pages/MicrosoftPrepDetail'));
-const NvidiaPrepDetail = lazy(() => import('./pages/NvidiaPrepDetail'));
-const TCSPrepDetail = lazy(() => import('./pages/TCSPrepDetail'));
-const InfosysPrepDetail = lazy(() => import('./pages/InfosysPrepDetail'));
-const AccenturePrepDetail = lazy(() => import('./pages/AccenturePrepDetail'));
-const CapgeminiPrepDetail = lazy(() => import('./pages/CapgeminiPrepDetail'));
-const CognizantPrepDetail = lazy(() => import('./pages/CognizantPrepDetail'));
-const WiproPrepDetail = lazy(() => import('./pages/WiproPrepDetail'));
-const DeloittePrepDetail = lazy(() => import('./pages/DeloittePrepDetail'));
+const CompanyExamHub = lazy(() => import('./pages/CompanyExamHub'));
+const CompanyExamEngine = lazy(() => import('./pages/CompanyExamEngine'));
 
 // Loading Fallback
 const LoadingFallback = () => (
@@ -155,158 +146,7 @@ function App() {
               </ProtectedRoute>
             } 
           />
-          <Route 
-            path="/companies/Google" 
-            element={
-              <ProtectedRoute>
-                <GooglePrepDetail />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/companies/Amazon" 
-            element={
-              <ProtectedRoute>
-                <AmazonPrepDetail />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/companies/Microsoft" 
-            element={
-              <ProtectedRoute>
-                <MicrosoftPrepDetail />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/companies/Nvidia" 
-            element={
-              <ProtectedRoute>
-                <NvidiaPrepDetail />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/companies/NVIDIA" 
-            element={
-              <ProtectedRoute>
-                <NvidiaPrepDetail />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/companies/TCS" 
-            element={
-              <ProtectedRoute>
-                <TCSPrepDetail />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/companies/Tcs" 
-            element={
-              <ProtectedRoute>
-                <TCSPrepDetail />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/companies/Infosys" 
-            element={
-              <ProtectedRoute>
-                <InfosysPrepDetail />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/companies/infosys" 
-            element={
-              <ProtectedRoute>
-                <InfosysPrepDetail />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/companies/Accenture" 
-            element={
-              <ProtectedRoute>
-                <AccenturePrepDetail />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/companies/accenture" 
-            element={
-              <ProtectedRoute>
-                <AccenturePrepDetail />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/companies/Capgemini" 
-            element={
-              <ProtectedRoute>
-                <CapgeminiPrepDetail />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/companies/capgemini" 
-            element={
-              <ProtectedRoute>
-                <CapgeminiPrepDetail />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/companies/Cognizant" 
-            element={
-              <ProtectedRoute>
-                <CognizantPrepDetail />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/companies/cognizant" 
-            element={
-              <ProtectedRoute>
-                <CognizantPrepDetail />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/companies/Wipro" 
-            element={
-              <ProtectedRoute>
-                <WiproPrepDetail />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/companies/wipro" 
-            element={
-              <ProtectedRoute>
-                <WiproPrepDetail />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/companies/Deloitte" 
-            element={
-              <ProtectedRoute>
-                <DeloittePrepDetail />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/companies/deloitte" 
-            element={
-              <ProtectedRoute>
-                <DeloittePrepDetail />
-              </ProtectedRoute>
-            } 
-          />
+
           <Route 
             path="/companies" 
             element={
@@ -360,6 +200,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <CompanyCodingQuestionsPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/exam/:company" 
+            element={
+              <ProtectedRoute>
+                <CompanyExamHub />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/exam/:company/:track" 
+            element={
+              <ProtectedRoute>
+                <CompanyExamEngine />
               </ProtectedRoute>
             } 
           />
