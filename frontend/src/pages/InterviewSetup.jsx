@@ -66,11 +66,51 @@ const InterviewSetup = () => {
     }
   }, []);
 
-  const interviewTypes = [
-    { id: 'Technical Interview',    icon: <FaLaptopCode />, title: 'Technical',    desc: 'Programming, frameworks & databases.',    gradient: 'from-indigo-500 to-purple-600',  glow: 'rgba(99,102,241,0.4)'  },
-    { id: 'HR Interview',           icon: <FaUserTie />,    title: 'HR Round',     desc: 'Behavioral & communication skills.',       gradient: 'from-pink-500 to-rose-600',      glow: 'rgba(236,72,153,0.4)'  },
-    { id: 'Coding Interview',       icon: <FaCode />,       title: 'Coding',       desc: 'Algorithms with real-time AI feedback.',   gradient: 'from-emerald-500 to-teal-600',   glow: 'rgba(16,185,129,0.4)'  },
-    { id: 'Resume Based Interview', icon: <FaFileAlt />,    title: 'Resume Based', desc: 'AI generates questions from your resume.', gradient: 'from-amber-500 to-orange-600',   glow: 'rgba(245,158,11,0.4)'  },
+  const interviewCategories = [
+    {
+      title: "Core Practice Rounds",
+      types: [
+        { id: 'Technical Interview', icon: '💻', desc: 'Data structures, logic, and core engineering.', gradient: 'from-indigo-500 to-purple-600', glow: 'rgba(99,102,241,0.4)' },
+        { id: 'Coding Interview', icon: '📝', desc: 'Real-time coding and algorithmic challenges.', gradient: 'from-emerald-500 to-teal-600', glow: 'rgba(16,185,129,0.4)' },
+        { id: 'HR Interview', icon: '👔', desc: 'Behavioral screening and cultural fit assessment.', gradient: 'from-pink-500 to-rose-600', glow: 'rgba(236,72,153,0.4)' },
+        { id: 'Resume Based Interview', icon: '📄', desc: 'AI drills you on your resume highlights.', gradient: 'from-amber-500 to-orange-600', glow: 'rgba(245,158,11,0.4)' },
+        { id: 'Behavioral Interview', icon: '🧠', desc: 'Situational prompts using the STAR methodology.', gradient: 'from-purple-500 to-indigo-600', glow: 'rgba(139,92,246,0.4)' },
+        { id: 'System Design Interview', icon: '🏗️', desc: 'Architecting scalable backend infrastructures.', gradient: 'from-blue-500 to-cyan-600', glow: 'rgba(59,130,246,0.4)' },
+        { id: 'Project Discussion', icon: '🚀', desc: 'Deep dive into your architectural decisions.', gradient: 'from-teal-500 to-emerald-600', glow: 'rgba(20,184,166,0.4)' }
+      ]
+    },
+    {
+      title: "Languages & Frameworks",
+      types: [
+        { id: 'SQL Interview', icon: '🗄️', desc: 'Database querying and query optimization.', gradient: 'from-orange-500 to-amber-600', glow: 'rgba(249,115,22,0.4)' },
+        { id: 'Java Interview', icon: '☕', desc: 'Core Java syntax, JVM, multithreading, and OOP.', gradient: 'from-red-500 to-orange-600', glow: 'rgba(239,68,68,0.4)' },
+        { id: 'JavaScript Interview', icon: '🌐', desc: 'ES6 features, closures, event loop, and DOM.', gradient: 'from-yellow-500 to-amber-600', glow: 'rgba(234,179,8,0.4)' },
+        { id: 'Python Interview', icon: '🐍', desc: 'Data structures, syntax efficiency, and scripting.', gradient: 'from-blue-500 to-indigo-600', glow: 'rgba(59,130,246,0.4)' },
+        { id: 'React Interview', icon: '⚛️', desc: 'Hooks, virtual DOM, and component rendering.', gradient: 'from-cyan-500 to-blue-600', glow: 'rgba(6,182,212,0.4)' },
+        { id: 'Node.js Interview', icon: '🟢', desc: 'Express framework, streams, buffers, and async I/O.', gradient: 'from-green-500 to-emerald-600', glow: 'rgba(34,197,94,0.4)' }
+      ]
+    },
+    {
+      title: "Engineering Tracks",
+      types: [
+        { id: 'Frontend', icon: '🎨', desc: 'UI architecture, HTML5, CSS3, and browser mechanics.', gradient: 'from-pink-500 to-rose-600', glow: 'rgba(236,72,153,0.4)' },
+        { id: 'Backend', icon: '⚙️', desc: 'APIs, routing, databases, caching, and server logic.', gradient: 'from-indigo-500 to-blue-600', glow: 'rgba(99,102,241,0.4)' },
+        { id: 'Full Stack', icon: '🛠️', desc: 'Connecting stateful client-side with backend APIs.', gradient: 'from-purple-500 to-pink-600', glow: 'rgba(168,85,247,0.4)' },
+        { id: 'AI/ML', icon: '🤖', desc: 'Supervised models, deep learning, and vector stores.', gradient: 'from-violet-500 to-purple-600', glow: 'rgba(139,92,246,0.4)' },
+        { id: 'Cloud', icon: '☁️', desc: 'AWS/GCP orchestration, networking, and deployment.', gradient: 'from-sky-500 to-blue-600', glow: 'rgba(14,165,233,0.4)' },
+        { id: 'DevOps', icon: '♾️', desc: 'CI/CD deployment lines, Docker, and Kubernetes.', gradient: 'from-indigo-600 to-teal-500', glow: 'rgba(79,70,229,0.4)' }
+      ]
+    },
+    {
+      title: "Computer Science Fundamentals",
+      types: [
+        { id: 'OOP', icon: '📦', desc: 'Inheritance, polymorphism, encapsulation, and designs.', gradient: 'from-emerald-500 to-teal-600', glow: 'rgba(16,185,129,0.4)' },
+        { id: 'DBMS', icon: '💾', desc: 'Normalization, indexing, transactions, and ACID.', gradient: 'from-rose-500 to-red-600', glow: 'rgba(244,63,94,0.4)' },
+        { id: 'Operating Systems', icon: '💻', desc: 'Processes, memory management, threads, and CPU.', gradient: 'from-zinc-500 to-slate-600', glow: 'rgba(107,114,128,0.4)' },
+        { id: 'Computer Networks', icon: '📡', desc: 'TCP/IP layers, routing, DNS, sockets, and security.', gradient: 'from-sky-500 to-indigo-600', glow: 'rgba(14,165,233,0.4)' },
+        { id: 'DSA', icon: '📊', desc: 'Complexity analysis, sorting, trees, and graphs.', gradient: 'from-amber-500 to-red-600', glow: 'rgba(245,158,11,0.4)' }
+      ]
+    }
   ];
 
   const roles = [
@@ -208,47 +248,49 @@ const InterviewSetup = () => {
                 {/* STEP 1 – Type */}
                 {step === 1 && (
                   <motion.div key="s1" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ duration: 0.25, ease: 'easeInOut' }} className="h-full flex flex-col">
-                    <div className="text-center mb-5 flex-shrink-0">
-                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.1, type: 'spring', stiffness: 300 }} className="inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-4 py-1 text-cyan-300 text-xs font-semibold mb-2">
+                    <div className="text-center mb-4 flex-shrink-0">
+                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.1, type: 'spring', stiffness: 300 }} className="inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-4 py-1 text-cyan-300 text-xs font-semibold mb-1">
                         <HiSparkles /> Step 1 of 4 · Choose Mode
                       </motion.div>
-                      <h2 className="text-2xl font-black text-white tracking-tight">What type of interview?</h2>
-                      <p className="text-zinc-500 text-sm mt-1">Select the mode that matches your preparation goal</p>
+                      <h2 className="text-xl font-black text-white tracking-tight">Select Practice Interview Mode</h2>
+                      <p className="text-zinc-500 text-xs mt-0.5">Pick a mock interview archetype from our categorized simulator catalog</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 flex-1 min-h-0">
-                      {interviewTypes.map((type, ti) => {
-                        const sel = interviewType === type.id;
-                        return (
-                          <motion.div
-                            key={type.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: ti * 0.07 }}
-                            whileHover={{ y: -4, scale: 1.02 }}
-                            whileTap={{ scale: 0.97 }}
-                            onClick={() => setInterviewType(type.id)}
-                            className={`relative rounded-2xl cursor-pointer border-2 p-5 flex flex-col transition-all duration-300 overflow-hidden ${
-                              sel ? 'border-transparent bg-gradient-to-br from-white/[0.07] to-white/[0.03]' : 'border-white/[0.07] bg-white/[0.03] hover:border-white/15'
-                            }`}
-                            style={sel ? { boxShadow: `0 0 30px ${type.glow}, inset 0 0 0 2px ${type.glow.replace('0.4', '0.6')}` } : {}}
-                          >
-                            {/* Glow blob */}
-                            {sel && <div className="absolute inset-0 opacity-10 bg-gradient-to-br pointer-events-none" style={{ background: `radial-gradient(ellipse at top right, ${type.glow.replace('0.4', '0.5')}, transparent 60%)` }} />}
-
-                            {sel && (
-                              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-3 right-3 h-5 w-5 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                                <FaCheck className="text-white text-[8px]" />
-                              </motion.div>
-                            )}
-
-                            <div className={`relative z-10 w-12 h-12 rounded-xl flex items-center justify-center text-xl text-white bg-gradient-to-br ${type.gradient} shadow-lg mb-3`} style={{ boxShadow: sel ? `0 4px 20px ${type.glow}` : 'none' }}>
-                              {type.icon}
-                            </div>
-                            <h3 className="relative z-10 text-base font-bold text-white mb-1">{type.title}</h3>
-                            <p className="relative z-10 text-zinc-400 text-xs leading-relaxed">{type.desc}</p>
-                          </motion.div>
-                        );
-                      })}
+                    
+                    <div className="space-y-5 flex-1 overflow-y-auto pr-1 no-scrollbar max-h-[360px] pb-4">
+                      {interviewCategories.map((category, catIdx) => (
+                        <div key={catIdx} className="space-y-2">
+                          <h3 className="text-[10px] font-black uppercase tracking-widest text-indigo-400/80 border-b border-white/[0.05] pb-1">{category.title}</h3>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            {category.types.map((type) => {
+                              const sel = interviewType === type.id;
+                              return (
+                                <motion.div
+                                  key={type.id}
+                                  whileHover={{ scale: 1.015 }}
+                                  whileTap={{ scale: 0.98 }}
+                                  onClick={() => setInterviewType(type.id)}
+                                  className={`relative rounded-xl cursor-pointer border p-3 flex items-center gap-3 transition-all duration-200 ${
+                                    sel
+                                      ? 'border-indigo-500 bg-indigo-600/10 text-white shadow-lg shadow-indigo-500/10'
+                                      : 'border-white/[0.07] bg-white/[0.02] text-zinc-300 hover:border-white/15'
+                                  }`}
+                                >
+                                  <div className="text-lg flex-shrink-0 w-8 h-8 rounded-lg bg-white/[0.03] border border-white/[0.05] flex items-center justify-center">{type.icon}</div>
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-bold text-xs text-white truncate">{type.id}</h4>
+                                    <p className="text-[10px] text-zinc-500 truncate leading-normal">{type.desc}</p>
+                                  </div>
+                                  {sel && (
+                                    <div className="h-4 w-4 rounded-full bg-indigo-500 flex items-center justify-center flex-shrink-0">
+                                      <FaCheck className="text-white text-[7px]" />
+                                    </div>
+                                  )}
+                                </motion.div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </motion.div>
                 )}

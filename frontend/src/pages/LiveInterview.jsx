@@ -20,6 +20,7 @@ import Editor from '@monaco-editor/react';
 // Premium sub-components
 import InterviewMetrics from '../components/interview/InterviewMetrics';
 import WaveformVisualizer from '../components/interview/WaveformVisualizer';
+import MockInterviewRoom from '../components/interview/MockInterviewRoom';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const AUTO_SUBMIT_DELAY = 60 * 1000;
@@ -303,7 +304,7 @@ const LiveInterview = () => {
 
   // Parse URL search parameters
   const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
-  const companyQuery = queryParams.get('company')?.toLowerCase() || 'amazon';
+  const companyQuery = queryParams.get('company')?.toLowerCase() || '';
   const roleQuery = queryParams.get('role') || 'SDE Intern';
   
   // ── Existing state (ALL PRESERVED) ────────────────────────────────────────
@@ -410,6 +411,7 @@ const LiveInterview = () => {
   // Determine current company configuration
   const companyKey = useMemo(() => {
     if (companyQuery && COMPANY_INTERVIEWS[companyQuery]) return companyQuery;
+    if (interview?.company && COMPANY_INTERVIEWS[interview.company.toLowerCase()]) return interview.company.toLowerCase();
     if (interview?.interviewType?.toLowerCase().includes('amazon')) return 'amazon';
     if (interview?.interviewType?.toLowerCase().includes('google')) return 'google';
     if (interview?.interviewType?.toLowerCase().includes('microsoft')) return 'microsoft';
@@ -422,13 +424,38 @@ const LiveInterview = () => {
     if (interview?.interviewType?.toLowerCase().includes('wipro')) return 'wipro';
     if (interview?.interviewType?.toLowerCase().includes('deloitte')) return 'deloitte';
     if (interview?.interviewType?.toLowerCase().includes('jpmorgan')) return 'jpmorgan';
-    return 'amazon'; // Default SDE environment
+    return 'amazon'; // Default company fallback
   }, [companyQuery, interview]);
 
   const companyConfig = COMPANY_INTERVIEWS[companyKey];
 
+  const isMock = useMemo(() => {
+    const urlCompany = queryParams.get('company');
+    return !urlCompany && (!interview || !interview.company);
+  }, [queryParams, interview]);
+
+  const mockArchetype = useMemo(() => {
+    if (!interview?.type) return 'technical';
+    const typeStr = interview.type.toLowerCase();
+    if (typeStr.includes('coding')) return 'coding';
+    if (typeStr.includes('system design') || typeStr.includes('architecture') || typeStr.includes('design') || typeStr.includes('cloud') || typeStr.includes('devops')) return 'system_design';
+    if (typeStr.includes('resume')) return 'resume';
+    if (typeStr.includes('behavioral')) return 'behavioral';
+    if (typeStr.includes('hr')) return 'hr';
+    return 'technical';
+  }, [interview]);
+
   const currentRoundIdx = Math.min(questionNumber - 1, companyConfig.rounds.length - 1);
-  const currentRound = companyConfig.rounds[currentRoundIdx];
+  
+  const currentRound = useMemo(() => {
+    if (isMock) {
+      return {
+        type: mockArchetype === 'coding' ? 'coding' : mockArchetype === 'system_design' ? 'whiteboard' : 'text',
+        problemId: 'twoSum'
+      };
+    }
+    return companyConfig.rounds[currentRoundIdx];
+  }, [isMock, mockArchetype, companyConfig, currentRoundIdx]);
 
   // Initialize Code Content on round transition
   useEffect(() => {
@@ -1307,10 +1334,10 @@ const LiveInterview = () => {
           {/* Header */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-200 dark:border-white/10 pb-6 mb-8 gap-4">
             <div>
-              <span className="text-xs font-black uppercase tracking-widest text-indigo-500 dark:text-indigo-400" style={{ color: companyConfig.accentColor }}>
-                {companyConfig.title}
+              <span className="text-xs font-black uppercase tracking-widest text-indigo-500 dark:text-indigo-400" style={{ color: isMock ? '#6366f1' : companyConfig.accentColor }}>
+                {isMock ? `PRACTICE MODE: ${interview?.type?.toUpperCase() || 'MOCK INTERVIEW'}` : companyConfig.title}
               </span>
-              <h1 className="text-2xl font-black mt-1">AI Evaluation &amp; Grading Report</h1>
+              <h1 className="text-2xl font-black mt-1">{isMock ? 'Mock Practice Session Evaluation Report' : 'AI Evaluation &amp; Grading Report'}</h1>
             </div>
             <div className={`px-4 py-2 rounded-xl border text-sm font-black flex items-center gap-2 ${
               finalReportData.passed ? 'bg-emerald-500/10 border-emerald-500/35 text-emerald-500 dark:text-emerald-400' : 'bg-red-500/10 border-red-500/35 text-red-500 dark:text-red-400'
@@ -1394,9 +1421,9 @@ const LiveInterview = () => {
             <button
               onClick={handleSaveAndProceed}
               className="px-8 py-3 rounded-xl text-xs font-black text-white hover:opacity-90 transition-all cursor-pointer shadow-lg"
-              style={{ backgroundColor: companyConfig.accentColor }}
+              style={{ backgroundColor: isMock ? '#6366f1' : companyConfig.accentColor }}
             >
-              {finalReportData.passed ? 'Proceed & Save Results' : 'Return (Re-attempt Round)'}
+              {isMock ? 'Finish Practice & Exit' : (finalReportData.passed ? 'Proceed & Save Results' : 'Return (Re-attempt Round)')}
             </button>
           </div>
         </motion.div>
@@ -1546,7 +1573,59 @@ const LiveInterview = () => {
       </div>
 
       {/* ─── MAIN PLATFORM LAYOUT ─── */}
-      <div className="flex-1 flex gap-3 p-3 overflow-hidden min-h-0 relative">
+      {isMock ? (
+        <MockInterviewRoom
+          interview={interview}
+          archetype={mockArchetype}
+          currentQuestion={currentQuestion}
+          setCurrentQuestion={setCurrentQuestion}
+          isAIThinking={isAIThinking}
+          setIsAIThinking={setIsAIThinking}
+          aiSpeaking={aiSpeaking}
+          setAiSpeaking={setAiSpeaking}
+          isMuted={isMuted}
+          toggleMute={toggleMute}
+          isCameraOn={isCameraOn}
+          toggleCamera={toggleCamera}
+          videoRef={videoRef}
+          stream={stream}
+          hudConfidence={hudConfidence}
+          hudClarity={hudClarity}
+          hudWpm={hudWpm}
+          faceStatus={faceStatus}
+          codeContent={codeContent}
+          setCodeContent={setCodeContent}
+          selectedLanguage={selectedLanguage}
+          setSelectedLanguage={setSelectedLanguage}
+          sqlResult={sqlResult}
+          setSqlResult={setSqlResult}
+          blocks={blocks}
+          setBlocks={setBlocks}
+          addBlockToDesign={addBlockToDesign}
+          clearDrawing={clearDrawing}
+          canvasRefDraw={canvasRefDraw}
+          handleCanvasMouseDown={handleCanvasMouseDown}
+          handleCanvasMouseMove={handleCanvasMouseMove}
+          handleCanvasMouseUp={handleCanvasMouseUp}
+          submitAnswer={submitAnswer}
+          dialogLogs={dialogLogs}
+          isTypingMode={isTypingMode}
+          switchToSpeaking={switchToSpeaking}
+          switchToTyping={switchToTyping}
+          typedAnswer={typedAnswer}
+          setTypedAnswer={setTypedAnswer}
+          handleTypeAnswerSubmit={handleTypeAnswerSubmit}
+          theme={theme}
+          sessionTimeLeft={sessionTimeLeft}
+          togglePause={togglePause}
+          isPaused={isPaused}
+          endInterview={endInterview}
+          isRecording={isRecording}
+          isBookmarked={isBookmarked}
+          toggleBookmark={toggleBookmark}
+        />
+      ) : (
+        <div className="flex-1 flex gap-3 p-3 overflow-hidden min-h-0 relative">
         
         {/* LEFT COLUMN: INTERVIEWER & CANDIDATE CAMERA */}
         <div className="w-[300px] flex flex-col gap-3 flex-shrink-0 overflow-y-auto no-scrollbar">
@@ -2073,6 +2152,7 @@ const LiveInterview = () => {
         </div>
 
       </div>
+      )}
 
       {/* ─── END CONFIRM MODAL ─── */}
       <AnimatePresence>
