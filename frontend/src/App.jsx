@@ -22,6 +22,7 @@ const AssessmentRoom = lazy(() => import('./pages/AssessmentRoom'));
 const AssessmentReport = lazy(() => import('./pages/AssessmentReport'));
 const ReportsDashboard = lazy(() => import('./pages/ReportsDashboard'));
 const ReportDetail = lazy(() => import('./pages/ReportDetail'));
+const MockInterviewReport = lazy(() => import('./pages/MockInterviewReport'));
 const RoadmapPage = lazy(() => import('./pages/RoadmapPage'));
 const CommunityPage = lazy(() => import('./pages/CommunityPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
@@ -232,6 +233,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ReportDetail />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/mock-report/:id" 
+            element={
+              <ProtectedRoute>
+                <MockInterviewReport />
               </ProtectedRoute>
             } 
           />

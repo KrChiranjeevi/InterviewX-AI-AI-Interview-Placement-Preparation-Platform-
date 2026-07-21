@@ -1492,6 +1492,11 @@ const LiveInterview = () => {
 
   // Write finalized scores to simulation board context
   const handleSaveAndProceed = () => {
+    if (isMock) {
+      navigate(`/mock-report/${interview?._id}`);
+      return;
+    }
+
     const storageKey = `placement_simulation_${companyQuery}`;
     const savedState = localStorage.getItem(storageKey);
     const score = finalReportData.overallScore;

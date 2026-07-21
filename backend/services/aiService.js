@@ -1446,4 +1446,106 @@ Output ONLY the final feedback string. No JSON, no markdown formatting. Keep it 
   }
 };
 
-module.exports = { ai, generateQuestion, analyzeAnswer, analyzeResume, generateCompanyQuestion, analyzeCode, generateReport, generateRoadmap, generateTopicDetail, getCodeHint, generateAIReport, askMentor, compareRoadmaps, generateAptitudeReport, generateConversationalResponse };
+const generateMockEvidenceReport = async (interview) => {
+  try {
+    const questionsList = interview.questions.map((q, idx) => {
+      const qScore = q.score != null ? (q.score * 10) : 'Not Evaluated';
+      return `Q${idx + 1}: ${q.question}
+User Answer: ${q.userAnswer}
+AI Follow-up / Feedback: ${q.aiFeedback}
+Assigned Score (out of 100): ${qScore}
+Time Taken: ${q.timeTaken || 'Not Evaluated'}
+Speed (WPM): ${q.speechStats?.speakingSpeed || 0}
+Filler Words: ${q.speechStats?.fillerWordsCount || 0}
+Clarity: ${q.speechStats?.voiceClarity || 0}
+Grammar: ${q.speechStats?.grammarScore || 0}
+Eye Contact: ${q.speechStats?.eyeContactScore || 0}`;
+    }).join('\n\n');
+
+    const prompt = `You are an expert, objective AI Interview Evaluator.
+Analyze the following mock interview transcript and generate a strictly evidence-based JSON report.
+NEVER fabricate scores. If evidence is missing, use "Not Evaluated" or "Insufficient Data".
+The report MUST ONLY use the provided transcript data.
+
+Transcript:
+---
+${questionsList}
+---
+
+Return ONLY valid JSON (no markdown block, no extra text) with this exact structure:
+{
+  "overallScore": number (calculate average of all provided question scores, 0-100. If none, return 0),
+  "finalDecision": "Interview Ready" | "Nearly Ready" | "Needs Improvement",
+  "scoringBreakdown": [
+    { "category": "Technical", "score": number | "Not Evaluated", "reason": "evidence-based reason" },
+    { "category": "Communication", "score": number | "Not Evaluated", "reason": "evidence-based reason" },
+    { "category": "Confidence", "score": number | "Not Evaluated", "reason": "evidence-based reason" },
+    { "category": "Problem Solving", "score": number | "Not Evaluated", "reason": "evidence-based reason" }
+  ],
+  "questionAnalysis": [
+    {
+      "question": "string",
+      "summary": "short summary of answer",
+      "score": number | "Not Evaluated",
+      "strength": "evidence-based strength",
+      "weakness": "evidence-based weakness",
+      "time": "string (e.g., 2m 30s) or Not Evaluated",
+      "difficulty": "Easy" | "Medium" | "Hard" | "Not Evaluated"
+    }
+  ],
+  "followUpHistory": [
+    {
+      "originalQuestion": "string",
+      "candidateAnswer": "string",
+      "followUpQuestion": "string",
+      "improvedAnswer": "string (if any) or 'N/A'",
+      "evaluation": "string"
+    }
+  ],
+  "voiceAnalysis": {
+    "speakingSpeed": "number WPM or 'Not Evaluated'",
+    "clarity": "number% or 'Not Evaluated'",
+    "pauses": "number or 'Not Evaluated'",
+    "toneStability": "number% or 'Not Evaluated'",
+    "professionalism": "number% or 'Not Evaluated'"
+  },
+  "fillerWordAnalysis": {
+    "count": number,
+    "examples": ["string"],
+    "suggestions": ["string"]
+  },
+  "communicationEval": {
+    "grammar": "evidence-based evaluation",
+    "structure": "evidence-based evaluation",
+    "vocabulary": "evidence-based evaluation",
+    "logicalFlow": "evidence-based evaluation"
+  },
+  "strengths": ["list of strictly evidence-based strengths"],
+  "weaknesses": ["list of strictly evidence-based weaknesses"],
+  "improvementRoadmap": ["personalized, actionable steps based on mistakes"],
+  "interviewTimeline": [
+    { "stage": "Introduction", "timestamp": "00:00" },
+    // infer progression from questions
+  ],
+  "bodyLanguageAnalysis": {
+    "posture": "Not Evaluated",
+    "headMovement": "Not Evaluated",
+    "eyeContact": "number% or 'Not Evaluated'",
+    "facialExpression": "Not Evaluated",
+    "confidence": "number% or 'Not Evaluated'"
+  }
+}`;
+
+    const response = await ai.models.generateContent({ contents: prompt });
+    let text = response.text.trim();
+    if (text.startsWith('```json')) text = text.replace(/```json/g, '');
+    if (text.startsWith('```')) text = text.replace(/```/g, '');
+    if (text.endsWith('```')) text = text.replace(/```/g, '');
+    return JSON.parse(text);
+  } catch (error) {
+    console.error('generateMockEvidenceReport error:', error);
+    throw new Error('Failed to generate mock evidence report');
+  }
+};
+
+module.exports = { ai, generateQuestion, analyzeAnswer, analyzeResume, generateCompanyQuestion, analyzeCode, generateReport, generateRoadmap, generateTopicDetail, getCodeHint, generateAIReport, askMentor, compareRoadmaps, generateAptitudeReport, generateConversationalResponse, generateMockEvidenceReport };
