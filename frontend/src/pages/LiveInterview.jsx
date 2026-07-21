@@ -356,6 +356,15 @@ const LiveInterview = () => {
   const [toasts,          setToasts]          = useState([]);
   const [isFullscreen,    setIsFullscreen]    = useState(false);
 
+  // ── Premium AI Human Conversation Engine states (MOCK MODE ONLY) ──
+  const [conversationHistory,  setConversationHistory]  = useState([]);  // full chat log
+  const [interviewerStatus,    setInterviewerStatus]    = useState('listening'); // 'listening'|'analyzing'|'typing'|'preparing'|'speaking'|'evaluating'
+  const [interviewStage,       setInterviewStage]       = useState('greeting'); // 'greeting'|'warmup'|'core'|'deepdive'|'closing'
+  const [onExcellentAnswer,    setOnExcellentAnswer]    = useState(false); // triggers avatar smile
+  const [conversationLogOpen,  setConversationLogOpen]  = useState(false); // slide-out log panel
+  const [pendingSpeech,        setPendingSpeech]        = useState(null); // { ack, transition, question }
+  const [greetingDone,         setGreetingDone]         = useState(false); // track greeting completion
+
   // Dynamic Workspaces States
   const [selectedLanguage, setSelectedLanguage] = useState('python');
   const [codeContent, setCodeContent] = useState('');
@@ -399,6 +408,8 @@ const LiveInterview = () => {
   const sessionTimerRef    = useRef(null);
   const voiceRef           = useRef(null);
   const toastTimers        = useRef([]);
+  const interviewStageRef  = useRef('greeting'); // track stage in callbacks
+  const questionNumberRef  = useRef(1);          // track question number in callbacks
 
   // Sync ref hooks
   useEffect(() => { currentQuestionRef.current = currentQuestion;  }, [currentQuestion]);
@@ -559,14 +570,18 @@ const LiveInterview = () => {
     }
   }, [faceStatus]);
 
-  /* ─── Pre-load best female voice (PRESERVED) ──────────────────────────── */
+  /* ─── Pre-load best female voice (ENHANCED) ──────────────────────────── */
   useEffect(() => {
+    // Extended priority list — Microsoft Natural voices sound most human
     const PREFERRED_FEMALE_VOICES = [
-      'Google UK English Female',
-      'Microsoft Sonia Online (Natural) - English (United Kingdom)',
       'Microsoft Aria Online (Natural) - English (United States)',
+      'Microsoft Jenny Online (Natural) - English (United States)',
+      'Microsoft Sonia Online (Natural) - English (United Kingdom)',
+      'Microsoft Libby Online (Natural) - English (United Kingdom)',
+      'Google UK English Female',
       'Microsoft Zira Desktop - English (United States)',
-      'Samantha', 'Karen', 'Moira', 'Victoria', 'Google US English',
+      'Samantha', 'Karen', 'Moira', 'Victoria',
+      'Google US English',
     ];
     const pickVoice = () => {
       const voices = window.speechSynthesis.getVoices();
@@ -575,7 +590,7 @@ const LiveInterview = () => {
         const v = voices.find(v => v.name === name);
         if (v) { voiceRef.current = v; return; }
       }
-      const femaleEn = voices.find(v => v.lang.startsWith('en') && /female|woman|girl/i.test(v.name));
+      const femaleEn = voices.find(v => v.lang.startsWith('en') && /female|woman|girl|aria|jenny|sonia|libby/i.test(v.name));
       if (femaleEn) { voiceRef.current = femaleEn; return; }
       const anyEn = voices.find(v => v.lang.startsWith('en'));
       if (anyEn) voiceRef.current = anyEn;
@@ -681,22 +696,40 @@ const LiveInterview = () => {
     const fetchInterviewAndStart = async () => {
       try {
         const res = await api.get(`/interviews/${id}`);
-        setInterview(res.data);
-        
-        // Load initial round question based on configurations
-        const firstRound = companyConfig.rounds[0];
-        triggerRoundQuestion(firstRound);
+        const interviewData = res.data;
+        setInterview(interviewData);
+
+        // ── MOCK MODE: Trigger human greeting instead of immediate question
+        const urlCompany = queryParams.get('company');
+        const isCurrentlyMock = !urlCompany && (!interviewData || !interviewData.company);
+
+        if (isCurrentlyMock) {
+          // Small delay to let camera/mic initialize
+          setTimeout(() => triggerMockGreeting(interviewData), 1200);
+        } else {
+          // Company interview — original round question trigger
+          const firstRound = companyConfig.rounds[0];
+          triggerRoundQuestion(firstRound);
+        }
       } catch {
         // Fallback placeholder interview
-        setInterview({
+        const fallbackInterview = {
           _id: id,
           role: roleQuery,
           company: companyQuery.toUpperCase(),
           difficulty: 'Medium',
           duration: '30 min'
-        });
-        const firstRound = companyConfig.rounds[0];
-        triggerRoundQuestion(firstRound);
+        };
+        setInterview(fallbackInterview);
+
+        const urlCompany = queryParams.get('company');
+        const isCurrentlyMock = !urlCompany && !companyQuery;
+        if (isCurrentlyMock) {
+          setTimeout(() => triggerMockGreeting(fallbackInterview), 1200);
+        } else {
+          const firstRound = companyConfig.rounds[0];
+          triggerRoundQuestion(firstRound);
+        }
       }
     };
 
@@ -834,10 +867,103 @@ const LiveInterview = () => {
     utterance.rate   = 0.92;
     utterance.pitch  = 1.08;
     utterance.volume = 1.0;
-    utterance.onstart = () => { setAiSpeaking(true);  recognitionRef.current?.stop(); setIsRecording(false); };
-    utterance.onend   = () => { setAiSpeaking(false); startListening(); };
-    utterance.onerror = () => { setAiSpeaking(false); startListening(); };
+    utterance.onstart = () => { setAiSpeaking(true); setInterviewerStatus('speaking'); recognitionRef.current?.stop(); setIsRecording(false); };
+    utterance.onend   = () => { setAiSpeaking(false); setInterviewerStatus('listening'); startListening(); };
+    utterance.onerror = () => { setAiSpeaking(false); setInterviewerStatus('listening'); startListening(); };
     synthRef.current.speak(utterance);
+  };
+
+  // ── Helper: speak a single chunk and return a promise ──
+  const speakChunk = (text, opts = {}) => new Promise((resolve) => {
+    if (!text) { resolve(); return; }
+    synthRef.current.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    if (voiceRef.current) utt.voice = voiceRef.current;
+    utt.lang   = 'en-US';
+    utt.rate   = opts.rate   ?? 0.90;
+    utt.pitch  = opts.pitch  ?? 1.08;
+    utt.volume = opts.volume ?? 1.0;
+    utt.onend   = resolve;
+    utt.onerror = resolve;
+    synthRef.current.speak(utt);
+  });
+
+  // ── Helper: async delay ──
+  const delay = (ms) => new Promise(res => setTimeout(res, ms));
+
+  /* ─── TWO-PART Conversational TTS (MOCK MODE ONLY) ─────────────────────
+     Speaks acknowledgement first (warm, slightly slower), then a natural
+     pause, then speaks the next question (clear, professional tone).
+  ─────────────────────────────────────────────────────────────────────── */
+  const speakTextConversational = async (ackText, transitionText, questionText) => {
+    synthRef.current.cancel();
+    recognitionRef.current?.stop();
+    setIsRecording(false);
+    setAiSpeaking(true);
+    setInterviewerStatus('speaking');
+
+    // Part 1: Acknowledgement — warm, slightly slower
+    if (ackText) {
+      await speakChunk(ackText, { rate: 0.88, pitch: 1.10 });
+      await delay(420); // micro-pause after acknowledgement
+    }
+
+    // Part 2: Transition (optional)
+    if (transitionText) {
+      await speakChunk(transitionText, { rate: 0.91, pitch: 1.07 });
+      await delay(280);
+    }
+
+    // Part 3: The actual question — clear, professional
+    if (questionText) {
+      await speakChunk(questionText, { rate: 0.93, pitch: 1.05 });
+    }
+
+    setAiSpeaking(false);
+    setInterviewerStatus('listening');
+    startListening();
+  };
+
+  /* ─── Mock Interview Greeting Flow ─────────────────────────────────────
+     Fires once when the mock interview starts. Creates a warm, natural
+     human opening before the first question.
+  ─────────────────────────────────────────────────────────────────────── */
+  const triggerMockGreeting = async (interview) => {
+    const typeLabel = interview?.type || 'Technical';
+    const roleLabel = interview?.role || 'Software Engineer';
+    const greetingParts = [
+      `Good morning. Welcome to today's mock ${typeLabel} interview.`,
+      `My name is Sarah, and I'll be your interviewer today.`,
+      `I want this to feel like a real conversation, so please don't hesitate to think out loud.`,
+      `Before we dive in — could you start by telling me a little about yourself?`
+    ];
+    
+    setIsAIThinking(false);
+    setInterviewerStatus('speaking');
+    setAiSpeaking(true);
+
+    for (let i = 0; i < greetingParts.length; i++) {
+      setCurrentQuestion(greetingParts[i]);
+      currentQuestionRef.current = greetingParts[i];
+      await speakChunk(greetingParts[i], { rate: 0.88, pitch: 1.09 });
+      await delay(i < greetingParts.length - 1 ? 300 : 500);
+    }
+
+    // Set full greeting as question display
+    const fullGreeting = greetingParts.join(' ');
+    setCurrentQuestion(fullGreeting);
+    currentQuestionRef.current = fullGreeting;
+
+    // Log greeting in conversation history
+    setConversationHistory([{ sender: 'ai', text: fullGreeting, timestamp: Date.now() }]);
+    setDialogLogs([{ sender: 'ai', text: fullGreeting }]);
+
+    setAiSpeaking(false);
+    setInterviewerStatus('listening');
+    setInterviewStage('warmup');
+    interviewStageRef.current = 'warmup';
+    setGreetingDone(true);
+    startListening();
   };
 
   const startListening = () => {
@@ -873,14 +999,13 @@ const LiveInterview = () => {
     setIsAIThinking(true);
 
     // Save logs for bubble display
-    const userMsg = {
-      sender: 'user',
-      text: currentRound.type === 'coding' ? 'Shared source implementation in SDE editor.' : currentRound.type === 'sql' ? 'Submitted SQL query logic.' : currentRound.type === 'whiteboard' ? 'Finalized system architecture configuration.' : answer
-    };
-    const aiMsg = {
-      sender: 'ai',
-      text: currentQuestion
-    };
+    const userAnswerDisplay = currentRound.type === 'coding' ? 'Shared source implementation in SDE editor.'
+      : currentRound.type === 'sql' ? 'Submitted SQL query logic.'
+      : currentRound.type === 'whiteboard' ? 'Finalized system architecture configuration.'
+      : answer;
+
+    const userMsg = { sender: 'user', text: userAnswerDisplay, timestamp: Date.now() };
+    const aiMsg   = { sender: 'ai',   text: currentQuestion,   timestamp: Date.now() - 1 };
     setDialogLogs(prev => [...prev, aiMsg, userMsg]);
 
     setFinalTranscript('');
@@ -892,7 +1017,6 @@ const LiveInterview = () => {
     setIsBookmarked(false);
 
     try {
-      // Save answer in the database context
       await api.post(`/interviews/${id}/answer`, {
         question: currentQuestionRef.current,
         answer,
@@ -902,14 +1026,103 @@ const LiveInterview = () => {
       console.warn('Backend logging failed, fallback client evaluation active');
     }
 
-    // Advance to next round index
+    // ══════════════════════════════════════════════════════════════════
+    // MOCK MODE — Premium Conversational AI Engine
+    // ══════════════════════════════════════════════════════════════════
+    if (isMock) {
+      const currentStage = interviewStageRef.current;
+      const currentQNum  = questionNumberRef.current;
+
+      // Step 1: Analyzing state (1.5s) — avatar tilts head, thinks
+      setInterviewerStatus('analyzing');
+      await new Promise(res => setTimeout(res, 1500));
+
+      // Step 2: Typing Notes state (0.7s) — avatar looks down
+      setInterviewerStatus('typing');
+      await new Promise(res => setTimeout(res, 700));
+
+      // Step 3: Preparing follow-up state (0.6s) — avatar looks up
+      setInterviewerStatus('preparing');
+      await new Promise(res => setTimeout(res, 600));
+
+      let convResponse = null;
+      try {
+        const convRes = await api.post(`/interviews/${id}/conversational-response`, {
+          userAnswer: userAnswerDisplay,
+          questionAsked: currentQuestionRef.current,
+          conversationHistory: conversationHistory.slice(-6),
+          questionNumber: currentQNum,
+          interviewStage: currentStage
+        });
+        convResponse = convRes.data;
+      } catch (err) {
+        console.warn('Conversational response API failed, using fallback');
+      }
+
+      // Advance question counter and determine next stage
+      const nextQNum = currentQNum + 1;
+      questionNumberRef.current = nextQNum;
+      setQuestionNumber(nextQNum);
+
+      let nextStage = currentStage;
+      if (currentStage === 'greeting') nextStage = 'warmup';
+      else if (currentStage === 'warmup' && nextQNum >= 2) nextStage = 'core';
+      else if (currentStage === 'core' && nextQNum >= 5) nextStage = 'deepdive';
+      else if (nextQNum >= 9) nextStage = 'closing';
+      setInterviewStage(nextStage);
+      interviewStageRef.current = nextStage;
+
+      // Trigger smile for excellent answers (> 80 words)
+      const wordCount = userAnswerDisplay.split(/\s+/).length;
+      if (wordCount > 80) {
+        setOnExcellentAnswer(true);
+        setTimeout(() => setOnExcellentAnswer(false), 2200);
+      }
+
+      if (convResponse) {
+        const { acknowledgement, transition, nextQuestion, isClosing } = convResponse;
+
+        // Append full exchange to conversation log
+        const aiResponseText = [acknowledgement, transition, nextQuestion].filter(Boolean).join(' ');
+        setConversationHistory(prev => [
+          ...prev,
+          { sender: 'user', text: userAnswerDisplay, timestamp: Date.now() - 2 },
+          { sender: 'ai',   text: aiResponseText,    timestamp: Date.now() }
+        ]);
+
+        if (isClosing || nextStage === 'closing') {
+          setCurrentQuestion(aiResponseText);
+          currentQuestionRef.current = aiResponseText;
+          setIsAIThinking(false);
+          await speakTextConversational(acknowledgement, transition, nextQuestion);
+          setTimeout(() => endInterview(), 2000);
+          return;
+        }
+
+        setCurrentQuestion(nextQuestion);
+        currentQuestionRef.current = nextQuestion;
+        setIsAIThinking(false);
+
+        // Speak conversationally: acknowledgement → pause → question
+        await speakTextConversational(acknowledgement, transition, nextQuestion);
+      } else {
+        // Fallback for API failure
+        setIsAIThinking(false);
+        setInterviewerStatus('listening');
+        startListening();
+      }
+      return;
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // COMPANY INTERVIEW MODE — Original round-based flow (PRESERVED)
+    // ══════════════════════════════════════════════════════════════════
     const nextQ = questionNumber + 1;
     if (nextQ <= companyConfig.rounds.length) {
       setQuestionNumber(nextQ);
       const nextRound = companyConfig.rounds[nextQ - 1];
       triggerRoundQuestion(nextRound);
     } else {
-      // Interview completed
       endInterview();
     }
   };
@@ -1623,6 +1836,12 @@ const LiveInterview = () => {
           isRecording={isRecording}
           isBookmarked={isBookmarked}
           toggleBookmark={toggleBookmark}
+          interviewerStatus={interviewerStatus}
+          conversationHistory={conversationHistory}
+          conversationLogOpen={conversationLogOpen}
+          setConversationLogOpen={setConversationLogOpen}
+          onExcellentAnswer={onExcellentAnswer}
+          interviewStage={interviewStage}
         />
       ) : (
         <div className="flex-1 flex gap-3 p-3 overflow-hidden min-h-0 relative">

@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Clock, Shield, Send, Keyboard, Activity, CheckCircle2,
   AlertCircle, Zap, Brain, Play, Pause, Plus, Database, User,
-  Check, AlertTriangle, Trash2, Mic, Code2, Layout, FileText, ArrowRight
+  Check, AlertTriangle, Trash2, Mic, Code2, Layout, FileText, ArrowRight,
+  MessageSquare, ChevronRight, X
 } from 'lucide-react';
 import {
   FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash,
@@ -12,6 +13,7 @@ import {
 } from 'react-icons/fa';
 import Editor from '@monaco-editor/react';
 import WaveformVisualizer from './WaveformVisualizer';
+import InterviewerAvatar from './InterviewerAvatar';
 
 const MockInterviewRoom = ({
   interview,
@@ -61,7 +63,14 @@ const MockInterviewRoom = ({
   endInterview,
   isRecording,
   isBookmarked,
-  toggleBookmark
+  toggleBookmark,
+  // ── Premium Conversation Engine Props (new) ──
+  interviewerStatus = 'listening',
+  conversationHistory = [],
+  conversationLogOpen = false,
+  setConversationLogOpen = () => {},
+  onExcellentAnswer = false,
+  interviewStage = 'core',
 }) => {
 
   // Local helper states to enrich the workflows
@@ -338,23 +347,33 @@ const MockInterviewRoom = ({
               </span>
             </div>
 
-            {/* AI Panel Avatars List */}
-            <div className="flex justify-around items-center bg-slate-950/20 py-3 border-b border-white/5 gap-4 px-4">
-              {[
-                { name: 'Ava (Lead SDE)', status: aiSpeaking ? 'Speaking' : 'Listening', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150', active: true },
-                { name: 'Marcus (Architect)', status: 'Analyzing', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150', active: isAIThinking },
-                { name: 'Elena (Specialist)', status: 'Online', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150', active: false }
-              ].map(p => (
-                <div key={p.name} className={`flex items-center gap-2 p-1.5 rounded-xl border transition-all ${p.active ? 'bg-indigo-600/10 border-indigo-500/30' : 'bg-transparent border-transparent opacity-60'}`}>
-                  <div className="w-7 h-7 rounded-full overflow-hidden border border-indigo-500/30">
-                    <img src={p.avatar} alt={p.name} className="w-full h-full object-cover" />
-                  </div>
-                  <div>
-                    <span className="text-[9px] font-black text-white block truncate w-24">{p.name}</span>
-                    <span className="text-[8px] text-slate-400 block">{p.status}</span>
-                  </div>
-                </div>
-              ))}
+            {/* Premium AI Interviewer Avatar Panel */}
+            <div className="relative border-b border-white/5 overflow-hidden" style={{ height: 220 }}>
+              <InterviewerAvatar
+                aiSpeaking={aiSpeaking}
+                isAIThinking={isAIThinking}
+                interviewerName="Sarah"
+                interviewerStatus={interviewerStatus}
+                onExcellentAnswer={onExcellentAnswer}
+              />
+
+              {/* Conversation Log Toggle Button */}
+              <button
+                onClick={() => setConversationLogOpen(prev => !prev)}
+                className="absolute top-3 right-3 z-20 flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-900/80 backdrop-blur-sm border border-white/10 rounded-xl text-[9px] font-bold text-slate-400 hover:text-white hover:border-indigo-500/40 transition-all"
+              >
+                <MessageSquare className="w-3 h-3" />
+                Chat Log
+              </button>
+
+              {/* Interview Stage Badge */}
+              <div className="absolute top-3 left-3 z-20 px-2 py-0.5 bg-indigo-500/20 border border-indigo-500/30 rounded-full text-[9px] font-bold text-indigo-300 uppercase tracking-wider">
+                {interviewStage === 'greeting' ? '👋 Welcome' :
+                 interviewStage === 'warmup' ? '🌅 Warm-up' :
+                 interviewStage === 'core' ? '🎯 Core Round' :
+                 interviewStage === 'deepdive' ? '🔬 Deep Dive' :
+                 interviewStage === 'closing' ? '✅ Closing' : '🎯 Interview'}
+              </div>
             </div>
 
             {/* Dialogue stream */}
@@ -979,6 +998,114 @@ const MockInterviewRoom = ({
           </div>
         </>
       )}
+
+      {/* ─── REAL-TIME CONVERSATION LOG PANEL (all archetypes) ─── */}
+      <AnimatePresence>
+        {conversationLogOpen && (
+          <motion.div
+            key="conv-log"
+            initial={{ x: '100%', opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: '100%', opacity: 0 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 250 }}
+            className="absolute right-0 top-0 bottom-0 w-80 z-40 bg-slate-950/95 backdrop-blur-xl border-l border-white/10 flex flex-col shadow-2xl"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-indigo-400" />
+                <span className="text-xs font-black text-white uppercase tracking-widest">Conversation Log</span>
+              </div>
+              <button
+                onClick={() => setConversationLogOpen(false)}
+                className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-white/10 text-slate-500 hover:text-white transition-all"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Stage Progress */}
+            <div className="px-4 py-2 border-b border-white/5 flex-shrink-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {['greeting', 'warmup', 'core', 'deepdive', 'closing'].map((stage, idx) => {
+                  const stageOrder = ['greeting', 'warmup', 'core', 'deepdive', 'closing'];
+                  const currentIdx = stageOrder.indexOf(interviewStage);
+                  const isPast = idx < currentIdx;
+                  const isCurrent = idx === currentIdx;
+                  return (
+                    <div key={stage} className="flex items-center gap-1">
+                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold transition-all ${
+                        isPast ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                        isCurrent ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40' :
+                        'bg-white/5 text-slate-600 border border-white/5'
+                      }`}>
+                        {stage.charAt(0).toUpperCase() + stage.slice(1)}
+                      </span>
+                      {idx < 4 && <ChevronRight className="w-2 h-2 text-slate-700" />}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3 no-scrollbar">
+              {conversationHistory.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-4">
+                  <div className="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center">
+                    <MessageSquare className="w-5 h-5 text-indigo-400 opacity-50" />
+                  </div>
+                  <p className="text-slate-500 text-[11px] leading-relaxed">
+                    Your conversation with Sarah will appear here in real-time as the interview progresses.
+                  </p>
+                </div>
+              ) : (
+                conversationHistory.map((msg, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.05 * Math.min(idx, 5) }}
+                    className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    {msg.sender === 'ai' && (
+                      <div className="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center text-[8px] font-black text-white mr-1.5 flex-shrink-0 mt-0.5">S</div>
+                    )}
+                    <div className={`max-w-[220px] px-3 py-2 rounded-2xl text-[10px] leading-relaxed font-medium ${
+                      msg.sender === 'user'
+                        ? 'bg-indigo-600 text-white rounded-br-sm'
+                        : 'bg-slate-800 text-slate-200 border border-white/5 rounded-bl-sm'
+                    }`}>
+                      {msg.text}
+                      {msg.timestamp && (
+                        <div className={`text-[8px] mt-1 ${msg.sender === 'user' ? 'text-indigo-300' : 'text-slate-600'}`}>
+                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      )}
+                    </div>
+                    {msg.sender === 'user' && (
+                      <div className="w-5 h-5 rounded-full bg-slate-700 flex items-center justify-center text-[8px] font-black text-slate-400 ml-1.5 flex-shrink-0 mt-0.5">U</div>
+                    )}
+                  </motion.div>
+                ))
+              )}
+            </div>
+
+            {/* Live status at bottom */}
+            <div className="px-4 py-3 border-t border-white/10 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  interviewerStatus === 'listening' ? 'bg-emerald-400 animate-pulse' :
+                  interviewerStatus === 'analyzing' ? 'bg-amber-400 animate-ping' :
+                  interviewerStatus === 'speaking'  ? 'bg-indigo-400 animate-pulse' :
+                  'bg-violet-400 animate-pulse'
+                }`} />
+                <span className="text-[10px] text-slate-400 font-medium capitalize">Sarah is {interviewerStatus}...</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

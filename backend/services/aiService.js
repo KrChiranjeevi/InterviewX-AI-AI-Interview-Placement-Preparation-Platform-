@@ -420,6 +420,168 @@ RULES:
   }
 };
 
+// ─── Conversational Response Engine (MOCK MODE ONLY) ─────────────────────────
+// Generates a natural human acknowledgement + smooth follow-up or next question.
+// This replaces the robotic "question → question → question" pattern.
+const generateConversationalResponse = async ({
+  userAnswer,
+  questionAsked,
+  conversationHistory = [],
+  role,
+  type,
+  domain = '',
+  subLanguage = '',
+  projectName = '',
+  projectDescription = '',
+  difficulty = 'Intermediate',
+  questionNumber = 1,
+  interviewStage = 'core'
+}) => {
+  try {
+    const wordCount = userAnswer ? userAnswer.trim().split(/\s+/).length : 0;
+    const isShortAnswer = wordCount < 15;
+    const isEmpty = wordCount < 3;
+
+    // Build conversation context from history
+    const historyContext = conversationHistory.length > 0
+      ? conversationHistory
+          .slice(-4) // only last 4 turns for context
+          .map(h => `[${h.sender === 'ai' ? 'Sarah' : 'Candidate'}]: ${h.text}`)
+          .join('\n')
+      : 'This is the beginning of the interview.';
+
+    // Domain context for strict focus
+    let domainContext = '';
+    if (domain) {
+      if (domain === 'DSA' && subLanguage) {
+        domainContext = `Interview Domain: Data Structures & Algorithms using ${subLanguage}. Stay strictly within DSA and ${subLanguage} topics.`;
+      } else if (projectName) {
+        domainContext = `Interview Domain: Project Discussion about "${projectName}" — ${projectDescription}. Ask only about this project.`;
+      } else {
+        domainContext = `Interview Domain: ${domain}. Ask ONLY questions within this domain. Never switch topics.`;
+      }
+    }
+
+    const stageInstructions = {
+      greeting: 'This is the greeting phase. Respond warmly after the candidate introduced themselves. Transition smoothly to the first warm-up question.',
+      warmup: 'This is the warm-up phase. Keep responses encouraging and casual. Ask a light introductory question.',
+      core: 'This is the core interview phase. Acknowledge the answer naturally, then ask the next domain-focused question. Increase depth progressively.',
+      deepdive: 'This is the deep-dive phase. The candidate is performing well. Dig deeper — ask why, ask for trade-offs, ask for optimization. Do not let easy answers pass without probing.',
+      closing: 'This is the closing phase. Wrap up gracefully. Thank the candidate and deliver a warm professional closing statement without a new question.'
+    };
+
+    const prompt = `You are Sarah, a seasoned Senior Technical Recruiter and Interviewer with 12 years of experience at top tech companies.
+
+YOUR PERSONALITY:
+- Professional, calm, warm, focused, and patient
+- You sound like a real human — never robotic, never scripted
+- You never read a list of questions. You conduct a real conversation.
+- You listen carefully and respond based on what the candidate actually said
+
+INTERVIEW CONTEXT:
+Role: ${role}
+Interview Type: ${type}
+Difficulty: ${difficulty}
+Question Number: ${questionNumber}
+Interview Stage: ${interviewStage}
+${domainContext}
+
+RECENT CONVERSATION:
+${historyContext}
+
+LAST QUESTION YOU ASKED:
+"${questionAsked}"
+
+CANDIDATE'S ANSWER:
+"${userAnswer || '(no response)'}"
+
+ANSWER ASSESSMENT:
+- Word count: ${wordCount} words
+- Answer quality: ${isEmpty ? 'EMPTY - no meaningful response' : isShortAnswer ? 'VERY SHORT - incomplete response' : wordCount > 80 ? 'DETAILED - strong response' : 'MODERATE - acceptable response'}
+
+STAGE INSTRUCTION:
+${stageInstructions[interviewStage] || stageInstructions.core}
+
+YOUR TASK:
+Write your next conversational response as Sarah. Structure it as:
+1. ACKNOWLEDGEMENT (1-2 sentences): React naturally to what the candidate just said. Be specific — reference something they actually said. Use phrases like:
+   - "That's an interesting perspective."
+   - "I can see where you're coming from."
+   - "That makes a lot of sense."
+   - "Good — you touched on something important there."
+   - "Interesting. I want to explore that a bit more."
+   - "I appreciate you walking me through that."
+   - (If empty/no answer): "Take your time. Whenever you're ready, we can approach this from a different angle."
+   - (If short): "Could you walk me through that in a bit more detail? I'd like to understand your thinking."
+   - (If excellent): "That's a solid explanation. I like how you structured that. Let's go a bit deeper."
+   NEVER say: "Correct", "Wrong", "That's right", "Good job", "Great answer"
+
+2. TRANSITION (optional, 0-1 sentence): Smoothly connect to the next topic if needed. Use:
+   - "Let's shift to another area."
+   - "Building on that..."
+   - "Going back to what you mentioned about [X]..."
+   - "That actually brings me to my next question."
+   (Skip transition if directly probing their answer)
+
+3. NEXT QUESTION (1-2 sentences): Ask ONE clear, focused question. Rules:
+   - If answer was short/empty: Ask a FOLLOW-UP probe about their same answer, not a new topic
+   - If answer was moderate: Ask a natural follow-up or related next question
+   - If answer was excellent: Escalate difficulty — ask for trade-offs, edge cases, or deeper optimization
+   - NEVER ask more than one question at a time
+   - Keep the question within the domain: "${domain || type}"
+   - If closing stage: No new question. Deliver a warm professional conclusion.
+
+OUTPUT FORMAT (STRICT — return ONLY valid JSON, no markdown):
+{
+  "acknowledgement": "<1-2 sentence natural acknowledgement>",
+  "transition": "<0-1 sentence transition or empty string>",
+  "nextQuestion": "<1-2 sentence next question or closing statement>",
+  "isFollowUp": <true if probing same answer, false if new topic>,
+  "isClosing": <true if this is the final closing message>
+}`;
+
+    const response = await ai.models.generateContent({ contents: prompt });
+    let raw = response.text.trim();
+
+    // Strip markdown code blocks if present
+    raw = raw.replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim();
+
+    const parsed = JSON.parse(raw);
+
+    return {
+      acknowledgement: parsed.acknowledgement || 'I see. Thank you for that.',
+      transition: parsed.transition || '',
+      nextQuestion: parsed.nextQuestion || 'Could you tell me more about your experience?',
+      isFollowUp: parsed.isFollowUp || false,
+      isClosing: parsed.isClosing || false,
+      // Combined full text for TTS
+      fullSpeech: [
+        parsed.acknowledgement,
+        parsed.transition,
+        parsed.nextQuestion
+      ].filter(Boolean).join(' ').trim()
+    };
+  } catch (error) {
+    console.error('❌ generateConversationalResponse failed:', error.message);
+    // Graceful fallback — still feel human
+    const fallbackAcks = [
+      "I see. Thank you for sharing that.",
+      "That makes sense. Let me ask you something related.",
+      "Interesting perspective. Let's continue.",
+      "I appreciate you walking me through that."
+    ];
+    const ack = fallbackAcks[Math.floor(Math.random() * fallbackAcks.length)];
+    return {
+      acknowledgement: ack,
+      transition: '',
+      nextQuestion: 'Could you walk me through your thought process on that in a bit more detail?',
+      isFollowUp: true,
+      isClosing: false,
+      fullSpeech: `${ack} Could you walk me through your thought process on that in a bit more detail?`
+    };
+  }
+};
+
 const analyzeAnswer = async (question, answer, role, difficulty) => {
   try {
     const prompt = `You are evaluating a candidate's answer for the question: "${question}".
@@ -1284,4 +1446,4 @@ Output ONLY the final feedback string. No JSON, no markdown formatting. Keep it 
   }
 };
 
-module.exports = { ai, generateQuestion, analyzeAnswer, analyzeResume, generateCompanyQuestion, analyzeCode, generateReport, generateRoadmap, generateTopicDetail, getCodeHint, generateAIReport, askMentor, compareRoadmaps, generateAptitudeReport };
+module.exports = { ai, generateQuestion, analyzeAnswer, analyzeResume, generateCompanyQuestion, analyzeCode, generateReport, generateRoadmap, generateTopicDetail, getCodeHint, generateAIReport, askMentor, compareRoadmaps, generateAptitudeReport, generateConversationalResponse };

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/authMiddleware');
 const Interview = require('../models/Interview');
-const { generateQuestion, analyzeAnswer, generateAIReport } = require('../services/aiService');
+const { generateQuestion, analyzeAnswer, generateAIReport, generateConversationalResponse } = require('../services/aiService');
 
 const createInterview = async (req, res) => {
   const { interviewType, role, difficulty, duration, resumeSkills, resumeText, company, companyContext, domain, subLanguage, projectName, projectDescription } = req.body;
@@ -288,11 +288,46 @@ const bookmarkQuestion = async (req, res) => {
   }
 };
 
+const getConversationalResponse = async (req, res) => {
+  try {
+    const interview = await Interview.findById(req.params.id);
+    if (!interview) return res.status(404).json({ message: 'Interview not found' });
+
+    const {
+      userAnswer,
+      questionAsked,
+      conversationHistory,
+      questionNumber,
+      interviewStage
+    } = req.body;
+
+    const result = await generateConversationalResponse({
+      userAnswer,
+      questionAsked,
+      conversationHistory: conversationHistory || [],
+      role: interview.role,
+      type: interview.type,
+      domain: interview.domain || '',
+      subLanguage: interview.subLanguage || '',
+      projectName: interview.projectName || '',
+      projectDescription: interview.projectDescription || '',
+      difficulty: interview.difficulty || 'Intermediate',
+      questionNumber: questionNumber || 1,
+      interviewStage: interviewStage || 'core'
+    });
+
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
 router.post('/create', protect, createInterview);
 router.get('/recent', protect, getRecentInterviews);
 router.get('/:id', protect, getInterviewById);
 router.post('/:id/question', protect, getNextQuestion);
 router.post('/:id/answer', protect, submitAnswer);
+router.post('/:id/conversational-response', protect, getConversationalResponse);
 router.put('/:id/finish', protect, finishInterview);
 router.put('/:id/bookmark', protect, bookmarkQuestion);
 
