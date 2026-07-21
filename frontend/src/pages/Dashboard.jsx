@@ -515,7 +515,7 @@ const Dashboard = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
               {/* AI Mentor Card */}
-              <motion.div variants={fadeUp} className="relative overflow-hidden rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-900/20 to-indigo-900/20 p-5 backdrop-blur-sm cursor-pointer group" onClick={() => setMentorExpanded(!mentorExpanded)}>
+              <motion.div variants={fadeUp} className="relative overflow-hidden rounded-2xl border border-purple-200 dark:border-purple-500/20 bg-gradient-to-br from-purple-100/50 to-indigo-100/50 dark:from-purple-900/20 dark:to-indigo-900/20 p-5 backdrop-blur-sm cursor-pointer group shadow-sm dark:shadow-none" onClick={() => setMentorExpanded(!mentorExpanded)}>
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-indigo-500/5" />
                 <div className="absolute -right-6 -top-6 h-28 w-28 rounded-full bg-purple-500/20 blur-2xl group-hover:bg-purple-500/30 transition-all duration-700" />
                 <div className="relative z-10">
@@ -528,28 +528,28 @@ const Dashboard = () => {
                       <Bot className="h-6 w-6 text-white" />
                     </motion.div>
                     <div>
-                      <p className="font-bold text-white">AI Mentor</p>
+                      <p className="font-bold text-zinc-900 dark:text-white">AI Mentor</p>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        <span className="text-[11px] text-emerald-400 font-medium">Online · Ready</span>
+                        <span className="text-[11px] text-emerald-500 dark:text-emerald-400 font-medium">Online · Ready</span>
                       </div>
                     </div>
-                    <Sparkles className="ml-auto h-4 w-4 text-purple-400 animate-pulse" />
+                    <Sparkles className="ml-auto h-4 w-4 text-purple-500 dark:text-purple-400 animate-pulse" />
                   </div>
 
                   <div className="space-y-3">
-                    <div className="rounded-xl bg-white/5 border border-white/5 p-3">
-                      <p className="text-[10px] text-purple-300 font-semibold uppercase tracking-wider mb-1">Today's Advice</p>
-                      <p className="text-sm text-zinc-200 leading-relaxed">Focus on System Design today. Your score dropped 8% there. Practice with the CAP theorem exercise.</p>
+                    <div className="rounded-xl bg-white/40 dark:bg-white/5 border border-purple-200/50 dark:border-white/5 p-3">
+                      <p className="text-[10px] text-purple-600 dark:text-purple-300 font-semibold uppercase tracking-wider mb-1">Today's Advice</p>
+                      <p className="text-sm text-zinc-700 dark:text-zinc-200 leading-relaxed font-medium">Focus on System Design today. Your score dropped 8% there. Practice with the CAP theorem exercise.</p>
                     </div>
                     <div className="flex gap-2">
                       <div className="flex-1 rounded-xl bg-red-500/10 border border-red-500/15 p-2.5">
-                        <p className="text-[10px] text-red-400 font-semibold">⚠ Weak</p>
-                        <p className="text-xs text-zinc-300 mt-0.5">System Design</p>
+                        <p className="text-[10px] text-red-500 dark:text-red-400 font-semibold">⚠ Weak</p>
+                        <p className="text-xs text-zinc-700 dark:text-zinc-300 mt-0.5 font-medium">System Design</p>
                       </div>
                       <div className="flex-1 rounded-xl bg-emerald-500/10 border border-emerald-500/15 p-2.5">
-                        <p className="text-[10px] text-emerald-400 font-semibold">✓ Strong</p>
-                        <p className="text-xs text-zinc-300 mt-0.5">Behavioral</p>
+                        <p className="text-[10px] text-emerald-500 dark:text-emerald-400 font-semibold">✓ Strong</p>
+                        <p className="text-xs text-zinc-700 dark:text-zinc-300 mt-0.5 font-medium">Behavioral</p>
                       </div>
                     </div>
                   </div>

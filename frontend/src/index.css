@@ -877,9 +877,13 @@ body {
   --color-slate-600: #9CA3AF;
   
   /* Text scale: Converts muted dark text to readable light mode text */
+  --color-zinc-100: #111827;
+  --color-zinc-200: #1F2937;
   --color-zinc-300: #374151;
   --color-zinc-400: #4B5563;
   --color-zinc-500: #6B7280;
+  --color-slate-100: #111827;
+  --color-slate-200: #1F2937;
   --color-slate-300: #374151;
   --color-slate-400: #4B5563;
   --color-slate-500: #6B7280;

@@ -86,7 +86,7 @@ const Navbar = ({ title, subtitle }) => {
   return (
     <header className="sticky top-0 z-[100] h-16 w-full print:hidden">
       {/* Glass backdrop */}
-      <div className="absolute inset-0 border-b border-zinc-200/50 dark:border-white/[0.06] bg-white/80 dark:bg-[#070711]/80 backdrop-blur-2xl" />
+      <div className="absolute inset-0 border-b border-zinc-200/50 dark:border-zinc-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-2xl" />
       {/* Top accent line */}
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-500/60 to-transparent" />
 

@@ -95,7 +95,7 @@ const Sidebar = () => {
         onMouseMove={handleMouseMove}
         animate={{ width: isMobile ? 260 : (isSidebarExpanded ? 260 : 72) }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className={`fixed left-0 top-0 z-50 flex h-screen flex-col overflow-hidden border-r border-zinc-200/50 dark:border-white/[0.06] bg-white dark:bg-[#070711] select-none transition-transform duration-300 md:transition-none print:hidden
+        className={`fixed left-0 top-0 z-50 flex h-screen flex-col overflow-hidden border-r border-zinc-200/50 dark:border-zinc-800 bg-white dark:bg-slate-950 select-none transition-transform duration-300 md:transition-none print:hidden
           ${isMobile ? (mobileOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}`}
         style={{ boxShadow: (isMobile && mobileOpen) || (!isMobile && isSidebarExpanded) ? '4px 0 60px rgba(99,102,241,0.12)' : '2px 0 20px rgba(0,0,0,0.4)' }}
       >
