@@ -611,96 +611,204 @@ export const getDebuggingQuestions = (count = 5) => {
 // ============================================================
 
 export const CATEGORIES = [
-  { 
-    id: 'arrays', 
-    name: 'Arrays & Hashing', 
-    label: 'Arrays',
-    description: 'Master sliding window, two-pointer techniques, grid traversal, and frequency hashing.',
-    icon: '📊', 
-    color: 'from-indigo-500 to-purple-500',
-    subtopics: ['Two Pointers', 'Sliding Window', 'Hashing', 'Prefix Sum']
+  {
+    id: 'dsa',
+    name: 'Coding Practice',
+    icon: '🧠',
+    color: 'from-indigo-500 to-purple-600',
+    borderColor: 'border-indigo-500/30',
+    description: 'Arrays, Trees, Graphs, Dynamic Programming. Real coding problems for FAANG interviews.',
+    subtopics: ['Arrays', 'Strings', 'Linked List', 'Stack', 'Queue', 'HashMap', 'Trees', 'Graph', 'Greedy', 'DP', 'Two Pointer'],
   },
-  { 
-    id: 'strings', 
-    name: 'String Manipulation', 
-    label: 'Strings',
-    description: 'Practice string matching, regex operations, palindromes, and complex character parsing.',
-    icon: '🔤', 
-    color: 'from-purple-500 to-pink-500',
-    subtopics: ['Anagrams', 'Substrings', 'Palindromes', 'Regex']
+  {
+    id: 'sql',
+    name: 'SQL (MCQ)',
+    icon: '🗄️',
+    color: 'from-blue-500 to-cyan-600',
+    borderColor: 'border-blue-500/30',
+    description: 'SELECT, JOINs, GROUP BY, Window Functions, CTEs. Essential database theory.',
+    subtopics: ['SELECT Queries', 'JOINs', 'Subqueries', 'Grouping & Aggregation', 'Window Functions', 'CTEs'],
   },
-  { 
-    id: 'linkedlist', 
-    name: 'Linked Lists', 
-    label: 'Linked List',
-    description: 'Learn slow & fast pointer algorithms, list reversals, cycle detection, and list merges.',
-    icon: '🔗', 
-    color: 'from-cyan-500 to-blue-500',
-    subtopics: ['Singly Linked List', 'Doubly Linked List', 'Fast & Slow Pointer']
+  {
+    id: 'javascript',
+    name: 'JavaScript (MCQ)',
+    icon: '⚡',
+    color: 'from-yellow-400 to-amber-500',
+    borderColor: 'border-yellow-500/30',
+    description: 'Closures, promises, async/await, DOM manipulation. Theoretical concepts and outputs.',
+    subtopics: ['Closures', 'Promises', 'Event Loops', 'Array Methods', 'Objects', 'DOM'],
   },
-  { 
-    id: 'trees', 
-    name: 'Trees & BST', 
-    label: 'Trees',
-    description: 'Practice recursive tree traversals, lowest common ancestors, and depth-first search (DFS).',
-    icon: '🌳', 
-    color: 'from-emerald-500 to-teal-500',
-    subtopics: ['Binary Tree', 'BST', 'BFS / DFS Traversals']
+  {
+    id: 'aptitude',
+    name: 'Aptitude (MCQ)',
+    icon: '🧩',
+    color: 'from-purple-500 to-indigo-600',
+    borderColor: 'border-purple-500/30',
+    description: 'Puzzles, analytical logic, patterns, and riddles. Essential assessment phase.',
+    subtopics: ['Puzzles', 'Math Puzzles', 'Logic Riddles', 'Analytical Reasoning']
   },
-  { 
-    id: 'graphs', 
-    name: 'Graph Theory', 
-    label: 'Graphs',
-    description: 'Master topological sort, Dijkstra\'s shortest path, Prim\'s algorithms, and union-find.',
-    icon: '🕸️', 
-    color: 'from-amber-500 to-orange-500',
-    subtopics: ['Dijkstra', 'BFS / DFS', 'Union Find', 'Kruskal']
+  {
+    id: 'quant',
+    name: 'Quantitative Aptitude (MCQ)',
+    icon: '📊',
+    color: 'from-amber-500 to-yellow-600',
+    borderColor: 'border-amber-500/30',
+    description: 'Time & work, ratios, speed & distance, permutations, and probability.',
+    subtopics: ['Time & Work', 'Speed & Distance', 'Probability', 'Permutations', 'Percentages', 'Profit & Loss', 'Ratios']
   },
-  { 
-    id: 'dp', 
-    name: 'Dynamic Programming', 
-    label: 'Dynamic Programming',
-    description: 'Solve optimization problems with memoization, tabulations, and knapsack variations.',
-    icon: '⚡', 
-    color: 'from-red-500 to-rose-500',
-    subtopics: ['1D DP', '2D DP', 'Knapsack', 'LCS']
+  {
+    id: 'reasoning',
+    name: 'Logical Reasoning (MCQ)',
+    icon: '🤔',
+    color: 'from-indigo-500 to-sky-600',
+    borderColor: 'border-indigo-500/30',
+    description: 'Blood relations, arrangements, syllogisms, and sequence codes.',
+    subtopics: ['Blood Relations', 'Seating Arrangement', 'Syllogism', 'Coding-Decoding', 'Series Completion', 'Clocks & Calendars']
   },
-  { 
-    id: 'sorting', 
-    name: 'Sorting Algorithms', 
-    label: 'Sorting',
-    description: 'Understand quicksort, mergesort, heapsort, bubble sort, and custom comparison functions.',
-    icon: '📈', 
-    color: 'from-pink-500 to-fuchsia-500',
-    subtopics: ['Quick Sort', 'Merge Sort', 'Heap Sort', 'Custom Comparator']
+  {
+    id: 'verbal',
+    name: 'Verbal Ability (MCQ)',
+    icon: '✍️',
+    color: 'from-teal-500 to-emerald-600',
+    borderColor: 'border-teal-500/30',
+    description: 'Synonyms, reading comprehensions, grammar correction, and spelling checks.',
+    subtopics: ['Synonyms & Antonyms', 'Sentence Correction', 'Reading Comprehension', 'Idioms & Phrases', 'Grammar Rules']
   },
-  { 
-    id: 'searching', 
-    name: 'Binary Search', 
-    label: 'Searching',
-    description: 'Implement binary search variations, search in rotated sorted arrays, and search space reduction.',
-    icon: '🔍', 
-    color: 'from-teal-500 to-green-500',
-    subtopics: ['Binary Search', 'Rotated Search', 'Lower/Upper Bounds']
+  {
+    id: 'dbms',
+    name: 'DBMS (MCQ)',
+    icon: '📦',
+    color: 'from-teal-500 to-green-600',
+    borderColor: 'border-teal-500/30',
+    description: 'Database concepts, normalization, transactions, ACID properties. Theory + viva questions.',
+    subtopics: ['Normalization', 'Transactions', 'Concurrency Control', 'Indexing', 'NoSQL Basics', 'ACID Properties'],
   },
-  { 
-    id: 'stack', 
-    name: 'Stacks & Queues', 
-    label: 'Stack & Queue',
-    description: 'Design custom stacks, monotonic stacks, priority queues, and double-ended queues.',
-    icon: '📚', 
-    color: 'from-orange-500 to-red-500',
-    subtopics: ['Monotonic Stack', 'Min Stack', 'Deconstruct Priority Queue']
+  {
+    id: 'os',
+    name: 'Operating System (MCQ)',
+    icon: '💻',
+    color: 'from-orange-500 to-red-600',
+    borderColor: 'border-orange-500/30',
+    description: 'Processes, threads, scheduling, memory management, deadlocks. Core CS fundamentals.',
+    subtopics: ['Processes & Threads', 'Scheduling Algorithms', 'Memory Management', 'Deadlocks', 'Virtual Memory', 'File Systems'],
   },
-  { 
-    id: 'math', 
-    name: 'Math & Number Theory', 
-    label: 'Math & Logic',
-    description: 'Solve modular arithmetic, prime factorization, greatest common divisors, and combination theory.',
-    icon: '🔢', 
-    color: 'from-blue-500 to-indigo-500',
-    subtopics: ['GCD / LCM', 'Prime Factorization', 'Combinatorics']
-  }
+  {
+    id: 'cn',
+    name: 'Computer Networks (MCQ)',
+    icon: '🌐',
+    color: 'from-sky-500 to-blue-600',
+    borderColor: 'border-sky-500/30',
+    description: 'OSI model, TCP/IP, HTTP, DNS, routing, and networking protocols.',
+    subtopics: ['OSI Layer Model', 'TCP/IP Protocol', 'IP Addressing', 'Routing Algorithms', 'HTTP/HTTPS Protocols', 'DNS & Security'],
+  },
+  {
+    id: 'oop',
+    name: 'OOP Concepts (MCQ)',
+    icon: '🏗️',
+    color: 'from-violet-500 to-purple-600',
+    borderColor: 'border-violet-500/30',
+    description: 'Encapsulation, Inheritance, Polymorphism, Abstraction. Design principles.',
+    subtopics: ['Classes & Objects', 'Inheritance', 'Polymorphism', 'Encapsulation', 'Abstraction', 'SOLID Design Principles'],
+  },
+  {
+    id: 'frontend',
+    name: 'Frontend Development (MCQ)',
+    icon: '🎨',
+    color: 'from-pink-500 to-rose-600',
+    borderColor: 'border-pink-500/30',
+    description: 'HTML, CSS, JavaScript, React, Next.js. For frontend developer roles.',
+    subtopics: ['DOM Events', 'CSS Grid & Flexbox', 'Async Fetching', 'Webpack & Vite', 'Local Storage State', 'Web Accessibility'],
+  },
+  {
+    id: 'backend',
+    name: 'Backend Development (MCQ)',
+    icon: '⚙️',
+    color: 'from-amber-500 to-orange-600',
+    borderColor: 'border-amber-500/30',
+    description: 'Node.js, Express, APIs, Authentication, Databases. For backend developer roles.',
+    subtopics: ['REST API Routing', 'Middleware Pipes', 'Token Authentication', 'Rate Limiting', 'CORs Policies', 'Event Loops'],
+  },
+  {
+    id: 'java',
+    name: 'Java (MCQ)',
+    icon: '☕',
+    color: 'from-red-500 to-orange-600',
+    borderColor: 'border-red-500/30',
+    description: 'Core Java, collections, multithreading, Spring Boot. Widely used in enterprise.',
+    subtopics: ['JVM Internals', 'Garbage Collectors', 'Multithreading', 'Collections Framework', 'Lambda Expressions', 'Stream APIs'],
+  },
+  {
+    id: 'python',
+    name: 'Python (MCQ)',
+    icon: '🐍',
+    color: 'from-yellow-500 to-green-600',
+    borderColor: 'border-yellow-500/30',
+    description: 'Python fundamentals, OOP, libraries, data science tools. Versatile language.',
+    subtopics: ['GIL Lock', 'Decorators', 'Generators & Iterators', 'List Comprehensions', 'Pandas & Data Science', 'Django Frameworks'],
+  },
+  {
+    id: 'react',
+    name: 'React (MCQ)',
+    icon: '⚛️',
+    color: 'from-cyan-400 to-blue-500',
+    borderColor: 'border-cyan-500/30',
+    description: 'Virtual DOM, components lifecycle, state contexts, and reconciliation.',
+    subtopics: ['Virtual DOM', 'React Hooks', 'Component Context', 'State Reducers', 'Reconciliation Algorithms', 'Next.js Routing']
+  },
+  {
+    id: 'node',
+    name: 'Node.js (MCQ)',
+    icon: '🟢',
+    color: 'from-green-600 to-emerald-700',
+    borderColor: 'border-green-600/30',
+    description: 'Event Loop phases, file streams, clusters, packaging and child processes.',
+    subtopics: ['Event Loop Stages', 'File Streams', 'Buffer Buffs', 'Cluster Scaling', 'Package Modules', 'Child Processes']
+  },
+  {
+    id: 'express',
+    name: 'Express.js (MCQ)',
+    icon: '🛤️',
+    color: 'from-slate-600 to-zinc-700',
+    borderColor: 'border-slate-600/30',
+    description: 'Routing systems, custom middlewares, CORS control, and error handling pipes.',
+    subtopics: ['Routing Pipes', 'Custom Middleware', 'Error Handlers', 'Templating engines', 'Security Headers']
+  },
+  {
+    id: 'mongodb',
+    name: 'MongoDB (MCQ)',
+    icon: '🍃',
+    color: 'from-emerald-500 to-green-600',
+    borderColor: 'border-emerald-500/30',
+    description: 'BSON format schemas, aggregations, queries optimization, and clusters.',
+    subtopics: ['BSON Schema', 'Aggregations', 'Indexes', 'Sharding Clusters', 'Replication Sets', 'Mongoose Hooks']
+  },
+  {
+    id: 'system-design',
+    name: 'System Design (MCQ)',
+    icon: '🏛️',
+    color: 'from-slate-500 to-gray-600',
+    borderColor: 'border-slate-500/30',
+    description: 'Design scalable systems, databases, caching, load balancing. Senior-level topic.',
+    subtopics: ['Load Balancers', 'Microservices Architecture', 'Database Sharding', 'Consistent Hashing', 'DNS & CDNs', 'Message Queues'],
+  },
+  {
+    id: 'debugging',
+    name: 'Debugging Challenges (MCQ)',
+    icon: '🐛',
+    color: 'from-red-500 to-rose-600',
+    borderColor: 'border-red-500/30',
+    description: 'Find compile-time syntax errors and run-time logic defects in starter code blocks.',
+    subtopics: ['Syntax Errors', 'Null Pointer Dereference', 'Infinite Loops', 'Memory Leaks', 'State Updates', 'Off-by-One Errors']
+  },
+  {
+    id: 'mixed',
+    name: 'Mixed Interview (MCQ)',
+    icon: '🎯',
+    color: 'from-green-500 to-emerald-600',
+    borderColor: 'border-green-500/30',
+    description: 'Mixed bag of HR, behavioral, technical and aptitude questions. Full mock prep.',
+    subtopics: ['HR Questions', 'Behavioral', 'Aptitude', 'Puzzles', 'Situational'],
+  },
 ];
 
 export const ALL_QUESTIONS = [
@@ -711,12 +819,30 @@ export const ALL_QUESTIONS = [
   ...Object.values(CODING_PROBLEMS).flat().map(q => ({ ...q, category: q.topic?.toLowerCase().replace(/\s+/g, '') || 'arrays', topicTag: q.topic })),
 ];
 
-export const getDifficultyCounts = () => {
-  const all = ALL_QUESTIONS;
+// Helper: get questions by category
+export const getQuestionsByCategory = (categoryId) =>
+  ALL_QUESTIONS.filter(q => q.category === categoryId);
+
+// Helper: get single question by id
+export const getQuestionById = (id) =>
+  ALL_QUESTIONS.find(q => q.id === id);
+
+// Helper: get difficulty counts per category
+export const getDifficultyCounts = (categoryId) => {
+  if (!categoryId) {
+    const all = ALL_QUESTIONS;
+    return {
+      Easy: all.filter(q => q.difficulty === 'Easy').length,
+      Medium: all.filter(q => q.difficulty === 'Medium').length,
+      Hard: all.filter(q => q.difficulty === 'Hard').length,
+      Total: all.length,
+    };
+  }
+  const questions = getQuestionsByCategory(categoryId);
   return {
-    Easy: all.filter(q => q.difficulty === 'Easy').length,
-    Medium: all.filter(q => q.difficulty === 'Medium').length,
-    Hard: all.filter(q => q.difficulty === 'Hard').length,
-    Total: all.length,
+    Easy: questions.filter(q => q.difficulty === 'Easy').length,
+    Medium: questions.filter(q => q.difficulty === 'Medium').length,
+    Hard: questions.filter(q => q.difficulty === 'Hard').length,
+    total: questions.length,
   };
 };
