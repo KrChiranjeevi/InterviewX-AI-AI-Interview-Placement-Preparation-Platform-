@@ -1194,6 +1194,10 @@ const LiveInterview = () => {
     }
   };
 
+  const handleTypeAnswerSubmit = () => {
+    submitAnswer();
+  };
+
   /* ─── Mute, Camera, Pause controls ───────────────────────────────────── */
   const toggleMute = () => {
     if (stream) {
