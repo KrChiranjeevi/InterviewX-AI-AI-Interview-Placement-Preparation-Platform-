@@ -49,10 +49,10 @@ const ai = {
         } catch (err1) {
           console.error("⚠️ OpenAI failed:", err1.message);
           
-          // 3. Try OpenRouter (Gemini 2.5 Flash)
+          // 3. Try OpenRouter (Gemini 1.5 Flash)
           try {
             const response = await openrouter.chat.completions.create({
-              model: "google/gemini-2.5-flash",
+              model: "google/gemini-1.5-flash",
               messages: [{ role: "user", content: contents }],
               max_tokens: 8000,
             }, {
@@ -104,7 +104,7 @@ const ai = {
                   // 5. Try Native Gemini
                   try {
                     const response = await gemini.models.generateContent({
-                      model: 'gemini-2.5-flash',
+                      model: 'gemini-1.5-flash',
                       contents: contents,
                     });
                     return { text: response.text };
@@ -306,7 +306,7 @@ RULES:
 7. Output should be raw text only (no quotes around the final response).`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       contents: prompt
     });
     return response.text.trim().replace(/^["']|["']$/g, '');
@@ -685,7 +685,7 @@ Keep the question extremely brief, concise, and under 2 sentences maximum. Do no
 Do not include any other text, just the question.`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       contents: prompt,
     });
 
@@ -866,7 +866,7 @@ Return the result strictly in this JSON format (no markdown, no backticks):
 }`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       contents: prompt,
     });
 
@@ -997,7 +997,7 @@ DIRECTIONS:
 Make sure you generate exactly 4-5 rich modules, and exactly 3 topics per module. Make sure the JSON is completely valid and closed properly.`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       contents: prompt,
     });
 
@@ -1102,7 +1102,7 @@ Provide ONLY raw JSON matching exactly this structure (no markdown, no backticks
 }`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       contents: prompt,
     });
 
@@ -1129,7 +1129,7 @@ User's new message: "${message}"
 Respond directly to the user in a helpful, conversational, and motivating tone (like ChatGPT). Use markdown for formatting (bullet points, bold text). If they ask what to study, look at their incomplete modules. If they ask about readiness, look at their readiness scores. Keep responses concise and highly actionable.`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       contents: prompt,
     });
 

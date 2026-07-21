@@ -129,7 +129,7 @@ const userSchema = new mongoose.Schema({
     },
     aiPreferences: {
       provider: { type: String, default: 'Auto', enum: ['Auto', 'OpenAI', 'Gemini', 'Groq'] },
-      model: { type: String, default: 'gemini-2.5-flash' },
+      model: { type: String, default: 'gemini-1.5-flash' },
       difficulty: { type: String, default: 'Medium', enum: ['Easy', 'Medium', 'Hard', 'Adaptive'] },
       responseLength: { type: String, default: 'Medium', enum: ['Short', 'Medium', 'Detailed'] },
       voiceResponse: { type: Boolean, default: false },
