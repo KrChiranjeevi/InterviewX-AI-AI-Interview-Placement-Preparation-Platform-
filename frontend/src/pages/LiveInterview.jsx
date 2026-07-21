@@ -1582,7 +1582,7 @@ const LiveInterview = () => {
 
           {/* Candidate Card */}
           <div className="bg-white/[0.02] border border-white/10 rounded-2xl overflow-hidden relative flex flex-col">
-            <div className="aspect-[4/3] bg-slate-950/80 relative flex items-center justify-center overflow-hidden">
+            <div className="w-full h-56 bg-slate-950/80 relative flex items-center justify-center overflow-hidden flex-shrink-0">
               <video
                 ref={videoRef}
                 autoPlay
@@ -1609,23 +1609,23 @@ const LiveInterview = () => {
             <div className="p-3 bg-slate-950/40 border-t border-white/5 space-y-2">
               <div className="flex justify-between items-center text-[10px]">
                 <span className="text-slate-500">Confidence</span>
-                <span className="font-mono text-slate-200">{hudConfidence}%</span>
+                <span className="font-mono text-slate-200">{!isCameraOn ? 0 : hudConfidence}%</span>
               </div>
               <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-500" style={{ width: `${hudConfidence}%` }} />
+                <div className="h-full bg-emerald-500" style={{ width: `${!isCameraOn ? 0 : hudConfidence}%` }} />
               </div>
 
               <div className="flex justify-between items-center text-[10px]">
                 <span className="text-slate-500">Speech Clarity</span>
-                <span className="font-mono text-slate-200">{hudClarity}%</span>
+                <span className="font-mono text-slate-200">{(!isRecording || isMuted) ? 0 : hudClarity}%</span>
               </div>
               <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
-                <div className="h-full bg-indigo-500" style={{ width: `${hudClarity}%` }} />
+                <div className="h-full bg-indigo-500" style={{ width: `${(!isRecording || isMuted) ? 0 : hudClarity}%` }} />
               </div>
               
               <div className="flex justify-between items-center text-[10px]">
                 <span className="text-slate-500">WPM / Speed</span>
-                <span className="font-mono text-slate-200">{hudWpm} wpm</span>
+                <span className="font-mono text-slate-200">{(!isRecording || isMuted) ? 0 : hudWpm} wpm</span>
               </div>
             </div>
 
