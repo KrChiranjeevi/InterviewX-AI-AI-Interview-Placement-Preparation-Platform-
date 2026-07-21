@@ -520,14 +520,27 @@ ${JSON.stringify(adaptiveState, null, 2)}
 STAGE INSTRUCTION:
 ${stageInstructions[interviewStage] || stageInstructions.core}
 
+CODING INTERVIEW FLOW LIMITS:
+- For Coding Interviews:
+  * Maximum 1 conceptual follow-up (conceptualFollowupsCount)
+  * Maximum 2 optimization follow-ups (optimizationFollowupsCount)
+  * Maximum 1 edge-case follow-up (edgeCaseFollowupsCount)
+  * When these limits are reached, you MUST transition to a completely new programming problem/challenge.
+  * Update these counters in your returned adaptiveState object:
+    - Increment conceptualFollowupsCount when asking a conceptual follow-up (e.g. why choose this approach, recursion to iteration, HashMap comparison).
+    - Increment optimizationFollowupsCount when asking optimization (e.g. optimizing speed, complexity, scaling inputs, explaining lines).
+    - Increment edgeCaseFollowupsCount when asking edge cases (e.g. duplicate values, empty/null bounds, overflows).
+- After code submission, review correctness, complexity, edge cases, optimization, or coding style without repeating old conceptual questions.
+- Never repeat any sentence listed in askedFollowupQuestions. Avoid duplicates and generic prompts.
+
 YOUR TASK:
-1. Update the internal adaptive state metrics (knowledgeScore, confidenceScore, communicationScore, technicalScore, domainScore, overallScore, difficultyLevel, knowledgeGraph, mistakes, notes, historyTopics) based on candidate answers and the last evaluation metrics. Keep these notes internal.
+1. Update the internal adaptive state metrics (knowledgeScore, confidenceScore, communicationScore, technicalScore, domainScore, overallScore, difficultyLevel, knowledgeGraph, mistakes, notes, historyTopics, conceptualFollowupsCount, optimizationFollowupsCount, edgeCaseFollowupsCount, askedFollowupQuestions) based on candidate answers and the last evaluation metrics. Keep these notes internal.
 2. Formulate your response as Sarah:
    - ACKNOWLEDGEMENT (1-2 sentences): React naturally to the candidate's last response. Refer to specific technical concepts they used. Encourage them if they struggle. NEVER say "Correct", "Wrong", "That's right", etc.
    - TRANSITION (optional, 0-1 sentence): Transition to the next question.
    - NEXT QUESTION (1-2 sentences): Ask ONE clear question.
      * Keep questions relevant to the role, domain, and difficultyLevel.
-     * Check mistake memory: if they made a mistake in a topic previously (listed in mistakes), ask a conceptual follow-up or scenario to see if they improved.
+     * Check askedFollowupQuestions: Never repeat any follow-up that was already asked or is similar to it.
      * If closing stage, do not ask a question; deliver a warm closing statement summarizing the conversation.
      * Monitor remaining time based on questionNumber vs total duration. If near the end, prioritize important questions and close naturally.
 
@@ -549,7 +562,11 @@ OUTPUT FORMAT (STRICT — return ONLY valid JSON, no markdown wrapper):
     "knowledgeGraph": { "topic_name": "Strong" | "Average" | "Weak" },
     "mistakes": ["list of concepts candidate misunderstood or failed to answer correctly"],
     "notes": ["list of silent live notes on candidate's behavior, e.g., 'Strong Java.', 'Weak SQL JOIN.'"],
-    "historyTopics": ["list of sub-topics already asked to avoid repetition"]
+    "historyTopics": ["list of sub-topics already asked to avoid repetition"],
+    "conceptualFollowupsCount": number,
+    "optimizationFollowupsCount": number,
+    "edgeCaseFollowupsCount": number,
+    "askedFollowupQuestions": ["list of sentences/questions you have already asked in this session"]
   }
 }`;
 
@@ -561,13 +578,20 @@ OUTPUT FORMAT (STRICT — return ONLY valid JSON, no markdown wrapper):
 
     const parsed = JSON.parse(raw);
 
+    // Keep track of the newly generated question in the asked list
+    const updatedState = parsed.adaptiveState || { ...adaptiveState };
+    if (parsed.nextQuestion && (!updatedState.askedFollowupQuestions || !updatedState.askedFollowupQuestions.includes(parsed.nextQuestion))) {
+      if (!updatedState.askedFollowupQuestions) updatedState.askedFollowupQuestions = [];
+      updatedState.askedFollowupQuestions.push(parsed.nextQuestion);
+    }
+
     return {
       acknowledgement: parsed.acknowledgement || 'I see. Thank you for that.',
       transition: parsed.transition || '',
       nextQuestion: parsed.nextQuestion || 'Could you tell me more about your experience?',
       isFollowUp: parsed.isFollowUp || false,
       isClosing: parsed.isClosing || false,
-      adaptiveState: parsed.adaptiveState || adaptiveState,
+      adaptiveState: updatedState,
       // Combined full text for TTS
       fullSpeech: [
         parsed.acknowledgement,
@@ -577,22 +601,50 @@ OUTPUT FORMAT (STRICT — return ONLY valid JSON, no markdown wrapper):
     };
   } catch (error) {
     console.error('❌ generateConversationalResponse failed:', error.message);
-    // Graceful fallback — still feel human
+    // Graceful fallback — still feel human and diverse
     const fallbackAcks = [
       "I see. Thank you for sharing that.",
       "That makes sense. Let me ask you something related.",
       "Interesting perspective. Let's continue.",
       "I appreciate you walking me through that."
     ];
+    
+    // Select from a diverse list of follow-ups depending on archetype
+    const codingFollowups = [
+      "How would your algorithm behave with duplicate values in the collection?",
+      "Can we optimize the time complexity of this block to O(N)?",
+      "Supposing the input size grows to one million records, how does our memory footprint scale?",
+      "Can you walk me through the trade-offs of using an iterative implementation here instead of recursion?"
+    ];
+    
+    const generalFollowups = [
+      "Could you compare this approach with another method?",
+      "Why did you choose this technical stack over standard choices?",
+      "Can you explain the main constraints of this setup?"
+    ];
+
+    const list = type === 'Coding Interview' ? codingFollowups : generalFollowups;
+    
+    // Choose one not previously asked if possible
+    const stateAsked = adaptiveState.askedFollowupQuestions || [];
+    let chosenQuestion = list.find(q => !stateAsked.includes(q)) || list[0];
+    
+    // Save to memory
+    const updatedState = { ...adaptiveState };
+    if (!updatedState.askedFollowupQuestions) updatedState.askedFollowupQuestions = [];
+    if (!updatedState.askedFollowupQuestions.includes(chosenQuestion)) {
+      updatedState.askedFollowupQuestions.push(chosenQuestion);
+    }
+
     const ack = fallbackAcks[Math.floor(Math.random() * fallbackAcks.length)];
     return {
       acknowledgement: ack,
       transition: '',
-      nextQuestion: 'Could you walk me through your thought process on that in a bit more detail?',
+      nextQuestion: chosenQuestion,
       isFollowUp: true,
       isClosing: false,
-      adaptiveState,
-      fullSpeech: `${ack} Could you walk me through your thought process on that in a bit more detail?`
+      adaptiveState: updatedState,
+      fullSpeech: `${ack} ${chosenQuestion}`
     };
   }
 };

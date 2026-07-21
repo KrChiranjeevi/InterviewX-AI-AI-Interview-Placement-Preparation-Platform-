@@ -325,7 +325,11 @@ const getConversationalResponse = async (req, res) => {
       knowledgeGraph: {},
       mistakes: [],
       notes: [],
-      historyTopics: []
+      historyTopics: [],
+      conceptualFollowupsCount: 0,
+      optimizationFollowupsCount: 0,
+      edgeCaseFollowupsCount: 0,
+      askedFollowupQuestions: []
     };
 
     const result = await generateConversationalResponse({
