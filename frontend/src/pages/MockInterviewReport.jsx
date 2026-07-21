@@ -51,7 +51,7 @@ const MockInterviewReport = () => {
         content: m.content
       }));
       
-      const { data } = await api.post(`/reports/${id}/mentor`, { message: userMsg, history });
+      const { data } = await api.post(`/reports/${report._id}/mentor`, { message: userMsg, history });
       setChatMessages(prev => [...prev, { role: 'mentor', content: data.response }]);
     } catch {
       setChatMessages(prev => [...prev, { role: 'mentor', content: 'Sorry, I am having trouble connecting right now. Please try again!' }]);

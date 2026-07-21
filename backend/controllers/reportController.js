@@ -4,7 +4,7 @@ const { generateReport } = require('../services/aiService');
 
 const getReports = async (req, res) => {
   try {
-    const reports = await Report.find({ userId: req.user._id }).populate('interviewId', 'type role difficulty status createdAt');
+    const reports = await Report.find({ userId: req.user._id }).populate('interviewId', 'type role difficulty status company createdAt');
     res.json(reports);
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });

@@ -406,7 +406,14 @@ const HEATMAP_DATA = [
                       {/* Actions footer */}
                       <div className="relative z-10 border-t border-white/[0.05] bg-white/[0.02] px-5 py-3 flex items-center gap-2">
                         <button
-                          onClick={() => navigate(`/report/${report.interviewId?._id}`)}
+                          onClick={() => {
+                            const isMock = !report.interviewId?.company;
+                            if (isMock) {
+                              navigate(`/mock-report/${report.interviewId?._id}`);
+                            } else {
+                              navigate(`/report/${report.interviewId?._id}`);
+                            }
+                          }}
                           className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-violet-600/80 hover:bg-violet-600 py-2 text-xs font-semibold text-white transition-colors"
                         >
                           <Eye className="h-3.5 w-3.5" /> View Report

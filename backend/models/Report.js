@@ -135,7 +135,11 @@ const reportSchema = new mongoose.Schema({
       grammarScore: { type: Number, default: 0 }
     },
     bookmarked: { type: Boolean, default: false }
-  }]
+  }],
+  mockReport: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
+  }
 }, {
   timestamps: true,
 });

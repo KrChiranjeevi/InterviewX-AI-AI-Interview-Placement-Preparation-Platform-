@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/authMiddleware');
 const Interview = require('../models/Interview');
+const Report = require('../models/Report');
 const { generateQuestion, analyzeAnswer, generateAIReport, generateConversationalResponse, generateMockEvidenceReport } = require('../services/aiService');
 
 const createInterview = async (req, res) => {
@@ -333,8 +334,46 @@ const getMockReport = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to access this interview' });
     }
 
+    // Check if report already exists in DB
+    let reportDoc = await Report.findOne({ interviewId: interview._id, userId: req.user._id });
+    if (reportDoc && reportDoc.mockReport) {
+      const mockData = reportDoc.mockReport.toObject ? reportDoc.mockReport.toObject() : reportDoc.mockReport;
+      return res.json({ ...mockData, _id: reportDoc._id });
+    }
+
+    // If not, generate new report using AI
     const reportData = await generateMockEvidenceReport(interview);
-    res.json(reportData);
+
+    // Save report document to DB so that it shows up in dashboard and is stored persistently
+    const technical = reportData.scoringBreakdown?.find(c => c.category?.toLowerCase() === 'technical')?.score;
+    const communication = reportData.scoringBreakdown?.find(c => c.category?.toLowerCase() === 'communication')?.score;
+    const confidence = reportData.scoringBreakdown?.find(c => c.category?.toLowerCase() === 'confidence')?.score;
+    const problemSolving = reportData.scoringBreakdown?.find(c => c.category?.toLowerCase() === 'problem solving')?.score;
+
+    if (reportDoc) {
+      reportDoc.overallScore = reportData.overallScore || 0;
+      reportDoc.technicalScore = typeof technical === 'number' ? technical : 0;
+      reportDoc.communicationScore = typeof communication === 'number' ? communication : 0;
+      reportDoc.confidenceScore = typeof confidence === 'number' ? confidence : 0;
+      reportDoc.problemSolvingScore = typeof problemSolving === 'number' ? problemSolving : 0;
+      reportDoc.hiringDecision = reportData.finalDecision || 'Needs Improvement';
+      reportDoc.mockReport = reportData;
+      await reportDoc.save();
+    } else {
+      reportDoc = await Report.create({
+        userId: req.user._id,
+        interviewId: interview._id,
+        overallScore: reportData.overallScore || 0,
+        technicalScore: typeof technical === 'number' ? technical : 0,
+        communicationScore: typeof communication === 'number' ? communication : 0,
+        confidenceScore: typeof confidence === 'number' ? confidence : 0,
+        problemSolvingScore: typeof problemSolving === 'number' ? problemSolving : 0,
+        hiringDecision: reportData.finalDecision || 'Needs Improvement',
+        mockReport: reportData
+      });
+    }
+
+    res.json({ ...reportData, _id: reportDoc._id });
   } catch (error) {
     console.error('getMockReport error:', error);
     res.status(500).json({ message: 'Failed to generate mock report', error: error.message });
