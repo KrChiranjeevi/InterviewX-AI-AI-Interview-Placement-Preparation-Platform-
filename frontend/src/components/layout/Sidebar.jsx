@@ -95,7 +95,7 @@ const Sidebar = () => {
         onMouseMove={handleMouseMove}
         animate={{ width: isMobile ? 260 : (isSidebarExpanded ? 260 : 72) }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className={`fixed left-0 top-0 z-50 flex h-screen flex-col overflow-hidden border-r border-white/[0.06] bg-[#070711] select-none transition-transform duration-300 md:transition-none print:hidden
+        className={`fixed left-0 top-0 z-50 flex h-screen flex-col overflow-hidden border-r border-zinc-200/50 dark:border-white/[0.06] bg-white dark:bg-[#070711] select-none transition-transform duration-300 md:transition-none print:hidden
           ${isMobile ? (mobileOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}`}
         style={{ boxShadow: (isMobile && mobileOpen) || (!isMobile && isSidebarExpanded) ? '4px 0 60px rgba(99,102,241,0.12)' : '2px 0 20px rgba(0,0,0,0.4)' }}
       >
@@ -128,15 +128,15 @@ const Sidebar = () => {
               transition={{ duration: 0.2 }}
               className="ml-3 whitespace-nowrap"
             >
-              <p className="text-base font-bold text-white leading-none tracking-tight">InterviewX</p>
-              <p className="text-[10px] font-medium text-indigo-400 tracking-widest uppercase mt-0.5">AI Platform</p>
+              <p className="text-base font-bold text-zinc-900 dark:text-white leading-none tracking-tight">InterviewX</p>
+              <p className="text-[10px] font-medium text-indigo-500 dark:text-indigo-400 tracking-widest uppercase mt-0.5">AI Platform</p>
             </motion.div>
           )}
         </AnimatePresence>
       </Link>
 
       {/* Divider */}
-      <div className="mx-4 mb-3 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <div className="mx-4 mb-3 h-px bg-gradient-to-r from-transparent via-zinc-200 dark:via-white/10 to-transparent" />
 
       {/* Nav Items */}
       <nav className="flex-1 overflow-y-auto px-2 py-1 space-y-0.5 custom-scrollbar">
@@ -160,8 +160,8 @@ const Sidebar = () => {
                   scaleX: isActive || isHovered ? 1 : 0.85,
                 }}
                 className={`absolute inset-0 rounded-xl ${isActive
-                  ? 'bg-gradient-to-r from-indigo-600/20 to-purple-600/10 border border-indigo-500/20'
-                  : 'bg-white/5 border border-white/5'
+                  ? 'bg-indigo-600/10 dark:bg-indigo-600/20 border border-indigo-500/20'
+                  : 'bg-zinc-100 dark:bg-white/5 border border-zinc-200/50 dark:border-white/5'
                 }`}
                 transition={{ duration: 0.2 }}
               />
@@ -191,10 +191,10 @@ const Sidebar = () => {
                   className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${
                     isActive
                       ? `bg-gradient-to-br ${item.color} shadow-lg ${item.glow}`
-                      : 'bg-white/5 group-hover:bg-white/10'
+                      : 'bg-zinc-100 dark:bg-white/5 group-hover:bg-zinc-200 dark:group-hover:bg-white/10'
                   }`}
                 >
-                  <Icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-zinc-400 group-hover:text-white'}`} />
+                  <Icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white'}`} />
                 </motion.div>
 
                 {/* Label & Badge */}
@@ -206,7 +206,7 @@ const Sidebar = () => {
                       exit={{ opacity: 0, x: -6, width: 0 }}
                       className="ml-3 flex min-w-0 flex-1 items-center justify-between overflow-hidden"
                     >
-                      <span className={`whitespace-nowrap text-sm font-medium ${isActive ? 'text-white' : 'text-zinc-400 group-hover:text-white'}`}>
+                      <span className={`whitespace-nowrap text-sm font-medium ${isActive ? 'text-indigo-600 dark:text-white font-semibold' : 'text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white'}`}>
                         {item.label}
                       </span>
                       {item.badge && (
@@ -231,11 +231,11 @@ const Sidebar = () => {
                       initial={{ opacity: 0, x: -6, scale: 0.95 }}
                       animate={{ opacity: 1, x: 0, scale: 1 }}
                       exit={{ opacity: 0, x: -6, scale: 0.95 }}
-                      className="pointer-events-none absolute left-16 z-50 whitespace-nowrap rounded-lg border border-white/10 bg-[#0f0f1a]/95 px-3 py-1.5 text-sm font-medium text-white shadow-xl backdrop-blur-xl"
+                      className="pointer-events-none absolute left-16 z-50 whitespace-nowrap rounded-lg border border-zinc-200/50 dark:border-white/10 bg-white dark:bg-[#0f0f1a]/95 px-3 py-1.5 text-sm font-medium text-zinc-900 dark:text-white shadow-xl backdrop-blur-xl"
                     >
                       {item.label}
                       {item.badge && (
-                        <span className="ml-2 rounded-full bg-indigo-500/30 px-1.5 py-0.5 text-[10px] text-indigo-300">
+                        <span className="ml-2 rounded-full bg-indigo-500/20 dark:bg-indigo-500/30 px-1.5 py-0.5 text-[10px] text-indigo-500 dark:text-indigo-300">
                           {item.badge}
                         </span>
                       )}
@@ -249,13 +249,13 @@ const Sidebar = () => {
       </nav>
 
       {/* Divider */}
-      <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-zinc-200 dark:via-white/10 to-transparent" />
 
       {/* Settings */}
       <div className="flex-shrink-0 px-2 pb-4 pt-3">
         <Link
           to="/settings"
-          className="group flex items-center rounded-xl p-2.5 text-zinc-500 hover:bg-white/5 hover:text-white transition-all"
+          className="group flex items-center rounded-xl p-2.5 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-white transition-all"
         >
           <Settings className="h-5 w-5 flex-shrink-0 transition-transform group-hover:rotate-45" />
           <AnimatePresence>

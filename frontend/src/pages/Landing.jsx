@@ -343,11 +343,11 @@ const Landing = () => {
               className="opacity-0 text-5xl md:text-6xl lg:text-7xl font-black leading-[1.05] mb-6"
               style={{ fontFamily: 'Space Grotesk, sans-serif' }}
             >
-              <span className="text-white">Crack Every</span>
+              <span className="text-slate-900 dark:text-white">Crack Every</span>
               <br />
               <span className="shimmer-text">Interview.</span>
               <br />
-              <span className="text-white">Every Time.</span>
+              <span className="text-slate-900 dark:text-white">Every Time.</span>
             </h1>
 
             <p
@@ -397,7 +397,7 @@ const Landing = () => {
               </div>
               <div>
                 <p className="text-xs text-slate-400">AI Feedback</p>
-                <p className="text-sm font-semibold text-white">Score: 94/100</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">Score: 94/100</p>
               </div>
             </div>
 
@@ -407,7 +407,7 @@ const Landing = () => {
               </div>
               <div>
                 <p className="text-xs text-slate-400">Interview Cleared</p>
-                <p className="text-sm font-semibold text-white">Google SDE-2 🎉</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">Google SDE-2 🎉</p>
               </div>
             </div>
 
@@ -453,7 +453,7 @@ const Landing = () => {
             <div className="badge inline-flex items-center gap-2 mb-4">
               <FaShieldAlt className="text-indigo-400" /> Everything You Need
             </div>
-            <h2 className="text-4xl md:text-5xl font-black text-white mb-4" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
+            <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-4" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
               All Tools. <span className="gradient-text">One Platform.</span>
             </h2>
             <p className="text-slate-400 text-lg max-w-2xl mx-auto">
@@ -472,7 +472,7 @@ const Landing = () => {
                   style={{ boxShadow: `0 8px 20px ${f.glow}` }}>
                   {f.icon}
                 </div>
-                <h3 className="text-lg font-bold text-white mb-2">{f.title}</h3>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">{f.title}</h3>
                 <p className="text-slate-400 text-sm leading-relaxed">{f.desc}</p>
               </div>
             ))}
@@ -485,7 +485,7 @@ const Landing = () => {
         <div className="absolute inset-0 grid-pattern opacity-30" />
         <div className="max-w-6xl mx-auto px-6 relative z-10">
           <div className="section-title text-center mb-16 opacity-0">
-            <h2 className="text-4xl md:text-5xl font-black text-white mb-4" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
+            <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-4" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
               How It <span className="gradient-text">Works</span>
             </h2>
             <p className="text-slate-400 text-lg">From sign-up to offer letter in 4 simple steps</p>
@@ -503,7 +503,7 @@ const Landing = () => {
                   <div className="w-12 h-12 mx-auto rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl mb-4">
                     {item.icon}
                   </div>
-                  <h3 className="text-white font-semibold mb-2">{item.title}</h3>
+                  <h3 className="text-slate-900 dark:text-white font-semibold mb-2">{item.title}</h3>
                   <p className="text-slate-400 text-sm leading-relaxed">{item.desc}</p>
                 </div>
               </div>
@@ -519,7 +519,7 @@ const Landing = () => {
             <div className="badge inline-flex items-center gap-2 mb-4">
               <FaStar className="text-yellow-400" /> Success Stories
             </div>
-            <h2 className="text-4xl md:text-5xl font-black text-white mb-4" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
+            <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-4" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
               Real People. <span className="gradient-text">Real Results.</span>
             </h2>
           </div>
@@ -538,7 +538,7 @@ const Landing = () => {
                     {t.avatar}
                   </div>
                   <div>
-                    <p className="text-white font-semibold text-sm">{t.name}</p>
+                    <p className="text-slate-900 dark:text-white font-semibold text-sm">{t.name}</p>
                     <p className="text-slate-500 text-xs">{t.role}</p>
                   </div>
                 </div>
@@ -556,7 +556,7 @@ const Landing = () => {
           <div className="glass-card-bright rounded-3xl p-12 border border-indigo-500/20"
             style={{ boxShadow: '0 0 80px rgba(99,102,241,0.15)' }}>
             <div className="text-5xl mb-6">🚀</div>
-            <h2 className="text-4xl md:text-5xl font-black text-white mb-4" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
+            <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-4" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
               Ready to Ace Your <span className="gradient-text">Dream Interview?</span>
             </h2>
             <p className="text-slate-400 text-lg mb-8 max-w-xl mx-auto">

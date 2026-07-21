@@ -86,24 +86,23 @@ const Navbar = ({ title, subtitle }) => {
   return (
     <header className="sticky top-0 z-[100] h-16 w-full print:hidden">
       {/* Glass backdrop */}
-      <div className="absolute inset-0 border-b border-white/[0.06] bg-[#070711]/80 backdrop-blur-2xl" />
+      <div className="absolute inset-0 border-b border-zinc-200/50 dark:border-white/[0.06] bg-white/80 dark:bg-[#070711]/80 backdrop-blur-2xl" />
       {/* Top accent line */}
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-500/60 to-transparent" />
 
       <div className="relative z-10 flex h-full items-center justify-between px-6 gap-4">
-        {/* LEFT — Title */}
         {/* LEFT — Title & Hamburger */}
         <div className="min-w-0 flex-shrink-0 flex items-center gap-3">
           <button 
             onClick={() => window.dispatchEvent(new CustomEvent('toggle-sidebar'))}
-            className="flex md:hidden items-center justify-center p-2 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors"
+            className="flex md:hidden items-center justify-center p-2 rounded-xl bg-zinc-100 dark:bg-white/5 border border-zinc-200/50 dark:border-white/10 text-zinc-900 dark:text-white hover:bg-zinc-200 dark:hover:bg-white/10 transition-colors"
             aria-label="Toggle Sidebar"
           >
             <Menu className="h-5 w-5" />
           </button>
           
           <div>
-            <h1 className="text-base font-semibold text-white truncate leading-tight">
+            <h1 className="text-base font-semibold text-zinc-900 dark:text-white truncate leading-tight">
               {title || `${getGreeting()}, ${user?.name?.split(' ')[0] || 'there'} 👋`}
             </h1>
             {subtitle && <p className="text-xs text-zinc-500 truncate">{subtitle}</p>}
@@ -114,10 +113,10 @@ const Navbar = ({ title, subtitle }) => {
         <div ref={searchRef} className="relative hidden md:block max-w-md w-full flex-1 mx-4">
           <motion.div
             animate={{
-              borderColor: showSearch ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.07)',
+              borderColor: showSearch ? 'rgba(99,102,241,0.5)' : 'rgba(0,0,0,0.06)',
               boxShadow: showSearch ? '0 0 0 3px rgba(99,102,241,0.12), 0 0 30px rgba(99,102,241,0.15)' : 'none',
             }}
-            className="flex items-center gap-2 rounded-xl border bg-white/[0.03] px-3 py-2 transition-colors cursor-text"
+            className="flex items-center gap-2 rounded-xl border border-zinc-200/50 dark:border-white/[0.07] bg-zinc-100/50 dark:bg-white/[0.03] px-3 py-2 transition-colors cursor-text"
             onClick={() => { setShowSearch(true); }}
           >
             <Search className={`h-4 w-4 flex-shrink-0 transition-colors ${showSearch ? 'text-indigo-400' : 'text-zinc-500'}`} />
@@ -127,7 +126,7 @@ const Navbar = ({ title, subtitle }) => {
               onChange={e => setSearchQuery(e.target.value)}
               onFocus={() => setShowSearch(true)}
               placeholder="Search or ask AI anything..."
-              className="flex-1 bg-transparent text-sm text-white placeholder-zinc-500 focus:outline-none min-w-0"
+              className="flex-1 bg-transparent text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none min-w-0"
             />
             <div className="flex items-center gap-1 flex-shrink-0">
               {showSearch ? (
@@ -150,7 +149,7 @@ const Navbar = ({ title, subtitle }) => {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 6, scale: 0.97 }}
                 transition={{ duration: 0.15 }}
-                className="absolute left-0 right-0 top-full mt-2 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a0a14]/95 shadow-2xl shadow-black/50 backdrop-blur-2xl z-[999]"
+                className="absolute left-0 right-0 top-full mt-2 overflow-hidden rounded-2xl border border-zinc-200/50 dark:border-white/[0.08] bg-white dark:bg-[#0a0a14]/95 shadow-2xl shadow-black/10 dark:shadow-black/50 backdrop-blur-2xl z-[999]"
               >
                 <div className="p-1">
                   <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
@@ -166,7 +165,7 @@ const Navbar = ({ title, subtitle }) => {
                           initial={{ opacity: 0, x: -8 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: i * 0.04 }}
-                          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-white/[0.05] transition-colors group"
+                          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-zinc-100 dark:hover:bg-white/[0.05] transition-colors group"
                           onClick={() => { 
                             setShowSearch(false); 
                             setSearchQuery('');
@@ -176,13 +175,13 @@ const Navbar = ({ title, subtitle }) => {
                           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400 group-hover:bg-indigo-500/20">
                             <Icon className="h-3.5 w-3.5" />
                           </div>
-                          <span className="flex-1 text-sm text-zinc-300 group-hover:text-white">{s.label}</span>
-                          <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] text-zinc-500">{s.hint}</span>
+                          <span className="flex-1 text-sm text-zinc-600 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-white">{s.label}</span>
+                          <span className="rounded-full bg-zinc-100 dark:bg-white/5 px-2 py-0.5 text-[10px] text-zinc-500">{s.hint}</span>
                         </motion.button>
                       );
                     })}
                 </div>
-                <div className="border-t border-white/[0.06] px-3 py-2 flex items-center gap-2">
+                <div className="border-t border-zinc-200/50 dark:border-white/[0.06] px-3 py-2 flex items-center gap-2">
                   <Sparkles className="h-3 w-3 text-purple-400 animate-pulse" />
                   <span className="text-xs text-zinc-500">Powered by <span className="text-purple-400 font-medium">InterviewX AI</span></span>
                 </div>
