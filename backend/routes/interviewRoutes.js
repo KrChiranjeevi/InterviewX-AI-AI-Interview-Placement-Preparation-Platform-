@@ -5,7 +5,7 @@ const Interview = require('../models/Interview');
 const { generateQuestion, analyzeAnswer, generateAIReport } = require('../services/aiService');
 
 const createInterview = async (req, res) => {
-  const { interviewType, role, difficulty, duration, resumeSkills, resumeText, company, companyContext } = req.body;
+  const { interviewType, role, difficulty, duration, resumeSkills, resumeText, company, companyContext, domain, subLanguage, projectName, projectDescription } = req.body;
 
   try {
     const interview = await Interview.create({
@@ -17,6 +17,10 @@ const createInterview = async (req, res) => {
       duration,
       resumeSkills: resumeSkills || [],
       resumeText: resumeText || '',
+      domain: domain || '',
+      subLanguage: subLanguage || '',
+      projectName: projectName || '',
+      projectDescription: projectDescription || '',
       status: 'started',
       questions: [],
     });
@@ -62,7 +66,11 @@ const getNextQuestion = async (req, res) => {
       interview.questions, 
       interview.resumeSkills, 
       interview.resumeText,
-      interview.company
+      interview.company,
+      interview.domain,
+      interview.subLanguage,
+      interview.projectName,
+      interview.projectDescription
     );
     
     res.json({ question: questionText });
@@ -105,7 +113,11 @@ const submitAnswer = async (req, res) => {
         interview.questions,
         interview.resumeSkills,
         interview.resumeText,
-        interview.company
+        interview.company,
+        interview.domain,
+        interview.subLanguage,
+        interview.projectName,
+        interview.projectDescription
       );
 
       return res.json({
@@ -179,7 +191,11 @@ const submitAnswer = async (req, res) => {
       interview.questions,
       interview.resumeSkills,
       interview.resumeText,
-      interview.company
+      interview.company,
+      interview.domain,
+      interview.subLanguage,
+      interview.projectName,
+      interview.projectDescription
     );
     
     res.json({ 

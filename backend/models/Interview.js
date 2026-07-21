@@ -10,7 +10,22 @@ const interviewSchema = new mongoose.Schema({
   type: {
     type: String,
     required: true,
-    enum: ['Technical Interview', 'HR Interview', 'Coding Interview', 'Resume Based Interview'],
+  },
+  domain: {
+    type: String,
+    default: '',
+  },
+  subLanguage: {
+    type: String,
+    default: '',
+  },
+  projectName: {
+    type: String,
+    default: '',
+  },
+  projectDescription: {
+    type: String,
+    default: '',
   },
   role: {
     type: String,

@@ -204,7 +204,7 @@ const roleGuides = {
   'AI Engineer': `AI Engineer: Emphasize LLM fine-tuning parameters, Retrieval Augmented Generation (RAG) vector pipelines, context length challenges, and embedding model comparisons.`
 };
 
-const generateQuestion = async (role, type, difficulty, history, resumeSkills = [], resumeText = '', company = '') => {
+const generateQuestion = async (role, type, difficulty, history, resumeSkills = [], resumeText = '', company = '', domain = '', subLanguage = '', projectName = '', projectDescription = '') => {
   try {
     const difficultyGuide = {
       'Beginner': `BEGINNER level: Ask basic definitions, fundamental syntax rules, and simple single-variable iterations. Keep it clear and introductory.`,
@@ -269,6 +269,77 @@ const generateQuestion = async (role, type, difficulty, history, resumeSkills = 
       ? `Previously asked questions in this session: ${history.map(h => `"${h.question}"`).join(', ')}`
       : 'This is the first question of the session.';
 
+    const isMock = !company;
+    let mockSpecificPrompt = "";
+    if (isMock) {
+      const typeLower = type.toLowerCase();
+      if (typeLower.includes('technical')) {
+        mockSpecificPrompt = `
+STRICT COMPLIANCE DIRECTIVE:
+You are conducting a highly focused Technical Interview in the EXACT selected domain: "${domain}".
+Target Role: ${role}.
+You MUST ONLY ask questions about the domain: "${domain}" (applied specifically to a ${role} role context).
+Do NOT ask questions outside of "${domain}". Under no circumstances should you transition to another topic or programming language. Keep the focus 100% on "${domain}".
+`;
+      } else if (typeLower.includes('coding')) {
+        if (domain === 'DSA') {
+          mockSpecificPrompt = `
+STRICT COMPLIANCE DIRECTIVE:
+You are conducting a Data Structures & Algorithms (DSA) Coding Interview.
+Target Programming Language: ${subLanguage}.
+Target Role: ${role}.
+You MUST ask questions ONLY about Data Structures & Algorithms (DSA) using the programming language: "${subLanguage}".
+Your questions must require candidates to describe algorithms, dry-run code steps, or explain time/space complexities in ${subLanguage}.
+Do NOT ask questions about frameworks, database queries, or non-DSA topics.
+`;
+        } else {
+          mockSpecificPrompt = `
+STRICT COMPLIANCE DIRECTIVE:
+You are conducting a Coding Interview in the selected coding domain: "${domain}".
+Target Role: ${role}.
+You MUST ask coding/implementation questions ONLY about "${domain}".
+Do NOT ask general DSA questions, and do NOT ask language questions unless they are directly related to writing code in "${domain}".
+`;
+        }
+      } else if (typeLower.includes('resume')) {
+        mockSpecificPrompt = `
+STRICT COMPLIANCE DIRECTIVE:
+You are conducting a Resume Interview based on the candidate's resume context: "${resumeText}".
+You MUST ONLY ask questions regarding the candidate's: Projects, Internships, Skills, Education, Achievements, Certifications, and Leadership listed in the resume.
+Do NOT ask coding questions, do NOT ask database/SQL questions, do NOT ask DSA questions, and do NOT ask general HR behavior questions. Focus strictly on their documented experience.
+`;
+      } else if (typeLower.includes('hr')) {
+        mockSpecificPrompt = `
+STRICT COMPLIANCE DIRECTIVE:
+You are conducting a pure HR Interview.
+You MUST ONLY ask standard HR behavioral/personality questions from the following topics: Tell me about yourself, Strengths, Weaknesses, Leadership, Conflict Resolution, Pressure Handling, Relocation, Career Goals, Teamwork, Failures, Achievements, or Why should we hire you.
+Do NOT ask any technical questions, coding problems, syntax, architecture, SQL, or algorithms. Keep the focus 100% on behavioral/personality/HR characteristics.
+`;
+      } else if (typeLower.includes('behavioral')) {
+        mockSpecificPrompt = `
+STRICT COMPLIANCE DIRECTIVE:
+You are conducting a Behavioral Interview using the STAR methodology (Situation, Task, Action, Result).
+You MUST ONLY ask behavioral questions to evaluate the candidate's: Leadership, Ownership, Adaptability, Decision Making, Conflict Resolution, and Communication.
+Ensure your prompt expects the candidate to outline their experience using the STAR structure.
+Do NOT ask coding questions or technical queries.
+`;
+      } else if (typeLower.includes('project')) {
+        mockSpecificPrompt = `
+STRICT COMPLIANCE DIRECTIVE:
+You are conducting a Project Discussion interview focusing ONLY on the selected project: "${projectName}" - "${projectDescription}".
+You MUST ONLY ask questions regarding this project's: Architecture, Database, Authentication, API, Deployment, Challenges, Scalability, Tech Stack, and Future Improvements.
+Do NOT ask generic HR questions, and do NOT ask coding/DSA questions. Stay 100% focused on the details of this specific project.
+`;
+      } else if (typeLower.includes('system design')) {
+        mockSpecificPrompt = `
+STRICT COMPLIANCE DIRECTIVE:
+You are conducting a System Design Interview.
+You MUST ONLY ask questions about: Requirements Gathering, High-level Architecture, Database Selection, API Design, Caching, Load Balancing, Scalability limits, Security, and Trade-offs.
+Do NOT ask coding questions, programming language features, or basic HR questions.
+`;
+      }
+    }
+
     const prompt = `You are Sarah, an expert senior FAANG AI Interviewer conducting a realistic job placement assessment.
 Selected Company: ${company || 'Top Tech Company'}
 Hiring Role: ${role}
@@ -277,6 +348,8 @@ Current Difficulty: ${difficulty}
 
 ${difficultyGuide[difficulty] || difficultyGuide['Intermediate']}
 ${typeGuide[type] || typeGuide['Technical Interview']}
+
+${mockSpecificPrompt}
 
 --- COMPANY STYLE SPECIFICATIONS ---
 ${activeCompanyGuide}
