@@ -312,6 +312,7 @@ const LiveInterview = () => {
   const [isMuted, setIsMuted]         = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [stream, setStream]           = useState(null);
+  const [submittedAnswers, setSubmittedAnswers] = useState([]);
 
   const [currentQuestion, setCurrentQuestion] = useState('Loading AI question...');
   const [isAIThinking, setIsAIThinking]       = useState(true);
@@ -327,6 +328,15 @@ const LiveInterview = () => {
   const [autoSubmitCountdown, setAutoSubmitCountdown] = useState(null);
   const [sessionTimeLeft,     setSessionTimeLeft]     = useState(null);
   const [isEnding, setIsEnding] = useState(false);
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
+
+  useEffect(() => {
+    const handleThemeChange = () => {
+      setTheme(localStorage.getItem('theme') || 'dark');
+    };
+    window.addEventListener('theme-changed', handleThemeChange);
+    return () => window.removeEventListener('theme-changed', handleThemeChange);
+  }, []);
 
   // HUD metrics
   const [hudWpm,        setHudWpm]        = useState(130);
@@ -382,6 +392,7 @@ const LiveInterview = () => {
   const finalTranscriptRef = useRef('');
   const isTypingModeRef    = useRef(false);
   const isPausedRef        = useRef(false);
+  const isMutedRef         = useRef(false);
   const confidenceData     = useRef({ total: 0, count: 0 });
   const faceInterval       = useRef(null);
   const sessionTimerRef    = useRef(null);
@@ -394,6 +405,7 @@ const LiveInterview = () => {
   useEffect(() => { finalTranscriptRef.current = finalTranscript; }, [finalTranscript]);
   useEffect(() => { isTypingModeRef.current    = isTypingMode;    }, [isTypingMode]);
   useEffect(() => { isPausedRef.current        = isPaused;        }, [isPaused]);
+  useEffect(() => { isMutedRef.current         = isMuted;         }, [isMuted]);
 
   // Determine current company configuration
   const companyKey = useMemo(() => {
@@ -711,7 +723,7 @@ const LiveInterview = () => {
         }
       };
       recognition.onend = () => {
-        if (!isAIThinkingRef.current && !isTypingModeRef.current && !isPausedRef.current) {
+        if (!isAIThinkingRef.current && !isTypingModeRef.current && !isPausedRef.current && !isMutedRef.current) {
           setTimeout(() => { try { recognition.start(); } catch {} }, 300);
         }
       };
@@ -821,6 +833,13 @@ const LiveInterview = () => {
 
     if (!answer && currentRound.type === 'text') return;
 
+    setSubmittedAnswers(prev => [...prev, {
+      roundIndex: questionNumber - 1,
+      type: currentRound.type,
+      answer: answer,
+      skipped: false
+    }]);
+
     recognitionRef.current?.stop();
     setIsRecording(false);
     clearAutoSubmitTimers();
@@ -871,6 +890,14 @@ const LiveInterview = () => {
   /* ─── Skip question ───────────────────────────────────────────────────── */
   const skipQuestion = async () => {
     if (isAIThinkingRef.current) return;
+
+    setSubmittedAnswers(prev => [...prev, {
+      roundIndex: questionNumber - 1,
+      type: currentRound.type,
+      answer: 'Skipped',
+      skipped: true
+    }]);
+
     recognitionRef.current?.stop();
     setIsRecording(false);
     clearAutoSubmitTimers();
@@ -949,8 +976,22 @@ const LiveInterview = () => {
     if (stream) {
       const videoTrack = stream.getVideoTracks()[0];
       if (videoTrack) {
-        videoTrack.enabled = !videoTrack.enabled;
-        setIsCameraOn(videoTrack.enabled);
+        if (isCameraOn) {
+          videoTrack.stop();
+          setIsCameraOn(false);
+        } else {
+          navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 1280 }, height: { ideal: 720 } }
+          }).then((newStream) => {
+            const newTrack = newStream.getVideoTracks()[0];
+            stream.removeTrack(videoTrack);
+            stream.addTrack(newTrack);
+            if (videoRef.current) videoRef.current.srcObject = stream;
+            setIsCameraOn(true);
+          }).catch((err) => {
+            console.error("Failed to restore camera feed", err);
+          });
+        }
       }
     } else if (!isCameraOn) {
       initCamera();
@@ -1067,14 +1108,113 @@ const LiveInterview = () => {
     // Dynamic AI Scoring engine based on candidate interactions
     const totalConfidenceCount = confidenceData.current.count || 1;
     const calculatedConf = Math.round(confidenceData.current.total / totalConfidenceCount);
-    
-    const communicationScore = Math.round((hudClarity + calculatedConf + hudFluency) / 3);
-    const codingScore = currentRound.type === 'coding' || currentRound.type === 'sql' ? 88 : 78;
-    const technicalScore = Math.max(50, Math.min(100, Math.round(communicationScore * 0.9 + (Math.random() * 15))));
-    const projectScore = 82;
-    const behavioralScore = Math.max(60, calculatedConf);
 
-    const overallScore = Math.round((technicalScore * 0.3) + (codingScore * 0.25) + (communicationScore * 0.2) + (behavioralScore * 0.15) + (projectScore * 0.1));
+    // Real scoring evaluation based on actual answers
+    const roundsCount = companyConfig.rounds.length;
+    const roundScores = companyConfig.rounds.map((round, idx) => {
+      const sub = submittedAnswers.find(s => s.roundIndex === idx);
+      
+      if (!sub || sub.skipped || !sub.answer || sub.answer.trim().toLowerCase() === 'skipped') {
+        return 0; // Did not answer or skipped gets 0
+      }
+
+      const ans = sub.answer.trim();
+
+      if (round.type === 'coding') {
+        const defaultCode = round.starterCode?.[selectedLanguage] || '';
+        const cleanAns = ans.replace(`[Submitted Solution Code in ${selectedLanguage}]:`, '').trim();
+        const cleanDefault = defaultCode.trim();
+        
+        if (!cleanAns || cleanAns === cleanDefault || cleanAns.length < 50 || cleanAns.includes('// Write your logic here')) {
+          return 0; // Empty/default template code gets 0
+        }
+        let score = 50;
+        if (cleanAns.includes('for') || cleanAns.includes('while')) score += 15;
+        if (cleanAns.includes('if') || cleanAns.includes('else')) score += 10;
+        if (cleanAns.includes('return')) score += 15;
+        if (cleanAns.length > 150) score += 10;
+        return Math.min(100, score);
+      }
+
+      if (round.type === 'sql') {
+        const cleanAns = ans.replace(`[Submitted SQL Query]:`, '').trim();
+        if (!cleanAns || cleanAns.length < 15 || cleanAns.includes('Write your query here')) {
+          return 0;
+        }
+        let score = 50;
+        const upperSql = cleanAns.toUpperCase();
+        if (upperSql.includes('SELECT')) score += 10;
+        if (upperSql.includes('FROM')) score += 10;
+        if (upperSql.includes('WHERE')) score += 15;
+        if (upperSql.includes('JOIN') || upperSql.includes('GROUP BY')) score += 15;
+        return Math.min(100, score);
+      }
+
+      if (round.type === 'whiteboard') {
+        try {
+          const blocksJson = ans.replace(`[Submitted Architecture Layout Blocks]:`, '').trim();
+          const blocksArr = JSON.parse(blocksJson);
+          if (!blocksArr || blocksArr.length === 0) return 0;
+          return Math.min(100, 40 + blocksArr.length * 15);
+        } catch {
+          return 30;
+        }
+      }
+
+      const wordCount = ans.split(/\s+/).length;
+      if (wordCount < 5) {
+        return 5; // Extremely short answer gets almost 0
+      }
+
+      let score = 40;
+      if (wordCount > 10) score += 15;
+      if (wordCount > 30) score += 20;
+      if (wordCount > 60) score += 15;
+      
+      const keywords = ['experience', 'project', 'scale', 'optimize', 'performance', 'system', 'design', 'algorithm', 'logic', 'team', 'challenge', 'solve', 'work'];
+      let matchCount = 0;
+      keywords.forEach(kw => {
+        if (ans.toLowerCase().includes(kw)) matchCount++;
+      });
+      score += Math.min(15, matchCount * 3);
+
+      return Math.min(100, score);
+    });
+
+    const averageRoundScore = roundScores.reduce((a, b) => a + b, 0) / roundsCount;
+
+    const techRounds = companyConfig.rounds.filter(r => ['coding', 'sql', 'whiteboard', 'system-design', 'technical'].includes(r.type));
+    let technicalScore = 0;
+    if (techRounds.length > 0) {
+      let sum = 0;
+      techRounds.forEach(r => {
+        const idx = companyConfig.rounds.indexOf(r);
+        sum += roundScores[idx];
+      });
+      technicalScore = Math.round(sum / techRounds.length);
+    } else {
+      technicalScore = Math.round(averageRoundScore);
+    }
+
+    const codeRounds = companyConfig.rounds.filter(r => ['coding', 'sql'].includes(r.type));
+    let codingScore = 0;
+    if (codeRounds.length > 0) {
+      let sum = 0;
+      codeRounds.forEach(r => {
+        const idx = companyConfig.rounds.indexOf(r);
+        sum += roundScores[idx];
+      });
+      codingScore = Math.round(sum / codeRounds.length);
+    } else {
+      codingScore = Math.round(averageRoundScore * 0.9);
+    }
+
+    const wasSilent = averageRoundScore < 10;
+    const communicationScore = wasSilent ? 0 : Math.round((hudClarity + calculatedConf + hudFluency) / 3);
+    const behavioralScore = wasSilent ? 0 : Math.max(20, calculatedConf);
+    const projectScore = wasSilent ? 0 : Math.round(averageRoundScore * 1.05);
+
+    const overallScore = wasSilent ? 0 : Math.round((technicalScore * 0.3) + (codingScore * 0.25) + (communicationScore * 0.2) + (behavioralScore * 0.15) + (projectScore * 0.1));
 
     // Simulated evaluation queue updates
     await new Promise(resolve => setTimeout(resolve, 6000));
@@ -1156,24 +1296,24 @@ const LiveInterview = () => {
   // REPORT SUMMARY OVERLAY SCREEN
   if (showReportPage && finalReportData) {
     return (
-      <div className="min-h-screen bg-[#070711] text-white flex flex-col justify-center items-center p-6 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(99,102,241,0.1),transparent)] pointer-events-none" />
+      <div className="min-h-screen bg-slate-50 dark:bg-[#070711] text-slate-900 dark:text-white flex flex-col justify-center items-center p-6 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(99,102,241,0.05),transparent)] pointer-events-none" />
         
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="max-w-4xl w-full bg-white/[0.02] border border-white/10 rounded-3xl p-8 shadow-2xl relative backdrop-blur-2xl"
+          className="max-w-4xl w-full bg-white dark:bg-white/[0.02] border border-zinc-200 dark:border-white/10 rounded-3xl p-8 shadow-2xl relative backdrop-blur-2xl"
         >
           {/* Header */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-white/10 pb-6 mb-8 gap-4">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-200 dark:border-white/10 pb-6 mb-8 gap-4">
             <div>
-              <span className="text-xs font-black uppercase tracking-widest text-indigo-400" style={{ color: companyConfig.accentColor }}>
+              <span className="text-xs font-black uppercase tracking-widest text-indigo-500 dark:text-indigo-400" style={{ color: companyConfig.accentColor }}>
                 {companyConfig.title}
               </span>
               <h1 className="text-2xl font-black mt-1">AI Evaluation &amp; Grading Report</h1>
             </div>
             <div className={`px-4 py-2 rounded-xl border text-sm font-black flex items-center gap-2 ${
-              finalReportData.passed ? 'bg-emerald-500/10 border-emerald-500/35 text-emerald-400' : 'bg-red-500/10 border-red-500/35 text-red-400'
+              finalReportData.passed ? 'bg-emerald-500/10 border-emerald-500/35 text-emerald-500 dark:text-emerald-400' : 'bg-red-500/10 border-red-500/35 text-red-500 dark:text-red-400'
             }`}>
               {finalReportData.passed ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
               <span>{finalReportData.recommendation}</span>
@@ -1189,12 +1329,12 @@ const LiveInterview = () => {
               { label: 'Coding', val: finalReportData.codingScore, color: 'from-emerald-500 to-teal-500' },
               { label: 'Projects', val: finalReportData.projectScore, color: 'from-purple-500 to-violet-500' }
             ].map((s, idx) => (
-              <div key={idx} className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl text-center">
-                <div className="text-xs text-slate-400 mb-1">{s.label}</div>
-                <div className="text-2xl font-black bg-gradient-to-r text-transparent bg-clip-text" style={{ backgroundImage: `linear-gradient(to right, ${companyConfig.accentColor}, #fff)` }}>
+              <div key={idx} className="bg-zinc-50 dark:bg-white/[0.02] border border-zinc-200 dark:border-white/5 p-4 rounded-2xl text-center">
+                <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">{s.label}</div>
+                <div className="text-2xl font-black" style={{ color: companyConfig.accentColor }}>
                   {s.val}%
                 </div>
-                <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mt-3">
+                <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mt-3">
                   <div className="h-full bg-indigo-500" style={{ width: `${s.val}%`, backgroundColor: companyConfig.accentColor }} />
                 </div>
               </div>
@@ -1203,8 +1343,8 @@ const LiveInterview = () => {
 
           {/* Detailed analysis feedback grids */}
           <div className="grid md:grid-cols-2 gap-6 mb-8">
-            <div className="bg-white/[0.01] border border-white/5 p-6 rounded-2xl">
-              <h3 className="text-sm font-black text-emerald-400 mb-3 flex items-center gap-2">
+            <div className="bg-zinc-50/50 dark:bg-white/[0.01] border border-zinc-200 dark:border-white/5 p-6 rounded-2xl">
+              <h3 className="text-sm font-black text-emerald-500 dark:text-emerald-400 mb-3 flex items-center gap-2">
                 <Check className="w-4 h-4" /> Key Strengths
               </h3>
               <ul className="space-y-2 text-xs text-slate-300">
@@ -1217,11 +1357,11 @@ const LiveInterview = () => {
               </ul>
             </div>
 
-            <div className="bg-white/[0.01] border border-white/5 p-6 rounded-2xl">
-              <h3 className="text-sm font-black text-amber-400 mb-3 flex items-center gap-2">
+            <div className="bg-zinc-50/50 dark:bg-white/[0.01] border border-zinc-200 dark:border-white/5 p-6 rounded-2xl">
+              <h3 className="text-sm font-black text-amber-500 dark:text-amber-400 mb-3 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" /> Recommended Improvements
               </h3>
-              <ul className="space-y-2 text-xs text-slate-300">
+              <ul className="space-y-2 text-xs text-slate-700 dark:text-slate-300">
                 {finalReportData.weakAreas.map((w, i) => (
                   <li key={i} className="flex gap-2 items-start leading-relaxed">
                     <span className="text-amber-500 mt-0.5">•</span>
@@ -1235,9 +1375,9 @@ const LiveInterview = () => {
           {/* Log History */}
           <div className="mb-8">
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-3">Round Conversation Transcript Log</h3>
-            <div className="max-h-48 overflow-y-auto bg-black/40 border border-white/5 rounded-2xl p-4 space-y-3 font-mono text-[11px] leading-relaxed no-scrollbar">
+            <div className="max-h-48 overflow-y-auto bg-zinc-100 dark:bg-black/40 border border-zinc-200 dark:border-white/5 rounded-2xl p-4 space-y-3 font-mono text-[11px] leading-relaxed no-scrollbar text-slate-700 dark:text-slate-300">
               {dialogLogs.length > 0 ? dialogLogs.map((log, idx) => (
-                <div key={idx} className={`p-2 rounded ${log.sender === 'user' ? 'text-indigo-300' : 'text-slate-300'}`}>
+                <div key={idx} className={`p-2 rounded ${log.sender === 'user' ? 'text-indigo-600 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-300'}`}>
                   <strong>{log.sender === 'user' ? 'Candidate' : 'Interviewer'}:</strong> {log.text}
                 </div>
               )) : (
@@ -1267,7 +1407,7 @@ const LiveInterview = () => {
   // STANDARD VIEW STATES
   if (!interview) {
     return (
-      <div className="h-screen bg-[#070b1a] flex flex-col items-center justify-center gap-6">
+      <div className="h-screen bg-slate-50 dark:bg-[#070b1a] text-slate-900 dark:text-white flex flex-col items-center justify-center gap-6">
         <div className="w-12 h-12 border-4 border-slate-800 border-t-indigo-500 rounded-full animate-spin" />
         <div className="text-center">
           <h2 className="text-white text-base font-semibold">Preparing Premium AI Room</h2>
@@ -1280,7 +1420,7 @@ const LiveInterview = () => {
   if (isEnding) {
     const progress = ((endingStep + 1) / ENDING_STEPS.length) * 100;
     return (
-      <div className="h-screen bg-[#070b1a] flex flex-col items-center justify-center relative overflow-hidden text-white">
+      <div className="h-screen bg-slate-50 dark:bg-[#070b1a] flex flex-col items-center justify-center relative overflow-hidden text-slate-900 dark:text-white">
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-3xl" />
         </div>
@@ -1361,15 +1501,15 @@ const LiveInterview = () => {
   }
 
   return (
-    <div className="h-screen bg-[#070b1a] text-white flex flex-col overflow-hidden select-none">
+    <div className="h-screen bg-slate-50 dark:bg-[#070b1a] text-slate-900 dark:text-white flex flex-col overflow-hidden select-none">
       
       {/* Invisible preserved canvas analyser elements */}
       <canvas ref={canvasRef} className="absolute opacity-0 pointer-events-none" width={1} height={1} />
 
       {/* ─── STATUS HEADER ─── */}
-      <div className="flex-shrink-0 h-14 flex items-center justify-between px-4 bg-slate-950/80 border-b border-white/10 z-30">
+      <div className="flex-shrink-0 h-14 flex items-center justify-between px-4 bg-white dark:bg-slate-950/80 border-b border-zinc-200 dark:border-white/10 z-30 text-slate-900 dark:text-white">
         <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center font-bold text-xs" style={{ background: `linear-gradient(to bottom right, ${companyConfig.accentColor}, #fff)` }}>
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center font-bold text-xs text-white" style={{ background: `linear-gradient(to bottom right, ${companyConfig.accentColor}, #fff)` }}>
             IX
           </div>
           <span className="text-xs font-black uppercase tracking-widest" style={{ color: companyConfig.accentColor }}>
@@ -1378,8 +1518,8 @@ const LiveInterview = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-xs font-bold font-mono">
-            <Clock className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-zinc-100 dark:bg-white/5 border border-zinc-200 dark:border-white/10 rounded-lg text-xs font-bold font-mono text-slate-700 dark:text-white">
+            <Clock className="w-3.5 h-3.5 text-slate-500" />
             <span>
               {sessionTimeLeft !== null
                 ? `${String(Math.floor(sessionTimeLeft/60)).padStart(2,'0')}:${String(sessionTimeLeft%60).padStart(2,'0')}`
@@ -1390,7 +1530,7 @@ const LiveInterview = () => {
           <button
             onClick={togglePause}
             className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-all ${
-              isPaused ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' : 'bg-white/5 border-white/10 text-slate-400'
+              isPaused ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' : 'bg-zinc-100 dark:bg-white/5 border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-slate-400 hover:bg-zinc-200'
             }`}
           >
             {isPaused ? <Play className="w-3.5 h-3.5 text-emerald-400" /> : <Pause className="w-3.5 h-3.5" />}
@@ -1442,7 +1582,7 @@ const LiveInterview = () => {
 
           {/* Candidate Card */}
           <div className="bg-white/[0.02] border border-white/10 rounded-2xl overflow-hidden relative flex flex-col">
-            <div className="aspect-video bg-slate-950/80 relative flex items-center justify-center overflow-hidden">
+            <div className="aspect-[4/3] bg-slate-950/80 relative flex items-center justify-center overflow-hidden">
               <video
                 ref={videoRef}
                 autoPlay
@@ -1567,7 +1707,7 @@ const LiveInterview = () => {
                     </div>
                     <div className="flex-1 min-h-0">
                       <Editor
-                        theme="vs-dark"
+                        theme={theme === 'dark' ? 'vs-dark' : 'light'}
                         language={selectedLanguage}
                         value={codeContent}
                         onChange={(val) => setCodeContent(val)}
@@ -1583,7 +1723,7 @@ const LiveInterview = () => {
                   </div>
 
                   {/* Run / Submit console section */}
-                  <div className="md:col-span-2 bg-[#05070e] p-4 flex flex-col min-h-0">
+                  <div className="md:col-span-2 bg-zinc-50 dark:bg-[#05070e] p-4 flex flex-col min-h-0 border-t md:border-t-0 md:border-l border-zinc-200 dark:border-white/5">
                     <div className="flex-shrink-0 flex justify-between items-center mb-3">
                       <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Console Terminal</span>
                       <button
@@ -1606,7 +1746,7 @@ const LiveInterview = () => {
 
             {/* WORKSPACE B: SQL QUERY EDITOR */}
             {currentRound.type === 'sql' && (
-              <div className="h-full flex flex-col bg-[#05070e] p-4">
+              <div className="h-full flex flex-col bg-zinc-50 dark:bg-[#05070e] p-4">
                 <div className="bg-slate-950 border border-white/10 rounded-xl p-4 mb-4">
                   <h4 className="font-bold text-xs text-white mb-1.5 flex items-center gap-1">
                     <Database className="w-3.5 h-3.5 text-indigo-400" /> Employees Schema Table Reference
@@ -1709,7 +1849,7 @@ const LiveInterview = () => {
                 </div>
 
                 {/* Right Interactive Drag Grid Area */}
-                <div className="flex-1 relative bg-[#090b14] overflow-hidden flex flex-col min-h-0">
+                <div className="flex-1 relative bg-zinc-50 dark:bg-[#090b14] overflow-hidden flex flex-col min-h-0">
                   <div className="absolute top-2 left-2 z-10 bg-slate-900/80 px-2 py-1 rounded border border-white/10 text-[9px] text-slate-500">
                     Drag blocks to design architecture or use cursor sketch
                   </div>
@@ -1771,7 +1911,7 @@ const LiveInterview = () => {
 
             {/* WORKSPACE D: STANDARD CONVERSATION DIALOG CHAT */}
             {currentRound.type === 'text' && (
-              <div className="h-full flex flex-col justify-between p-4 bg-[#05070e] overflow-y-auto no-scrollbar">
+              <div className="h-full flex flex-col justify-between p-4 bg-zinc-50 dark:bg-[#05070e] overflow-y-auto no-scrollbar">
                 
                 {/* Chat dialogues log */}
                 <div className="flex-1 overflow-y-auto space-y-4 no-scrollbar mb-4">
