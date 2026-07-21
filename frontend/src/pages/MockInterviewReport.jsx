@@ -342,6 +342,74 @@ const MockInterviewReport = () => {
               </div>
             </div>
 
+            {/* AI Adaptive Intelligence Insights */}
+            {report.adaptiveState && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                {/* Knowledge Graph Card */}
+                <div className="bg-slate-900/40 rounded-3xl border border-slate-800 p-6 backdrop-blur-xl lg:col-span-1 flex flex-col">
+                  <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <FaBrain className="text-indigo-400" /> Knowledge Graph
+                  </h2>
+                  <p className="text-xs text-slate-400 mb-4">Dynamically tracked sub-topics and calculated competence levels.</p>
+                  <div className="flex-1 overflow-y-auto max-h-[220px] space-y-2 pr-1 no-scrollbar">
+                    {Object.entries(report.adaptiveState.knowledgeGraph || {}).map(([topic, status], idx) => (
+                      <div key={idx} className="flex justify-between items-center bg-slate-950/60 px-3 py-2 rounded-xl border border-slate-800/80">
+                        <span className="text-xs font-semibold text-slate-300 capitalize">{topic}</span>
+                        <span className={`text-[9px] uppercase font-black px-2 py-0.5 rounded-md ${
+                          status === 'Strong' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                          status === 'Average' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                          'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                        }`}>{status}</span>
+                      </div>
+                    ))}
+                    {(!report.adaptiveState.knowledgeGraph || Object.keys(report.adaptiveState.knowledgeGraph).length === 0) && (
+                      <p className="text-slate-500 text-xs italic">No topic evaluations recorded in the graph.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Mistake Memory Card */}
+                <div className="bg-slate-900/40 rounded-3xl border border-slate-800 p-6 backdrop-blur-xl lg:col-span-1 flex flex-col">
+                  <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <FaExclamationTriangle className="text-rose-400" /> Mistake Memory
+                  </h2>
+                  <p className="text-xs text-slate-400 mb-4">Concepts candidate struggled with during the evaluation loop.</p>
+                  <div className="flex-1 overflow-y-auto max-h-[220px] space-y-2.5 pr-1 no-scrollbar">
+                    {report.adaptiveState.mistakes?.map((mistake, idx) => (
+                      <div key={idx} className="flex gap-2.5 items-start text-xs text-slate-300 leading-relaxed bg-rose-500/5 p-3 rounded-xl border border-rose-500/10">
+                        <span className="text-rose-400 font-bold shrink-0">•</span>
+                        <span>{mistake}</span>
+                      </div>
+                    ))}
+                    {(!report.adaptiveState.mistakes || report.adaptiveState.mistakes.length === 0) && (
+                      <p className="text-slate-500 text-xs italic">No conceptual misunderstandings recorded.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Silent Interviewer Notes Card */}
+                <div className="bg-slate-900/40 rounded-3xl border border-slate-800 p-6 backdrop-blur-xl lg:col-span-1 flex flex-col">
+                  <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <FaUserTie className="text-purple-400" /> Interviewer Notes
+                  </h2>
+                  <p className="text-xs text-slate-400 mb-4">Sarah's silent notes updated continuously during the session.</p>
+                  <div className="flex-1 overflow-y-auto max-h-[220px] space-y-2 pr-1 no-scrollbar">
+                    {report.adaptiveState.notes?.map((note, idx) => (
+                      <div key={idx} className="flex gap-2.5 items-start text-xs text-slate-300 leading-relaxed bg-purple-500/5 p-3 rounded-xl border border-purple-500/10">
+                        <span className="text-purple-400 font-bold shrink-0">✓</span>
+                        <span>{note}</span>
+                      </div>
+                    ))}
+                    {(!report.adaptiveState.notes || report.adaptiveState.notes.length === 0) && (
+                      <p className="text-slate-500 text-xs italic">No interviewer notes compiled.</p>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            )}
+
             {/* Question by Question Timeline */}
             <div className="bg-slate-900/40 rounded-3xl border border-slate-800 p-6 md:p-8 backdrop-blur-xl mb-12">
               <div className="flex items-center justify-between border-b border-slate-800 pb-6 mb-8">

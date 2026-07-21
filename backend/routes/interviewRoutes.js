@@ -302,6 +302,32 @@ const getConversationalResponse = async (req, res) => {
       interviewStage
     } = req.body;
 
+    // Get the last question's evaluation from interview.questions if available
+    let lastEvaluation = null;
+    if (interview.questions && interview.questions.length > 0) {
+      const lastQ = interview.questions[interview.questions.length - 1];
+      lastEvaluation = {
+        score: lastQ.score,
+        metrics: lastQ.metrics,
+        speechStats: lastQ.speechStats
+      };
+    }
+
+    // Initialize or load adaptive state
+    let adaptiveState = interview.adaptiveState || {
+      knowledgeScore: 50,
+      confidenceScore: 50,
+      communicationScore: 50,
+      technicalScore: 50,
+      domainScore: 50,
+      overallScore: 50,
+      difficultyLevel: interview.difficulty || 'Medium',
+      knowledgeGraph: {},
+      mistakes: [],
+      notes: [],
+      historyTopics: []
+    };
+
     const result = await generateConversationalResponse({
       userAnswer,
       questionAsked,
@@ -314,11 +340,19 @@ const getConversationalResponse = async (req, res) => {
       projectDescription: interview.projectDescription || '',
       difficulty: interview.difficulty || 'Intermediate',
       questionNumber: questionNumber || 1,
-      interviewStage: interviewStage || 'core'
+      interviewStage: interviewStage || 'core',
+      adaptiveState,
+      lastEvaluation,
+      duration: interview.duration
     });
+
+    // Save updated adaptive state back to the interview document
+    interview.adaptiveState = result.adaptiveState || adaptiveState;
+    await interview.save();
 
     res.json(result);
   } catch (error) {
+    console.error('getConversationalResponse error:', error);
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };
@@ -357,7 +391,7 @@ const getMockReport = async (req, res) => {
       reportDoc.confidenceScore = typeof confidence === 'number' ? confidence : 0;
       reportDoc.problemSolvingScore = typeof problemSolving === 'number' ? problemSolving : 0;
       reportDoc.hiringDecision = reportData.finalDecision || 'Needs Improvement';
-      reportDoc.mockReport = reportData;
+      reportDoc.mockReport = { ...reportData, adaptiveState: interview.adaptiveState };
       await reportDoc.save();
     } else {
       reportDoc = await Report.create({
@@ -369,11 +403,11 @@ const getMockReport = async (req, res) => {
         confidenceScore: typeof confidence === 'number' ? confidence : 0,
         problemSolvingScore: typeof problemSolving === 'number' ? problemSolving : 0,
         hiringDecision: reportData.finalDecision || 'Needs Improvement',
-        mockReport: reportData
+        mockReport: { ...reportData, adaptiveState: interview.adaptiveState }
       });
     }
 
-    res.json({ ...reportData, _id: reportDoc._id });
+    res.json({ ...reportData, _id: reportDoc._id, adaptiveState: interview.adaptiveState });
   } catch (error) {
     console.error('getMockReport error:', error);
     res.status(500).json({ message: 'Failed to generate mock report', error: error.message });

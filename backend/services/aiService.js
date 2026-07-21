@@ -435,7 +435,10 @@ const generateConversationalResponse = async ({
   projectDescription = '',
   difficulty = 'Intermediate',
   questionNumber = 1,
-  interviewStage = 'core'
+  interviewStage = 'core',
+  adaptiveState,
+  lastEvaluation,
+  duration
 }) => {
   try {
     const wordCount = userAnswer ? userAnswer.trim().split(/\s+/).length : 0;
@@ -477,6 +480,7 @@ YOUR PERSONALITY:
 - You sound like a real human — never robotic, never scripted
 - You never read a list of questions. You conduct a real conversation.
 - You listen carefully and respond based on what the candidate actually said
+- Never punish hesitation. If they struggle, guide them and ask easier conceptual questions.
 
 INTERVIEW CONTEXT:
 Role: ${role}
@@ -484,6 +488,7 @@ Interview Type: ${type}
 Difficulty: ${difficulty}
 Question Number: ${questionNumber}
 Interview Stage: ${interviewStage}
+Total Intended Duration: ${duration || '15 mins'}
 ${domainContext}
 
 RECENT CONVERSATION:
@@ -495,49 +500,57 @@ LAST QUESTION YOU ASKED:
 CANDIDATE'S ANSWER:
 "${userAnswer || '(no response)'}"
 
-ANSWER ASSESSMENT:
-- Word count: ${wordCount} words
-- Answer quality: ${isEmpty ? 'EMPTY - no meaningful response' : isShortAnswer ? 'VERY SHORT - incomplete response' : wordCount > 80 ? 'DETAILED - strong response' : 'MODERATE - acceptable response'}
+LAST EVALUATION METRICS:
+${lastEvaluation ? JSON.stringify(lastEvaluation, null, 2) : 'None (First question)'}
+
+ADAPTIVE ROADMAPS:
+- Role & Domain Roadmaps:
+  * Frontend: More React, CSS, JavaScript, DOM, Performance.
+  * Backend: Node, Java, Spring, Database, API, Authentication.
+  * AI Engineer: Python, ML, LLMs, Prompt Engineering, Vector DB, RAG.
+  * Data Analyst: SQL, Excel, Power BI, Statistics, Visualization.
+  * DSA: Arrays → Strings → Linked List → Trees → Graphs → DP → Advanced.
+  * SQL: SELECT → JOIN → GROUP BY → WINDOW FUNCTIONS → INDEXING → OPTIMIZATION.
+  * Java: Basics → OOP → Collections → Exception → Multithreading → JVM → Advanced Java.
+- Difficulty Engine scale: Easy → Medium → Hard → Scenario Based → Real World Problems → Optimization → Architecture. Only increase difficulty by 1 step at a time if the user is performing very well. If struggling (multiple weak answers), reduce difficulty slightly, give encouraging response, and ask easier conceptual questions.
+
+CURRENT INTERNAL ADAPTIVE STATE:
+${JSON.stringify(adaptiveState, null, 2)}
 
 STAGE INSTRUCTION:
 ${stageInstructions[interviewStage] || stageInstructions.core}
 
 YOUR TASK:
-Write your next conversational response as Sarah. Structure it as:
-1. ACKNOWLEDGEMENT (1-2 sentences): React naturally to what the candidate just said. Be specific — reference something they actually said. Use phrases like:
-   - "That's an interesting perspective."
-   - "I can see where you're coming from."
-   - "That makes a lot of sense."
-   - "Good — you touched on something important there."
-   - "Interesting. I want to explore that a bit more."
-   - "I appreciate you walking me through that."
-   - (If empty/no answer): "Take your time. Whenever you're ready, we can approach this from a different angle."
-   - (If short): "Could you walk me through that in a bit more detail? I'd like to understand your thinking."
-   - (If excellent): "That's a solid explanation. I like how you structured that. Let's go a bit deeper."
-   NEVER say: "Correct", "Wrong", "That's right", "Good job", "Great answer"
+1. Update the internal adaptive state metrics (knowledgeScore, confidenceScore, communicationScore, technicalScore, domainScore, overallScore, difficultyLevel, knowledgeGraph, mistakes, notes, historyTopics) based on candidate answers and the last evaluation metrics. Keep these notes internal.
+2. Formulate your response as Sarah:
+   - ACKNOWLEDGEMENT (1-2 sentences): React naturally to the candidate's last response. Refer to specific technical concepts they used. Encourage them if they struggle. NEVER say "Correct", "Wrong", "That's right", etc.
+   - TRANSITION (optional, 0-1 sentence): Transition to the next question.
+   - NEXT QUESTION (1-2 sentences): Ask ONE clear question.
+     * Keep questions relevant to the role, domain, and difficultyLevel.
+     * Check mistake memory: if they made a mistake in a topic previously (listed in mistakes), ask a conceptual follow-up or scenario to see if they improved.
+     * If closing stage, do not ask a question; deliver a warm closing statement summarizing the conversation.
+     * Monitor remaining time based on questionNumber vs total duration. If near the end, prioritize important questions and close naturally.
 
-2. TRANSITION (optional, 0-1 sentence): Smoothly connect to the next topic if needed. Use:
-   - "Let's shift to another area."
-   - "Building on that..."
-   - "Going back to what you mentioned about [X]..."
-   - "That actually brings me to my next question."
-   (Skip transition if directly probing their answer)
-
-3. NEXT QUESTION (1-2 sentences): Ask ONE clear, focused question. Rules:
-   - If answer was short/empty: Ask a FOLLOW-UP probe about their same answer, not a new topic
-   - If answer was moderate: Ask a natural follow-up or related next question
-   - If answer was excellent: Escalate difficulty — ask for trade-offs, edge cases, or deeper optimization
-   - NEVER ask more than one question at a time
-   - Keep the question within the domain: "${domain || type}"
-   - If closing stage: No new question. Deliver a warm professional conclusion.
-
-OUTPUT FORMAT (STRICT — return ONLY valid JSON, no markdown):
+OUTPUT FORMAT (STRICT — return ONLY valid JSON, no markdown wrapper):
 {
   "acknowledgement": "<1-2 sentence natural acknowledgement>",
   "transition": "<0-1 sentence transition or empty string>",
   "nextQuestion": "<1-2 sentence next question or closing statement>",
   "isFollowUp": <true if probing same answer, false if new topic>,
-  "isClosing": <true if this is the final closing message>
+  "isClosing": <true if this is the final closing message>,
+  "adaptiveState": {
+    "knowledgeScore": number (0-100),
+    "confidenceScore": number (0-100),
+    "communicationScore": number (0-100),
+    "technicalScore": number (0-100),
+    "domainScore": number (0-100),
+    "overallScore": number (0-100),
+    "difficultyLevel": "current difficulty level in Easy/Medium/Hard/Scenario Based/Real World Problems/Optimization/Architecture",
+    "knowledgeGraph": { "topic_name": "Strong" | "Average" | "Weak" },
+    "mistakes": ["list of concepts candidate misunderstood or failed to answer correctly"],
+    "notes": ["list of silent live notes on candidate's behavior, e.g., 'Strong Java.', 'Weak SQL JOIN.'"],
+    "historyTopics": ["list of sub-topics already asked to avoid repetition"]
+  }
 }`;
 
     const response = await ai.models.generateContent({ contents: prompt });
@@ -554,6 +567,7 @@ OUTPUT FORMAT (STRICT — return ONLY valid JSON, no markdown):
       nextQuestion: parsed.nextQuestion || 'Could you tell me more about your experience?',
       isFollowUp: parsed.isFollowUp || false,
       isClosing: parsed.isClosing || false,
+      adaptiveState: parsed.adaptiveState || adaptiveState,
       // Combined full text for TTS
       fullSpeech: [
         parsed.acknowledgement,
@@ -577,6 +591,7 @@ OUTPUT FORMAT (STRICT — return ONLY valid JSON, no markdown):
       nextQuestion: 'Could you walk me through your thought process on that in a bit more detail?',
       isFollowUp: true,
       isClosing: false,
+      adaptiveState,
       fullSpeech: `${ack} Could you walk me through your thought process on that in a bit more detail?`
     };
   }
