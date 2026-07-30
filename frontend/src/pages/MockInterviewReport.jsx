@@ -6,6 +6,8 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Responsi
 import { FaBookmark, FaPrint, FaShareAlt, FaRobot, FaPaperPlane, FaTimes, FaArrowLeft, FaAward, FaExclamationTriangle, FaCheckCircle, FaBookOpen, FaUserTie, FaRegClock, FaChartBar, FaBrain, FaComments, FaCode, FaChartLine, FaExclamationCircle } from 'react-icons/fa';
 import Sidebar from '../components/layout/Sidebar';
 import Navbar from '../components/layout/Navbar';
+import GDEvaluationReportView from '../components/interview/GDEvaluationReportView';
+import ExtemporeReportView from '../components/interview/ExtemporeReportView';
 import toast from 'react-hot-toast';
 
 const MockInterviewReport = () => {
@@ -24,6 +26,24 @@ const MockInterviewReport = () => {
 
   useEffect(() => {
     const fetchReport = async () => {
+      try {
+        const extRes = await api.post(`/interviews/${id}/extempore-report`);
+        if (extRes.data && extRes.data.isExtempore) {
+          setReport(extRes.data);
+          setLoading(false);
+          return;
+        }
+      } catch (e) {}
+
+      try {
+        const gdRes = await api.post(`/interviews/${id}/gd-report`);
+        if (gdRes.data && (gdRes.data.isGD || gdRes.data.categoryScores)) {
+          setReport(gdRes.data);
+          setLoading(false);
+          return;
+        }
+      } catch (e) {}
+
       try {
         const { data } = await api.post(`/interviews/${id}/mock-report`);
         setReport(data);
@@ -94,6 +114,14 @@ const MockInterviewReport = () => {
         </div>
       </div>
     );
+  }
+
+  if (report?.isExtempore) {
+    return <ExtemporeReportView report={report} onBackToDashboard={() => navigate('/dashboard')} />;
+  }
+
+  if (report?.isGD) {
+    return <GDEvaluationReportView report={report} onBackToDashboard={() => navigate('/dashboard')} />;
   }
 
   // 1. Radar Chart Data

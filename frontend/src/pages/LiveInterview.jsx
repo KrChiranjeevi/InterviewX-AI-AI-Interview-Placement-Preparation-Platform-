@@ -21,6 +21,8 @@ import Editor from '@monaco-editor/react';
 import InterviewMetrics from '../components/interview/InterviewMetrics';
 import WaveformVisualizer from '../components/interview/WaveformVisualizer';
 import MockInterviewRoom from '../components/interview/MockInterviewRoom';
+import LiveGDRoom from '../components/interview/LiveGDRoom';
+import ExtemporeRoom from '../components/interview/ExtemporeRoom';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const AUTO_SUBMIT_DELAY = 60 * 1000;
@@ -613,7 +615,11 @@ const LiveInterview = () => {
       if (isPausedRef.current) return;
       secs -= 1;
       setSessionTimeLeft(secs);
-      if (secs <= 0) clearInterval(sessionTimerRef.current);
+      if (secs <= 0) {
+        clearInterval(sessionTimerRef.current);
+        addToast('Time limit reached! Concluding interview session...', 'info');
+        confirmEndInterview();
+      }
     }, 1000);
     return () => clearInterval(sessionTimerRef.current);
   }, [interview]);
@@ -741,7 +747,7 @@ const LiveInterview = () => {
       const recognition = new SpeechRecognition();
       recognition.continuous      = true;
       recognition.interimResults  = true;
-      recognition.lang            = 'en-US';
+      recognition.lang            = window.navigator?.language || 'en-IN';
       recognition.maxAlternatives = 1;
 
       recognition.onresult = (event) => {
@@ -812,6 +818,8 @@ const LiveInterview = () => {
   useEffect(() => {
     const handleKeyboard = (e) => {
       if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+      if (e.target.isContentEditable) return;
+      if (e.target.closest && e.target.closest('.monaco-editor')) return;
       if (isEnding) return;
       if (e.code === 'Space')   { e.preventDefault(); toggleMute(); }
       else if (e.code === 'KeyC') { e.preventDefault(); toggleCamera(); }
@@ -861,6 +869,9 @@ const LiveInterview = () => {
   /* ─── TTS Speech Synthesis ────────────────────────────────────────────── */
   const speakText = (text) => {
     synthRef.current.cancel();
+    if (window.speechSynthesis && window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+    }
     const utterance = new SpeechSynthesisUtterance(text);
     if (voiceRef.current) utterance.voice = voiceRef.current;
     utterance.lang   = 'en-US';
@@ -877,6 +888,9 @@ const LiveInterview = () => {
   const speakChunk = (text, opts = {}) => new Promise((resolve) => {
     if (!text) { resolve(); return; }
     synthRef.current.cancel();
+    if (window.speechSynthesis && window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+    }
     const utt = new SpeechSynthesisUtterance(text);
     if (voiceRef.current) utt.voice = voiceRef.current;
     utt.lang   = 'en-US';
@@ -1666,6 +1680,24 @@ const LiveInterview = () => {
     );
   }
 
+  if (interview.type === 'Group Discussion' || interview.type === 'Group Discussion (GD)') {
+    return (
+      <LiveGDRoom
+        interview={interview}
+        onFinishGD={(reportData) => navigate(`/mock-report/${id}`)}
+      />
+    );
+  }
+
+  if (interview.type === 'Extempore Round' || interview.type === 'Extempore') {
+    return (
+      <ExtemporeRoom
+        interview={interview}
+        onFinishExtempore={(reportData) => navigate(`/mock-report/${id}`)}
+      />
+    );
+  }
+
   if (isEnding) {
     const progress = ((endingStep + 1) / ENDING_STEPS.length) * 100;
     return (
@@ -1761,8 +1793,8 @@ const LiveInterview = () => {
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center font-bold text-xs text-white" style={{ background: `linear-gradient(to bottom right, ${companyConfig.accentColor}, #fff)` }}>
             IX
           </div>
-          <span className="text-xs font-black uppercase tracking-widest" style={{ color: companyConfig.accentColor }}>
-            {companyConfig.title}
+          <span className="text-xs font-black uppercase tracking-widest" style={{ color: isMock ? '#10b981' : companyConfig.accentColor }}>
+            {isMock ? `MOCK ${interview?.type?.toUpperCase() || 'PRACTICE'} SESSION` : companyConfig.title}
           </span>
         </div>
 
@@ -1851,6 +1883,11 @@ const LiveInterview = () => {
           setConversationLogOpen={setConversationLogOpen}
           onExcellentAnswer={onExcellentAnswer}
           interviewStage={interviewStage}
+          finalTranscript={finalTranscript}
+          setFinalTranscript={setFinalTranscript}
+          interimTranscript={interimTranscript}
+          setInterimTranscript={setInterimTranscript}
+          speakText={speakText}
         />
       ) : (
         <div className="flex-1 flex gap-3 p-3 overflow-hidden min-h-0 relative">

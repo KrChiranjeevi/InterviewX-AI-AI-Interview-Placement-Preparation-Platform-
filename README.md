@@ -4,7 +4,7 @@
   # InterviewX AI
   **Intelligent Interview Preparation & Recruitment Simulation Platform**
 
-  *An AI-powered platform for interview preparation, company recruitment simulation, coding practice, resume analysis, and personalized career guidance.*
+  *An AI-powered platform for interview preparation, company recruitment simulation, group discussion practice, extempore speech evaluation, coding practice, resume analysis, and personalized career guidance.*
 
   <p align="center">
     <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React" />
@@ -30,20 +30,21 @@
 
 ## 📖 Overview
 
-**InterviewX AI** is a complete, enterprise-grade AI-powered interview preparation platform. It is engineered to bridge the gap between theoretical knowledge and real-world placement exams by offering highly authentic mock interviews and evaluations. 
+**InterviewX AI** is a complete, enterprise-grade AI-powered interview preparation platform. It is engineered to bridge the gap between theoretical knowledge and real-world placement exams by offering highly authentic mock interviews, group discussion simulations, extempore speech evaluations, and automated assessments. 
 
 Whether you are preparing for FAANG or major IT service companies, InterviewX AI provides an end-to-end simulation of company-specific hiring processes.
 
 Our comprehensive suite of tools includes:
-- **AI Mock Interviews:** Dynamic verbal and technical questioning.
-- **Company Recruitment Simulation:** Authentic multi-round hiring workflows.
+- **AI Mock Interviews:** Dynamic verbal, technical, and behavioral questioning.
+- **AI Group Discussion (GD) Room:** Multi-persona AI participant GD simulation with real-time turn taking and evaluation.
+- **AI Extempore Speech & Cross-Exam:** Timed spontaneous speaking drills with AI panelist cross-examination.
+- **Company Recruitment Simulation:** Authentic multi-round hiring workflows (Amazon, Google, Microsoft, Deloitte, Cognizant, Wipro, TCS, Infosys, etc.).
 - **ATS Resume Analyzer:** AI-driven feedback for resume optimization.
-- **AI Coding Practice:** A LeetCode-style platform with intelligent code analysis.
-- **Company-specific Interview Preparation:** Round-by-round guidance.
-- **Progress Tracking:** Deep metrics on your interview readiness.
-- **Reports & Analytics:** 100% explainable AI grading.
+- **AI Coding Practice:** A LeetCode-style platform with Monaco editor and intelligent code analysis.
+- **Company-specific Interview Preparation:** Round-by-round guidance and specialized question banks.
+- **Progress Tracking & Analytics:** 100% explainable AI grading and deep performance metrics.
 - **AI Career Roadmap:** Step-by-step personalized learning paths.
-- **Community:** A collaborative space for job seekers.
+- **Community Hub:** Collaborative space for job seekers to share experiences.
 
 ---
 
@@ -51,12 +52,14 @@ Our comprehensive suite of tools includes:
 
 | Module | Description |
 | :--- | :--- |
-| 🤖 **AI Mock Interviews** | Adaptive AI interviewer that dynamically generates technical and behavioral questions based on user responses and role. |
-| 🏢 **Recruitment Simulation** | Emulates the exact hiring rounds of companies like Amazon, Google, Microsoft, TCS, Infosys, and Accenture. |
-| 📝 **MCQ Assessment Engine** | Professional timed mock tests for Aptitude, Logical Reasoning, Quantitative, and Verbal Ability rounds. |
-| 💻 **Coding Practice Hub** | Fully integrated Monaco code editor with support for DSA, React, Node.js, and SQL, providing instant AI code review. |
-| 📄 **Resume Analyzer** | ATS compatibility scoring, keyword analysis, and personalized suggestions to improve your resume. |
-| 📊 **Advanced Analytics** | Generates detailed post-interview reports with accuracy, communication, technical, and confidence scores. |
+| 🤖 **AI Mock Interviews** | Adaptive AI interviewer that dynamically generates technical and behavioral questions based on user responses and target role. |
+| 🗣️ **AI Group Discussion Simulator** | Real-time multi-persona AI participant GD simulation (Moderator, Analytical, Critical, Constructive contenders) with dynamic turn-taking and GD scorecards. |
+| 🎤 **AI Extempore Speech & Cross-Exam** | Timed spontaneous speech simulation with AI panelist cross-examination, filler word tracking, sentence corrections, and 10-dimension fluency evaluation. |
+| 🏢 **Recruitment Simulation** | Emulates the exact hiring rounds of companies like Amazon, Google, Microsoft, Deloitte, Cognizant, Wipro, TCS, Infosys, and Accenture. |
+| 📝 **MCQ Assessment Engine** | Professional timed mock tests for Aptitude, Logical Reasoning, Quantitative, Verbal Ability, and Technical core subjects. |
+| 💻 **Coding Practice Hub** | Fully integrated Monaco code editor supporting DSA, React, Node.js, and SQL with instant AI code review and hint generator. |
+| 📄 **Resume Analyzer** | ATS compatibility scoring, keyword analysis, line-by-line recommendations, and personalized suggestions to improve your resume. |
+| 📊 **Advanced Analytics & Reports** | Generates detailed post-interview reports with accuracy, communication, technical depth, logic, and confidence metrics. |
 | 🗺️ **AI Career Roadmap** | Auto-generates weekly milestones and study paths based on your interview weaknesses and performance gaps. |
 | ⚙️ **User Control Center** | Premium SaaS-style Settings module with GSAP animations, theme toggle, AI preferences, and account health monitoring. |
 
@@ -64,36 +67,40 @@ Our comprehensive suite of tools includes:
 
 ## 🚀 Recent Production-Grade Upgrades
 
-### 1. Dynamic MCQ Pool Auto-Replenishing
-- **Non-Repeating Logic:** The system stores the full assessment history of attempts instead of wiping scores, guaranteeing that question generation excludes previously answered questions.
-- **Skipped Questions Preservation:** If a user skips a question during an assessment without selecting an option, it remains in the active question bank to naturally appear in future sessions.
-- **Auto-Recycling Worker:** Each module (Logical, Quant, Verbal, DBMS, Java, Python, etc.) maintains a pool of 650 unique, category-specific MCQs. When a user runs out of unseen questions in a pool, the backend automatically triggers a background worker to generate 650 brand-new questions via AI, continuously replenishing the DB.
-- **Padded Tests:** If the DB is temporarily low on questions, the engine replicates and creates unique ObjectID padding to ensure every test always serves exactly **35 questions** as required for a full mock placement format.
+### 1. Multi-Persona AI Group Discussion (GD) Engine
+- **Simulated Contenders & Moderator:** Built an interactive Group Discussion workspace (`LiveGDRoom.jsx`) with dynamic multi-persona AI participants (Moderator, Analytical Candidate, Critical Contender, Constructive Contender).
+- **Real-Time Dynamic Turns:** Simulates authentic GD flow where AI participants make logical contributions, challenge points, and build consensus around placement topics.
+- **GD Evaluation Report:** Generates an in-depth GD scorecard (`GDEvaluationReportView.jsx`) grading Leadership, Active Listening, Logical Reasoning, Communication, Body Language, Sentence Corrections, and Filler Word metrics.
 
-### 2. Multi-API Reliability & Offline Safety Nets
-- **Upgraded OpenRouter Models:** Fixed API errors by integrating active free OpenRouter models (`meta-llama/llama-3.3-70b-instruct:free`, `google/gemma-2-9b-it:free`, etc.) to replace deprecated endpoints.
-- **Offline Question Fallbacks:** Created [fallbackQuestions.js](file:///c:/Summer%20Vaction/interviewpreprationaibot-main/InterviewX-AI/backend/utils/fallbackQuestions.js) inside the backend. If external APIs hit rate limits or fail during a live mock interview, the system seamlessly serves realistic, role-specific questions rather than breaking the UI.
+### 2. AI Extempore Speech & Panelist Cross-Examination Engine
+- **Timed Spontaneous Speech:** Developed an Extempore speech module (`ExtemporeRoom.jsx`) featuring prep timers, topic categories (Tech, Ethics, Economy, Abstract), and continuous speech input.
+- **AI Panelist Cross-Examination:** Panelist AI generates 3 dynamic follow-up/cross-examination questions tailored directly to the candidate's delivered speech.
+- **10-Dimension Analytical Reporting:** Renders a comprehensive report (`ExtemporeReportView.jsx`) evaluating Communication, English, Grammar, Vocabulary, Confidence, Pronunciation, Professionalism, Topic Understanding, Logical Thinking, and Body Language with personalized AI Coach practice plans.
 
-### 3. Comprehensive Layout Responsiveness
-- **Live Interview Room (`LiveInterview.jsx`):** Redesigned with media queries to hide non-essential elements on mobile/tablet viewports (AI thinking logs, network indicators, fullscreen controls) and collapse "Pause" and "End" actions to compact icons. Stacks panels vertically (`flex-col md:flex-row`) to support smooth scrolling.
-- **Coding Workspace (`CodingEditor.jsx`):** Shrunk header options to icon buttons on mobile to prevent the "Run" and "Submit" buttons from being cut off. Uses responsive heights (`h-[40vh]` / `h-[60vh]`) for stacked panels.
+### 3. Cognizant GenC / Elevate / NEXT Hiring Module
+- **Cognizant Prep Hub:** Built a specialized placement preparation module (`CognizantPrepDetail.jsx`) covering GenC, GenC Elevate, and GenC NEXT hiring workflows.
+- **Dedicated Question Bank:** Added `cognizantQuestionBank.js` featuring Communication assessment drills, Automata Fix debugging challenges, and DSA coding practice sets.
 
-### 4. Bespoke Deloitte Hiring Module & Global Theme Upgrades
-- **Deloitte Recruitment Simulation:** Built a premium Deloitte Campus Hiring module from scratch featuring a specialized glassmorphic Deloitte Green theme, customized tracks (**Technology Consulting**, **Analyst**, and **Associate Analyst**), and a structured timeline.
-- **Dedicated Managerial Interview:** Integrated a 5-step Managerial Interview round evaluating leadership, conflict resolution, professional ethics, and stakeholder management.
-- **Universal HR Interview Round:** Standardized the mock HR Interview button across all 15 company dashboards to seamlessly route to the centralized `InterviewLive` engine.
-- **Dynamic Light/Dark Theme Adaptations:** Upgraded the Wipro and Deloitte Prep Detail modules to dynamically hook into the `'theme-changed'` event, transitioning their background and typography variables natively between dark-brand configurations and crisp light-mode layouts.
-- **Data Escaping Bugfixes:** Cleaned up oxc string literal syntax parse errors in the company coding question pool (`companyCodingPYQs.js`) to restore seamless Vite hot reloading.
+### 4. Coding Engine Follow-up Repetition & Persistence Enhancements
+- **Resolved Follow-up Repetition:** Fixed follow-up question repetition logic in the AI Coding Interview Engine to ensure fresh, progressive coding challenges.
+- **Report & Dashboard Integration:** Fully hooked up GD and Extempore reports to the persistent dashboard backend so users can review historic performances anytime.
 
-### 5. Premium AI Real Interview Workspace Engine
-- **Targeted Brand Adaptability:** Built a high-fidelity 3-column interview environment that dynamically adapts to each target company (AWS styling for Amazon, Clean Minimal for Google, Green Matrix for NVIDIA, Gold Presidential for JPMC).
-- **Workspace Control Panels:** Renders customized tool workspaces per round type, including an integrated Monaco editor code sandbox, interactive multi-line SQL playground compiler, and a drag-and-drop System Design whiteboard sketching canvas.
-- **Biometric Metric HUD Overlays:** Shows candidate video simulator feed alongside real-time indicators tracking Filler Words, WPM cadence rate, Voice Clarity, Eye Contact, and Speech Waveform visualizers.
+### 5. Dynamic MCQ Pool Auto-Replenishing
+- **Non-Repeating Logic:** The system stores full assessment attempt history, guaranteeing question generation excludes previously answered questions.
+- **Auto-Recycling Worker:** Maintains a pool of 650 unique MCQs per category, automatically triggering AI replenishment workers when unseen questions run low.
+- **Padded Tests:** Ensures every assessment always serves exactly 35 questions as required for full placement mock format.
 
-### 6. Premium AI Hiring Committee & Offer Decision Engine
-- **Recruiter Profile Consensus Panel:** Simulates corporate hiring boards convening in real-time, parsing candidates' complete scores across Aptitude, Resume ATS, Coding Optimization, and Behavioral logs to generate consensus decisions.
-- **Dynamic Scorecard & Achievements:** Displays analytical score breakdowns, recruiter risk factors, and unlocks custom candidate badge achievements (e.g. Coding Expert, Assessment Master).
-- **Offer Letters, Waitlist, & Rejection Feedback:** Selected candidates receive custom digital offer letters detailing team placement (product) or training academy (service). Borderline profiles get waitlisted probability sheets, and rejected candidates receive detailed constructive cut-off maps and improvement schedules.
+### 6. Multi-API Reliability & Offline Safety Nets
+- **Upgraded OpenRouter & Gemini Integration:** Seamless model fallbacks for continuous uptime.
+- **Offline Question Fallbacks:** Fallback question banks ensure live mock interviews never break even if external APIs hit rate limits.
+
+### 7. Comprehensive Layout Responsiveness
+- **Mobile/Tablet Optimization:** Media queries hide non-essential elements on mobile viewports and collapse panel controls into compact icons for seamless scrolling on handheld devices.
+
+### 8. Bespoke Deloitte Hiring Module & Theme System
+- **Deloitte Recruitment Simulation:** Dedicated glassmorphic Deloitte Green theme, customized tracks (Technology Consulting, Analyst, Associate Analyst), and a 5-step Managerial Interview round.
+- **Universal HR Interview Round:** Standardized mock HR Interview routing across all 15 company dashboards.
+- **Dynamic Light/Dark Theme Adaptations:** Native background and typography transitions between dark brand configurations and clean light-mode layouts.
 
 ---
 
@@ -102,8 +109,9 @@ Our comprehensive suite of tools includes:
 ### Frontend
 - **React.js** (with Vite)
 - **Tailwind CSS** (for styling and glassmorphism UI)
-- **Framer Motion** (for fluid animations)
-- **Monaco Editor** (for integrated coding)
+- **Framer Motion & GSAP** (for fluid animations)
+- **Monaco Editor** (for integrated coding workspace)
+- **Lucide React** (for modern icons)
 - **React Router Dom** (for navigation)
 
 ### Backend
@@ -118,8 +126,8 @@ Our comprehensive suite of tools includes:
 - **Bcrypt.js** (for password hashing)
 
 ### AI Services
-- **Google Gemini API** (or OpenAI/Groq) for adaptive questioning and deep feedback generation
-- **OpenRouter API** for fallback models
+- **Google Gemini API** (Gemini 1.5 Flash / Pro) for adaptive interviews, GD generation, Extempore evaluations, and code analysis
+- **OpenRouter API** for LLM fallbacks
 
 ---
 
@@ -128,28 +136,29 @@ Our comprehensive suite of tools includes:
 ```text
 InterviewX-AI/
 ├── backend/
-│   ├── config/           # Database configurations
-│   ├── controllers/      # Business logic (Auth, Coding, Interview, etc.)
-│   ├── middleware/       # Authentication and Error handling
-│   ├── models/           # Mongoose schemas (User, Report, Assessment, etc.)
+│   ├── config/           # Database connection & configurations
+│   ├── controllers/      # Auth, Coding, Interview, Report, Company controllers
+│   ├── middleware/       # JWT Auth and Error handling middleware
+│   ├── models/           # Mongoose schemas (User, Interview, Report, Assessment)
 │   ├── routes/           # Express API endpoints
-│   ├── services/         # External service integrations (AI Service)
-│   ├── utils/            # Helper functions and fallback question banks
+│   ├── services/         # AI Service (Gemini API, GD, Extempore, Feedback)
+│   ├── utils/            # Helper functions & fallback question banks
 │   └── server.js         # Backend entry point
 │
 └── frontend/
     ├── public/           # Static assets
     ├── src/
-    │   ├── src/assets/   # Images, icons, logos
-    │   ├── components/   # Reusable UI elements (Navbar, Sidebar, Modals)
-    │   ├── context/      # React Context (AuthContext)
-    │   ├── data/         # Mock data and Company simulation patterns
-    │   ├── pages/        # Application views (Dashboard, Coding, Interview, etc.)
+    │   ├── assets/       # Images, icons, logos
+    │   ├── components/   # UI components, Modals, Navbar, Sidebar
+    │   │   └── interview/ # LiveInterview, LiveGDRoom, ExtemporeRoom, Report Views
+    │   ├── context/      # React Context (AuthContext, ThemeContext)
+    │   ├── data/         # Mock data, Question Banks (cognizantQuestionBank, etc.)
+    │   ├── pages/        # Dashboard, Coding, Prep Details, Settings, Company pages
     │   ├── routes/       # Protected route wrappers
-    │   ├── services/     # Axios API handlers
+    │   ├── services/     # Axios API service endpoints
     │   ├── App.jsx       # Main application routing
     │   └── main.jsx      # Frontend entry point
-    └── vite.config.js    # Vite bundler configuration
+    └── vite.config.js    # Vite configuration
 ```
 
 ---
@@ -213,23 +222,23 @@ Navigate to `http://localhost:5173` in your browser.
 | `PORT` | Port number on which the backend server runs (default: 5000). |
 | `MONGO_URI` | The connection string for your MongoDB cluster. |
 | `JWT_SECRET` | A secure, random string used to sign and verify JSON Web Tokens. |
-| `GEMINI_API_KEY` | Your Google Gemini API key used for generating AI interviews and feedback. |
-| `OPENAI_API_KEY` | *(Optional)* Your OpenAI API key if using GPT-4 for analysis. |
-| `GROQ_API_KEY` | *(Optional)* Your Groq API key for ultra-fast LLM inference. |
+| `GEMINI_API_KEY` | Your Google Gemini API key used for generating AI interviews, GDs, Extempore, and feedback. |
+| `OPENAI_API_KEY` | *(Optional)* Your OpenAI API key if using GPT models for analysis. |
+| `GROQ_API_KEY` | *(Optional)* Your Groq API key for fast LLM inference. |
 
 ---
 
 ## 🧩 API Modules
 
-- **Authentication (`/api/auth`):** Handles user registration, login, and JWT validation.
-- **Interview (`/api/interviews`):** Manages live interview sessions and adaptive question generation.
-- **Resume (`/api/resume`):** Handles file uploads (PDF/DOCX) and returns AI-parsed ATS feedback.
-- **Coding (`/api/coding`):** Executes code submissions and runs AI logic validation.
-- **Company (`/api/company`):** Serves company-specific recruitment workflows and difficulty configs.
-- **Assessments (`/api/assessments`):** Fetches and evaluates MCQ tests (Aptitude, Quant, Logical, Verbal).
-- **Reports (`/api/reports`):** Aggregates data to generate explainable, transparent post-interview reports.
+- **Authentication (`/api/auth`):** Handles user registration, login, profile updates, and JWT validation.
+- **Interview (`/api/interviews`):** Manages live interviews, Group Discussions, Extempore speech rounds, AI turn generation, and cross-questioning.
+- **Resume (`/api/resume`):** Handles PDF/DOCX resume parsing and returns AI-driven ATS scoring and recommendations.
+- **Coding (`/api/coding`):** Handles code submissions, test case executions, AI hints, and logic validation.
+- **Company (`/api/company`):** Serves company-specific hiring workflows, prep detail configs, and PYQ banks.
+- **Assessments (`/api/assessments`):** Fetches and evaluates MCQ tests across Aptitude, Reasoning, Verbal, and Core CS domains.
+- **Reports (`/api/reports`):** Aggregates performance data into detailed, explainable post-interview scorecards.
 - **Roadmap (`/api/roadmap`):** Generates personalized career study milestones.
-- **Community (`/api/community`):** Manages user posts, experiences, and social interactions.
+- **Community (`/api/community`):** Manages community posts, interview experiences, and peer discussions.
 
 ---
 

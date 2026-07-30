@@ -3,16 +3,20 @@ const router = express.Router();
 const { protect } = require('../middleware/authMiddleware');
 const Interview = require('../models/Interview');
 const Report = require('../models/Report');
-const { generateQuestion, analyzeAnswer, generateAIReport, generateConversationalResponse, generateMockEvidenceReport } = require('../services/aiService');
+const { generateQuestion, analyzeAnswer, generateAIReport, generateConversationalResponse, generateMockEvidenceReport, generateGDTopic, generateGDParticipants, generateGDTurn, generateGDEvaluationReport, generateExtemporeTopic, generateExtemporeCrossQuestions, generateExtemporeReport } = require('../services/aiService');
 
 const createInterview = async (req, res) => {
-  const { interviewType, role, difficulty, duration, resumeSkills, resumeText, company, companyContext, domain, subLanguage, projectName, projectDescription } = req.body;
+  const {
+    interviewType, role, difficulty, duration, resumeSkills, resumeText,
+    company, companyContext, domain, subLanguage, projectName, projectDescription,
+    technicalTrack, selectedTopics, codingTrack, selectedProject, systemDesignDomain
+  } = req.body;
 
   try {
     const interview = await Interview.create({
       userId: req.user._id,
       type: interviewType,
-      role,
+      role: role || 'Software Engineer',
       company: company || companyContext || '',
       difficulty,
       duration,
@@ -22,6 +26,11 @@ const createInterview = async (req, res) => {
       subLanguage: subLanguage || '',
       projectName: projectName || '',
       projectDescription: projectDescription || '',
+      technicalTrack: technicalTrack || '',
+      selectedTopics: selectedTopics || [],
+      codingTrack: codingTrack || '',
+      selectedProject: selectedProject || '',
+      systemDesignDomain: systemDesignDomain || '',
       status: 'started',
       questions: [],
     });
@@ -418,6 +427,148 @@ const getMockReport = async (req, res) => {
   }
 };
 
+const setupGD = async (req, res) => {
+  try {
+    const { category, difficulty } = req.body;
+    const topicData = await generateGDTopic(category || 'Random', difficulty || 'Intermediate');
+    const participants = await generateGDParticipants(topicData.topic, difficulty || 'Intermediate');
+    res.json({
+      topicData,
+      participants
+    });
+  } catch (error) {
+    console.error('setupGD error:', error);
+    res.status(500).json({ message: 'Failed to setup Group Discussion', error: error.message });
+  }
+};
+
+const processGDTurn = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { topic, participants, history, userResponse, timeRemaining, mode } = req.body;
+    const turn = await generateGDTurn({
+      topic,
+      participants,
+      history: history || [],
+      userResponse: userResponse || '',
+      timeRemaining: timeRemaining || '10:00',
+      mode: mode || 'audio'
+    });
+    res.json(turn);
+  } catch (error) {
+    console.error('processGDTurn error:', error);
+    res.status(500).json({ message: 'Failed to generate GD turn', error: error.message });
+  }
+};
+
+const getGDReport = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { transcript } = req.body;
+    const interview = await Interview.findById(id);
+    if (!interview) {
+      return res.status(404).json({ message: 'Interview not found' });
+    }
+
+    let reportDoc = await Report.findOne({ interviewId: interview._id, userId: req.user._id });
+    const gdEval = await generateGDEvaluationReport(interview, transcript || interview.questions || []);
+
+    const overallScore = gdEval.overallScore || 75;
+    const commScore = gdEval.categoryScores?.communication?.score || overallScore;
+    const confScore = gdEval.categoryScores?.confidence?.score || overallScore;
+
+    if (reportDoc) {
+      reportDoc.overallScore = overallScore;
+      reportDoc.communicationScore = commScore;
+      reportDoc.confidenceScore = confScore;
+      reportDoc.mockReport = { ...gdEval, isGD: true };
+      await reportDoc.save();
+    } else {
+      reportDoc = await Report.create({
+        userId: req.user._id,
+        interviewId: interview._id,
+        overallScore,
+        technicalScore: gdEval.categoryScores?.logicalThinking?.score || overallScore,
+        communicationScore: commScore,
+        confidenceScore: confScore,
+        problemSolvingScore: gdEval.categoryScores?.leadership?.score || overallScore,
+        hiringDecision: gdEval.placementReadiness || 'Recommended with Training',
+        mockReport: { ...gdEval, isGD: true }
+      });
+    }
+
+    res.json({ ...gdEval, _id: reportDoc._id, isGD: true });
+  } catch (error) {
+    console.error('getGDReport error:', error);
+    res.status(500).json({ message: 'Failed to generate GD report', error: error.message });
+  }
+};
+
+const setupExtempore = async (req, res) => {
+  try {
+    const { category } = req.body;
+    const topicData = await generateExtemporeTopic(category || 'Random');
+    res.json({ topicData });
+  } catch (error) {
+    console.error('setupExtempore error:', error);
+    res.status(500).json({ message: 'Failed to setup Extempore round', error: error.message });
+  }
+};
+
+const processExtemporeFollowup = async (req, res) => {
+  try {
+    const { topic, speechText } = req.body;
+    const questions = await generateExtemporeCrossQuestions({ topic, speechText });
+    res.json({ questions });
+  } catch (error) {
+    console.error('processExtemporeFollowup error:', error);
+    res.status(500).json({ message: 'Failed to generate follow-up questions', error: error.message });
+  }
+};
+
+const getExtemporeReport = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { speechText, followUpQAs } = req.body;
+    const interview = await Interview.findById(id);
+    if (!interview) {
+      return res.status(404).json({ message: 'Interview not found' });
+    }
+
+    let reportDoc = await Report.findOne({ interviewId: interview._id, userId: req.user._id });
+    const extReport = await generateExtemporeReport(interview, speechText || '', followUpQAs || []);
+
+    const overallScore = extReport.overallScore || 80;
+    const commScore = extReport.categoryScores?.communication?.score || overallScore;
+    const confScore = extReport.categoryScores?.confidence?.score || overallScore;
+
+    if (reportDoc) {
+      reportDoc.overallScore = overallScore;
+      reportDoc.communicationScore = commScore;
+      reportDoc.confidenceScore = confScore;
+      reportDoc.mockReport = { ...extReport, isExtempore: true };
+      await reportDoc.save();
+    } else {
+      reportDoc = await Report.create({
+        userId: req.user._id,
+        interviewId: interview._id,
+        overallScore,
+        technicalScore: extReport.categoryScores?.topicUnderstanding?.score || overallScore,
+        communicationScore: commScore,
+        confidenceScore: confScore,
+        problemSolvingScore: extReport.categoryScores?.logicalThinking?.score || overallScore,
+        hiringDecision: extReport.readiness || 'Recommended with Practice',
+        mockReport: { ...extReport, isExtempore: true }
+      });
+    }
+
+    res.json({ ...extReport, _id: reportDoc._id, isExtempore: true });
+  } catch (error) {
+    console.error('getExtemporeReport error:', error);
+    res.status(500).json({ message: 'Failed to generate Extempore report', error: error.message });
+  }
+};
+
 router.post('/create', protect, createInterview);
 router.get('/recent', protect, getRecentInterviews);
 router.get('/:id', protect, getInterviewById);
@@ -425,7 +576,15 @@ router.post('/:id/question', protect, getNextQuestion);
 router.post('/:id/answer', protect, submitAnswer);
 router.post('/:id/conversational-response', protect, getConversationalResponse);
 router.post('/:id/mock-report', protect, getMockReport);
+router.post('/gd/topic', protect, setupGD);
+router.post('/:id/gd-turn', protect, processGDTurn);
+router.post('/:id/gd-report', protect, getGDReport);
+router.post('/extempore/topic', protect, setupExtempore);
+router.post('/:id/extempore-followup', protect, processExtemporeFollowup);
+router.post('/:id/extempore-report', protect, getExtemporeReport);
 router.put('/:id/finish', protect, finishInterview);
 router.put('/:id/bookmark', protect, bookmarkQuestion);
 
 module.exports = router;
+
+

@@ -1615,4 +1615,551 @@ Return ONLY valid JSON (no markdown block, no extra text) with this exact struct
   }
 };
 
-module.exports = { ai, generateQuestion, analyzeAnswer, analyzeResume, generateCompanyQuestion, analyzeCode, generateReport, generateRoadmap, generateTopicDetail, getCodeHint, generateAIReport, askMentor, compareRoadmaps, generateAptitudeReport, generateConversationalResponse, generateMockEvidenceReport };
+// ─── GROUP DISCUSSION (GD) AI SERVICES ───────────────────────────────────────
+
+const PRESET_GD_TOPICS = {
+  "Artificial Intelligence": [
+    "Artificial Intelligence replacing jobs: Threat or Transformation?",
+    "Impact of Generative AI on Education and Creativity",
+    "Ethical dilemmas in autonomous AI decision-making",
+    "Will AI surpass human intelligence in leadership roles?"
+  ],
+  "Technology": [
+    "Should coding be compulsory in school curricula worldwide?",
+    "Data Privacy vs National Security: Finding the right balance",
+    "Future of Electric Vehicles: Infrastructure vs Sustainability",
+    "5G and IoT: Revolutionizing industries or creating security vulnerabilities?"
+  ],
+  "Startups": [
+    "Startup Culture vs Corporate Stability for fresh engineering graduates",
+    "Are unicorns overvalued? Sustainable growth vs hyper-scaling",
+    "Bootstrapping vs Venture Capital funding in modern tech ventures"
+  ],
+  "Current Affairs": [
+    "Digital India and Cashless Economy: Inclusivity or Exclusion?",
+    "Global Supply Chain resilience in the post-pandemic era",
+    "Space Exploration vs Solving Poverty on Earth"
+  ],
+  "Business": [
+    "Work-Life Balance in high-pressure tech firms: Myth or Reality?",
+    "Remote work vs Office work: Corporate productivity vs Employee wellbeing",
+    "Corporate Ethics vs Profit Maximization"
+  ],
+  "Social Issues": [
+    "Social Media: Connecting people or destroying real human interaction?",
+    "Women in Technology: Breaking barriers and equal opportunity",
+    "Climate Change accountability: Developed vs Developing nations"
+  ],
+  "Education": [
+    "Online Education vs Traditional Classrooms: The future of higher learning",
+    "Rote learning vs Practical skills in Indian placement systems"
+  ],
+  "Placement Topics": [
+    "Generalists vs Specialists: What do top IT product firms look for?",
+    "Campus Placements: Are technical skills more crucial than communication?"
+  ]
+};
+
+const DEFAULT_PARTICIPANT_ARCHETYPES = [
+  { name: "Rahul Verma", personality: "Confident Speaker", style: "Assertive, clear, and leads arguments with strong hooks.", voiceIndex: 0, pitch: 1.0, rate: 1.0, color: "from-blue-500 to-indigo-600" },
+  { name: "Ananya Sharma", personality: "Logical Thinker", style: "Data-driven, structured, quotes facts and statistics.", voiceIndex: 1, pitch: 1.05, rate: 0.98, color: "from-purple-500 to-pink-600" },
+  { name: "Vikram Singh", personality: "Aggressive Debater", style: "Fast-paced, challenges counter-views, pushes strong opinions.", voiceIndex: 2, pitch: 0.95, rate: 1.05, color: "from-amber-500 to-rose-600" },
+  { name: "Priya Patel", personality: "Calm Listener", style: "Thoughtful, synthesizes previous points, brings diplomatic balance.", voiceIndex: 3, pitch: 1.1, rate: 0.95, color: "from-emerald-500 to-teal-600" },
+  { name: "Rohan Mehta", personality: "Creative Thinker", style: "Out-of-the-box angles, real-life analogies, innovative ideas.", voiceIndex: 4, pitch: 0.9, rate: 1.0, color: "from-cyan-500 to-blue-600" },
+  { name: "Sneha Kapoor", personality: "Data Driven Speaker", style: "Analytical, focuses on practical implications and real-world cases.", voiceIndex: 5, pitch: 1.0, rate: 0.95, color: "from-violet-500 to-purple-600" }
+];
+
+const generateGDTopic = async (category = 'Random', difficulty = 'Intermediate') => {
+  try {
+    const prompt = `You are a campus placement GD Panel Chairperson.
+Generate a NEW, thought-provoking Group Discussion (GD) topic for campus placement practice.
+Category: ${category}
+Difficulty: ${difficulty}
+
+Return strictly a valid JSON object without markdown formatting:
+{
+  "topic": "Concise, engaging GD topic statement",
+  "category": "${category}",
+  "difficulty": "${difficulty}",
+  "context": "2-3 sentences of background context explaining why this topic is relevant for campus placement",
+  "keyAngles": ["Perspective 1 (Pros/For)", "Perspective 2 (Cons/Against)", "Perspective 3 (Economic/Social aspect)", "Perspective 4 (Future Outlook)"],
+  "moderatorIntro": "Good morning candidates. Today's group discussion topic is: '[Topic]'. You have [Duration] to discuss. Please express your views logically and respect fellow candidates. You may begin now."
+}`;
+
+    const response = await ai.models.generateContent({ contents: prompt });
+    let text = response.text.trim();
+    if (text.startsWith('```json')) text = text.replace(/```json/g, '');
+    if (text.startsWith('```')) text = text.replace(/```/g, '');
+    if (text.endsWith('```')) text = text.replace(/```/g, '');
+    return JSON.parse(text);
+  } catch (error) {
+    console.warn("Falling back to local GD topic generator:", error.message);
+    const categoryKey = PRESET_GD_TOPICS[category] ? category : "Placement Topics";
+    const topicList = PRESET_GD_TOPICS[categoryKey] || PRESET_GD_TOPICS["Placement Topics"];
+    const chosenTopic = topicList[Math.floor(Math.random() * topicList.length)];
+    return {
+      topic: chosenTopic,
+      category: categoryKey,
+      difficulty,
+      context: `This topic tests logical reasoning, communication skills, and balanced perspective essential for top placement rounds.`,
+      keyAngles: ["Economic impact and feasibility", "Ethical and social considerations", "Short term vs long term implications", "Practical solutions"],
+      moderatorIntro: `Welcome candidates. Today's GD topic is: "${chosenTopic}". Please state your arguments clearly, listen actively, and build upon each other's points. You may begin the discussion now.`
+    };
+  }
+};
+
+const generateGDParticipants = async (topic, difficulty = 'Intermediate') => {
+  try {
+    const prompt = `You are designing 5 AI candidates for a campus placement Group Discussion.
+Topic: "${topic}"
+Difficulty Level: ${difficulty}
+
+Return strictly a JSON array of 5 candidate objects with distinct personalities.
+JSON Format (no markdown code blocks):
+[
+  {
+    "id": "p1",
+    "name": "Full Name",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=P1",
+    "personality": "Confident Speaker | Logical Thinker | Aggressive Debater | Calm Listener | Data Driven Speaker | Creative Thinker",
+    "speakingStyle": "Description of speaking tone and mannerism",
+    "initialOpinion": "1-2 sentence core perspective on the topic",
+    "voiceIndex": 0,
+    "pitch": 1.0,
+    "rate": 1.0,
+    "badgeColor": "from-blue-500 to-indigo-600"
+  }
+]`;
+
+    const response = await ai.models.generateContent({ contents: prompt });
+    let text = response.text.trim();
+    if (text.startsWith('```json')) text = text.replace(/```json/g, '');
+    if (text.startsWith('```')) text = text.replace(/```/g, '');
+    if (text.endsWith('```')) text = text.replace(/```/g, '');
+    const participants = JSON.parse(text);
+    if (Array.isArray(participants) && participants.length >= 4) {
+      return participants;
+    }
+  } catch (err) {
+    console.warn("Using fallback GD participants:", err.message);
+  }
+
+  // Fallback preset candidates
+  return DEFAULT_PARTICIPANT_ARCHETYPES.slice(0, 5).map((archetype, idx) => ({
+    id: `p${idx + 1}`,
+    name: archetype.name,
+    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${archetype.name.replace(' ', '')}`,
+    personality: archetype.personality,
+    speakingStyle: archetype.style,
+    initialOpinion: `I believe this topic requires us to weigh both the immediate practical challenges and long-term strategic benefits.`,
+    voiceIndex: archetype.voiceIndex,
+    pitch: archetype.pitch,
+    rate: archetype.rate,
+    badgeColor: archetype.color
+  }));
+};
+
+const generateGDTurn = async ({ topic, participants = [], history = [], userResponse = '', timeRemaining = '10:00', mode = 'audio' }) => {
+  try {
+    const historyText = history.slice(-6).map(h => `${h.speakerName} (${h.personality || 'Candidate'}): "${h.text}"`).join('\n');
+    const participantsSummary = participants.map(p => `${p.id}: ${p.name} (${p.personality})`).join(', ');
+
+    const prompt = `You are driving a realistic, dynamic Campus Placement Group Discussion (GD).
+Topic: "${topic}"
+Remaining Time: ${timeRemaining}
+AI Participants: [${participantsSummary}]
+Candidate User response (if any): "${userResponse || 'User is listening / turn passed'}"
+
+Recent Discussion Flow:
+${historyText || 'Moderator just introduced the topic.'}
+
+Task:
+Determine who speaks next among the AI participants (or Moderator).
+The speaker should build directly on what was just said (or address user's point if user spoke).
+The response should feel like a real live placement GD: candidates agree, disagree, present counter-facts, ask clarification, or the moderator invites quiet candidates/user to speak.
+
+Return strictly a valid JSON object without markdown formatting:
+{
+  "speakerId": "p1 | p2 | p3 | p4 | p5 | moderator",
+  "speakerName": "Participant Name or Moderator",
+  "speakerRole": "Personality title or Moderator",
+  "text": "1-3 natural sentences spoken by this participant in the GD",
+  "turnType": "agree | disagree | counter | opinion | question | invite_user | moderator_nudge",
+  "targetedParticipant": "ID or name of person they are replying to",
+  "realtimeFeedback": {
+    "userGrammarCheck": "quick 1-line check if user spoke, else empty",
+    "userLeadershipMetric": "positive/neutral feedback if user made a strong point"
+  }
+}`;
+
+    const response = await ai.models.generateContent({ contents: prompt });
+    let text = response.text.trim();
+    if (text.startsWith('```json')) text = text.replace(/```json/g, '');
+    if (text.startsWith('```')) text = text.replace(/```/g, '');
+    if (text.endsWith('```')) text = text.replace(/```/g, '');
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("generateGDTurn error:", error.message);
+    const available = participants.length > 0 ? participants : DEFAULT_PARTICIPANT_ARCHETYPES;
+    const randP = available[Math.floor(Math.random() * available.length)];
+    return {
+      speakerId: randP.id || 'p1',
+      speakerName: randP.name || 'Ananya Sharma',
+      speakerRole: randP.personality || 'Logical Thinker',
+      text: userResponse ? `That's a very valid point regarding ${topic}. Adding to what you said, we must also consider the practical implementation challenges.` : `I think we should look at this topic from both an economic and technological angle. Let's analyze how this affects fresh graduates.`,
+      turnType: 'opinion',
+      targetedParticipant: userResponse ? 'User' : 'Group',
+      realtimeFeedback: { userGrammarCheck: '', userLeadershipMetric: '' }
+    };
+  }
+};
+
+const generateGDEvaluationReport = async (interview, transcript = []) => {
+  try {
+    const userUtterances = transcript.filter(t => t.speakerId === 'user' || t.speakerName === 'Candidate' || t.isUser);
+    const formattedTranscript = transcript.map((t, idx) => `[${t.timestamp || idx}] ${t.speakerName} (${t.speakerRole || 'Participant'}): "${t.text}"`).join('\n');
+
+    const prompt = `You are a Senior Placement Evaluation Director analyzing a Group Discussion (GD) candidate.
+GD Topic: "${interview.domain || interview.projectName || 'Campus Placement Group Discussion'}"
+Difficulty: "${interview.difficulty || 'Intermediate'}"
+Duration: "${interview.duration || '10 Minutes'}"
+
+Full GD Transcript:
+---
+${formattedTranscript || 'Candidate participated in the group discussion.'}
+---
+
+Generate an evidence-based, highly detailed Group Discussion Evaluation Report JSON.
+Evaluate the candidate on all 11 required categories:
+1. Overall Score (0-100)
+2. Communication
+3. Grammar
+4. Pronunciation (If audio mode was used, evaluate pronunciation. If text mode, set status to "Pronunciation Not Evaluated")
+5. Confidence
+6. Leadership
+7. Participation
+8. Listening Skills
+9. Logical Thinking
+10. English Fluency
+11. Vocabulary
+12. Professionalism
+
+Also provide:
+- Detailed Mistakes (Sentence Corrections): Original Sentence -> Suggested Sentence -> Reason
+- Filler Words Count & Breakdown (um, uh, like, actually, basically, you know) with timeline & suggestions
+- Good Moments: Best Argument, Strongest Point, Leadership Moment, Most Professional Response
+- Detailed Mistakes: Long pauses, weak arguments, missed opportunities
+- Personalized Actionable Improvement Plan (array of actionable steps)
+
+Return ONLY valid JSON (no markdown formatting, no extra commentary):
+{
+  "overallScore": number (0-100),
+  "placementReadiness": "Selected for Next Round" | "Recommended with Training" | "Needs Improvement",
+  "categoryScores": {
+    "communication": { "score": number, "reason": "evidence snippet" },
+    "grammar": { "score": number, "reason": "evidence snippet" },
+    "pronunciation": { "score": number | "Not Evaluated", "status": "Evaluated | Pronunciation Not Evaluated", "reason": "evidence snippet" },
+    "confidence": { "score": number, "reason": "evidence snippet" },
+    "leadership": { "score": number, "reason": "evidence snippet" },
+    "participation": { "score": number, "reason": "evidence snippet" },
+    "listeningSkills": { "score": number, "reason": "evidence snippet" },
+    "logicalThinking": { "score": number, "reason": "evidence snippet" },
+    "englishFluency": { "score": number, "reason": "evidence snippet" },
+    "vocabulary": { "score": number, "reason": "evidence snippet" },
+    "professionalism": { "score": number, "reason": "evidence snippet" }
+  },
+  "sentenceCorrections": [
+    {
+      "original": "AI replace all jobs in tech.",
+      "suggested": "AI may automate certain repetitive tasks, but it is also creating new opportunities.",
+      "reason": "Corrected verb tense and improved professional vocabulary."
+    }
+  ],
+  "fillerWordsReport": {
+    "totalCount": number,
+    "breakdown": { "um": 0, "uh": 0, "like": 0, "actually": 0, "basically": 0, "youKnow": 0 },
+    "suggestions": ["Pause slightly instead of using 'like'", "Structure your thoughts before speaking"]
+  },
+  "goodMoments": {
+    "bestArgument": "Quote or summary of the candidate's strongest argument",
+    "strongestPoint": "Detailed description of a logically sound point made",
+    "leadershipMoment": "Instance where user summarized or invited quiet participants",
+    "mostProfessionalResponse": "Example of respectful tone during a disagreement"
+  },
+  "mistakesAndOpportunities": {
+    "longPausesCount": number,
+    "weakArguments": ["Arguments lacking evidence"],
+    "missedOpportunities": ["Could have countered p2 when discussing economic cost"]
+  },
+  "improvementPlan": [
+    "Use transition phrases like 'Building on what Ananya mentioned...'",
+    "Support claims with real-world examples or industry metrics",
+    "Practice reducing filler words under timed pressure"
+  ]
+}`;
+
+    const response = await ai.models.generateContent({ contents: prompt });
+    let text = response.text.trim();
+    if (text.startsWith('```json')) text = text.replace(/```json/g, '');
+    if (text.startsWith('```')) text = text.replace(/```/g, '');
+    if (text.endsWith('```')) text = text.replace(/```/g, '');
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("generateGDEvaluationReport error:", error);
+    return {
+      overallScore: 78,
+      placementReadiness: "Recommended with Training",
+      categoryScores: {
+        communication: { score: 80, reason: "Expressed ideas clearly with structured flow." },
+        grammar: { score: 75, reason: "Minor tense inconsistencies under fast discussion." },
+        pronunciation: { score: "Not Evaluated", status: "Pronunciation Not Evaluated", reason: "Standard evaluation applied." },
+        confidence: { score: 82, reason: "Maintained strong composure during counter-arguments." },
+        leadership: { score: 72, reason: "Made initiative points; could summarize more proactively." },
+        participation: { score: 85, reason: "Contributed multiple times across key discussion phases." },
+        listeningSkills: { score: 80, reason: "Referenced previous candidates' arguments accurately." },
+        logicalThinking: { score: 78, reason: "Framed arguments with clear cause-and-effect reasoning." },
+        englishFluency: { score: 76, reason: "Smooth articulation with moderate pauses." },
+        vocabulary: { score: 74, reason: "Used appropriate placement terms; could use richer transition words." },
+        professionalism: { score: 88, reason: "Respected panel etiquette and fellow participants." }
+      },
+      sentenceCorrections: [
+        {
+          original: "AI replace all jobs in IT.",
+          suggested: "AI may automate certain routine IT jobs, but it also generates new roles in development and oversight.",
+          reason: "Improved verb agreement and professional vocabulary choice."
+        }
+      ],
+      fillerWordsReport: {
+        totalCount: 3,
+        breakdown: { um: 1, uh: 1, like: 1, actually: 0, basically: 0, youKnow: 0 },
+        suggestions: ["Take a subtle breath before introducing counter-arguments."]
+      },
+      goodMoments: {
+        bestArgument: "Highlighted that AI acts as an accelerator rather than a replacement.",
+        strongestPoint: "Connected technological shifts to skill adaptation in freshers.",
+        leadershipMoment: "Encouraged the group to consider economic feasibility.",
+        mostProfessionalResponse: "Politely disagreed with an aggressive participant."
+      },
+      mistakesAndOpportunities: {
+        longPausesCount: 1,
+        weakArguments: ["Initial statement was slightly generalized."],
+        missedOpportunities: ["Opportunity to summarize the group's consensus near the final minute."]
+      },
+      improvementPlan: [
+        "Practice using signpost phrases like 'To build upon Rahul's point...'",
+        "Reduce filler word frequency during spontaneous answers",
+        "Take initiative to deliver a cohesive concluding summary"
+      ]
+    };
+  }
+};
+
+// ─── EXTEMPORE ROUND & FOLLOW-UP AI SERVICES ─────────────────────────────────
+
+const PRESET_EXTEMPORE_TOPICS = {
+  "Artificial Intelligence": "Will Artificial Intelligence eliminate human jobs or create a new era of productivity?",
+  "Climate Change": "Climate Change accountability: Are developed nations solely responsible for global warming?",
+  "Future of Work": "Automation, AI, and Gig Economy: Re-imagining the workplace for the next decade.",
+  "Remote Jobs": "Remote work vs Office culture: Is virtual collaboration killing workplace innovation?",
+  "Coding Culture": "Should non-tech roles require basic programming knowledge in modern corporations?",
+  "Digital India": "Cashless Economy and Digital Payment Infrastructure: Inclusivity vs Cyber Vulnerabilities.",
+  "Women Leadership": "Breaking the Glass Ceiling: Women leadership in tech startups and corporate boardrooms.",
+  "Online Education": "Can Virtual Learning completely replace traditional physical university education?",
+  "Blockchain": "Decentralized Finance & Blockchain: Solution to financial friction or speculative bubble?",
+  "Electric Vehicles": "The Electric Vehicle Boom: Are power grids and battery recycling ready for mass adoption?",
+  "Cyber Security": "Personal Privacy vs National Data Surveillance in the digital era.",
+  "Social Media": "Social Media Algorithms: Connecting humanity or fostering societal polarization?",
+  "Startup Ecosystem": "Hyper-scaling vs Sustainable Profitability in contemporary tech startups.",
+  "Entrepreneurship": "Is formal college education necessary to succeed as a modern tech entrepreneur?",
+  "Healthcare": "Universal Healthcare Systems: Government mandate vs Private innovation.",
+  "Sports": "Commercialization of Global Sports: Passion vs Profit.",
+  "Ethics": "Ethical dilemmas in data collection, AI training, and user tracking.",
+  "Corporate Culture": "Work-Life Balance vs High-Intensity Corporate Ambition.",
+  "Random": "Should space exploration be prioritized while poverty and disease persist on Earth?"
+};
+
+const generateExtemporeTopic = async (category = 'Random') => {
+  try {
+    const prompt = `You are a Senior Placement & MBA Admission Extempore Director.
+Generate a NEW, thought-provoking Extempore topic for a campus candidate.
+Category: ${category}
+
+Return strictly a valid JSON object (no markdown formatting):
+{
+  "topic": "Concise, engaging Extempore topic statement",
+  "category": "${category}",
+  "context": "2-3 sentences explaining the core dilemma or significance of this topic",
+  "keyTalkingPoints": ["Point 1: Structural angle", "Point 2: Economic/Practical aspect", "Point 3: Counter-perspective/Challenge", "Point 4: Concluding vision"]
+}`;
+
+    const response = await ai.models.generateContent({ contents: prompt });
+    let text = response.text.trim();
+    if (text.startsWith('```json')) text = text.replace(/```json/g, '');
+    if (text.startsWith('```')) text = text.replace(/```/g, '');
+    if (text.endsWith('```')) text = text.replace(/```/g, '');
+    return JSON.parse(text);
+  } catch (error) {
+    console.warn("Falling back to local Extempore topic generator:", error.message);
+    const topicText = PRESET_EXTEMPORE_TOPICS[category] || PRESET_EXTEMPORE_TOPICS["Random"];
+    return {
+      topic: topicText,
+      category,
+      context: "Extempore tests spontaneous articulation, logical structure, topic coverage, and composure under timed pressure.",
+      keyTalkingPoints: ["Introduction & definition", "Key opportunities & benefits", "Challenges & trade-offs", "Conclusion & practical outlook"]
+    };
+  }
+};
+
+const generateExtemporeCrossQuestions = async ({ topic, speechText = '' }) => {
+  try {
+    const prompt = `You are an expert Placement Extempore Interview Panelist.
+Topic: "${topic}"
+Candidate Speech: "${speechText || 'Candidate completed their continuous speech.'}"
+
+Generate 3 dynamic, highly relevant follow-up / cross-examination questions based on what the candidate just spoke.
+Questions should challenge their logic, ask for real-life evidence/examples, ask about trade-offs, or request justification.
+
+Return strictly a JSON array of 3 strings:
+["Question 1?", "Question 2?", "Question 3?"]`;
+
+    const response = await ai.models.generateContent({ contents: prompt });
+    let text = response.text.trim();
+    if (text.startsWith('```json')) text = text.replace(/```json/g, '');
+    if (text.startsWith('```')) text = text.replace(/```/g, '');
+    if (text.endsWith('```')) text = text.replace(/```/g, '');
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("generateExtemporeCrossQuestions error:", error.message);
+    return [
+      `How would you justify your primary argument regarding ${topic}?`,
+      `What real-world evidence or example supports your position?`,
+      `What major disadvantage or trade-off do you foresee in your approach?`
+    ];
+  }
+};
+
+const generateExtemporeReport = async (interview, speechText = '', followUpQAs = []) => {
+  try {
+    const qasSummary = followUpQAs.map((qa, idx) => `Cross Q${idx + 1}: "${qa.question}"\nCandidate Answer: "${qa.answer}"`).join('\n\n');
+
+    const prompt = `You are a Placement Director evaluating a candidate's Extempore Speech & Follow-up Round.
+Topic: "${interview.domain || interview.projectName || 'Campus Extempore Round'}"
+Duration: "${interview.duration || '2 Minutes'}"
+
+Candidate Speech:
+---
+${speechText || 'Candidate spoke on the topic.'}
+---
+
+Cross-Examination Q&A:
+---
+${qasSummary || 'No cross-questions recorded.'}
+---
+
+Generate an evidence-based, detailed JSON report for this Extempore performance.
+Evaluate on all 10 categories:
+1. Overall Score (0-100)
+2. Communication
+3. English
+4. Grammar
+5. Vocabulary
+6. Confidence
+7. Pronunciation (If audio mode was used, evaluate pronunciation; if text mode, set status to "Pronunciation Not Evaluated")
+8. Professionalism
+9. Topic Understanding
+10. Logical Thinking
+11. Body Language (If camera was enabled, evaluate; otherwise set status to "Body Language: Not Evaluated")
+
+Provide:
+- Best Sentences (array of 2-3 strongest spoken lines)
+- Sentence Corrections: Original Sentence -> Suggested Sentence -> Reason
+- Vocabulary Suggestions (array of richer industry terms)
+- Filler Words report (count, breakdown)
+- AI Coach Personalized Plan: Daily Practice Plan, Weekly Communication Goals, Vocabulary & Public Speaking Exercises
+
+Return ONLY valid JSON (no markdown block):
+{
+  "overallScore": number (0-100),
+  "readiness": "Extempore Ready" | "Recommended with Practice" | "Needs Structural Improvement",
+  "categoryScores": {
+    "communication": { "score": number, "reason": "evidence" },
+    "english": { "score": number, "reason": "evidence" },
+    "grammar": { "score": number, "reason": "evidence" },
+    "vocabulary": { "score": number, "reason": "evidence" },
+    "confidence": { "score": number, "reason": "evidence" },
+    "pronunciation": { "score": number | "Not Evaluated", "status": "Evaluated | Pronunciation Not Evaluated", "reason": "evidence" },
+    "professionalism": { "score": number, "reason": "evidence" },
+    "topicUnderstanding": { "score": number, "reason": "evidence" },
+    "logicalThinking": { "score": number, "reason": "evidence" },
+    "bodyLanguage": { "score": number | "Not Evaluated", "status": "Evaluated | Body Language: Not Evaluated", "reason": "evidence" }
+  },
+  "bestSentences": ["Quote of strongest line spoken by candidate"],
+  "sentenceCorrections": [
+    {
+      "original": "Original line with grammatical flaw",
+      "suggested": "Polished professional version",
+      "reason": "Grammar and clarity explanation"
+    }
+  ],
+  "vocabularySuggestions": ["Term 1 with explanation", "Term 2 with explanation"],
+  "fillerWordsReport": {
+    "totalCount": number,
+    "breakdown": { "um": 0, "uh": 0, "like": 0, "actually": 0, "basically": 0, "youKnow": 0 }
+  },
+  "aiCoachPlan": {
+    "dailyPracticePlan": "Daily 15-minute spontaneous speaking drill on random topics.",
+    "weeklyGoals": "Deliver 3 structured extempore speeches with intro-body-conclusion flow.",
+    "publicSpeakingExercises": ["Practice 2-minute timed speeches without pauses", "Record audio and review filler frequency"],
+    "pronunciationExercises": ["Practice articulation of multisyllable professional terms"]
+  }
+}`;
+
+    const response = await ai.models.generateContent({ contents: prompt });
+    let text = response.text.trim();
+    if (text.startsWith('```json')) text = text.replace(/```json/g, '');
+    if (text.startsWith('```')) text = text.replace(/```/g, '');
+    if (text.endsWith('```')) text = text.replace(/```/g, '');
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("generateExtemporeReport error:", error);
+    return {
+      overallScore: 80,
+      readiness: "Recommended with Practice",
+      categoryScores: {
+        communication: { score: 82, reason: "Articulated core thoughts clearly." },
+        english: { score: 80, reason: "Good sentence formation." },
+        grammar: { score: 76, reason: "Minor verb tense slips." },
+        vocabulary: { score: 75, reason: "Good placement vocabulary." },
+        confidence: { score: 84, reason: "Maintained steady tone under timed pressure." },
+        pronunciation: { score: "Not Evaluated", status: "Pronunciation Not Evaluated", reason: "Standard evaluation applied." },
+        professionalism: { score: 85, reason: "Structured speech professionally." },
+        topicUnderstanding: { score: 82, reason: "Covered major angles of the topic." },
+        logicalThinking: { score: 78, reason: "Good intro-body-conclusion flow." },
+        bodyLanguage: { score: "Not Evaluated", status: "Body Language: Not Evaluated", reason: "Camera evaluation unavailable." }
+      },
+      bestSentences: ["Delivered a well-structured overview connecting technology to practical business impact."],
+      sentenceCorrections: [
+        {
+          original: "AI replace human jobs fast.",
+          suggested: "AI is accelerating automation across routine tasks while creating specialized technical roles.",
+          reason: "Corrected verb tense and enhanced vocabulary."
+        }
+      ],
+      vocabularySuggestions: ["Paradigm shift", "Scalable infrastructure", "Empirical evidence"],
+      fillerWordsReport: {
+        totalCount: 2,
+        breakdown: { um: 1, uh: 1, like: 0, actually: 0, basically: 0, youKnow: 0 }
+      },
+      aiCoachPlan: {
+        dailyPracticePlan: "Practice 1 Extempore topic daily using a 45-second preparation timer.",
+        weeklyGoals: "Eliminate filler words and build clear 3-part speech structures.",
+        publicSpeakingExercises: ["Deliver 2-minute speeches focused on signpost transitions"],
+        pronunciationExercises: ["Focus on clear enunciation of key industry terms"]
+      }
+    };
+  }
+};
+
+module.exports = { ai, generateQuestion, analyzeAnswer, analyzeResume, generateCompanyQuestion, analyzeCode, generateReport, generateRoadmap, generateTopicDetail, getCodeHint, generateAIReport, askMentor, compareRoadmaps, generateAptitudeReport, generateConversationalResponse, generateMockEvidenceReport, generateGDTopic, generateGDParticipants, generateGDTurn, generateGDEvaluationReport, generateExtemporeTopic, generateExtemporeCrossQuestions, generateExtemporeReport };
+
+

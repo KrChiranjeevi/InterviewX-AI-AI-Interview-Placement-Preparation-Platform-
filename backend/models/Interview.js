@@ -51,6 +51,25 @@ const interviewSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  technicalTrack: {
+    type: String,
+    default: '',
+  },
+  selectedTopics: [{
+    type: String
+  }],
+  codingTrack: {
+    type: String,
+    default: '',
+  },
+  selectedProject: {
+    type: String,
+    default: '',
+  },
+  systemDesignDomain: {
+    type: String,
+    default: '',
+  },
   status: {
     type: String,
     required: true,

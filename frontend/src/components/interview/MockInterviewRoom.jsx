@@ -70,6 +70,11 @@ const MockInterviewRoom = ({
   setConversationLogOpen = () => {},
   onExcellentAnswer = false,
   interviewStage = 'core',
+  finalTranscript = '',
+  setFinalTranscript = () => {},
+  interimTranscript = '',
+  setInterimTranscript = () => {},
+  speakText = null,
 }) => {
 
   const [activeHighlightSection, setActiveHighlightSection] = useState('projects');
@@ -171,6 +176,15 @@ const MockInterviewRoom = ({
     }
   }, [currentQuestion]);
 
+  const formatSessionTime = (seconds) => {
+    if (typeof seconds === 'number') {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+    return seconds || '15:00';
+  };
+
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-950 text-white font-sans">
       
@@ -192,7 +206,7 @@ const MockInterviewRoom = ({
         <div className="flex items-center gap-6 text-xs text-slate-400">
           <div className="flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5 text-indigo-400" />
-            <span className="font-mono text-slate-300 font-bold">{sessionTimeLeft || '15:00'}</span>
+            <span className="font-mono text-slate-300 font-bold">{formatSessionTime(sessionTimeLeft)}</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -294,64 +308,193 @@ const MockInterviewRoom = ({
 
         {/* CENTER PANEL: Main Conversation & Workspaces */}
         <section className="flex-1 flex flex-col overflow-hidden min-w-0 bg-slate-950/20">
-          
-          <div className="flex-1 p-6 overflow-y-auto no-scrollbar flex flex-col justify-between">
-            
-            {/* ARCHETYPE CONDITIONAL WORKSPACE */}
-            <div className="flex-1 flex flex-col min-h-0">
-              
-              {/* CODING MODE WORKSPACE */}
-              {archetype === 'coding' ? (
-                <div className="flex-1 grid grid-cols-1 xl:grid-cols-2 gap-4 min-h-0 overflow-hidden mb-6">
-                  {/* Left: Problem statement */}
-                  <div className="bg-slate-900/40 border border-white/10 rounded-2xl p-5 flex flex-col overflow-y-auto no-scrollbar justify-between">
-                    <div>
-                      <div className="flex justify-between items-center mb-4">
-                        <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg">DSA CHALLENGE</span>
-                        <span className="text-[10px] font-mono text-slate-500">Language: {selectedLanguage || 'Java'}</span>
-                      </div>
-                      <h3 className="text-sm font-bold text-white mb-2">Coding Problem Statement</h3>
-                      <p className="text-xs text-slate-300 leading-relaxed mb-4">{currentQuestion}</p>
-                      
-                      <div className="bg-slate-950 border border-white/5 rounded-xl p-3 mb-4 space-y-2 text-[11px]">
-                        <span className="font-bold text-indigo-400 block">Expected Constraints:</span>
-                        <p className="text-slate-400">Time Complexity: O(N log N) or optimal linear complexity.</p>
-                        <p className="text-slate-400">Space Complexity: O(1) auxiliary space restrictions.</p>
-                      </div>
-                    </div>
+
+          {/* ============================================================ */}
+          {/* CODING MODE — dedicated full-height layout, no scrolling mix */}
+          {/* ============================================================ */}
+          {archetype === 'coding' ? (
+            <div className="flex-1 flex flex-col overflow-hidden min-h-0 p-3 gap-3">
+
+              {/* TOP ROW: Problem | Editor — fills all remaining height */}
+              <div className="flex-1 grid grid-cols-1 xl:grid-cols-2 gap-3 overflow-hidden min-h-0">
+
+                {/* Left: Problem Statement */}
+                <div className="bg-slate-900/50 border border-white/10 rounded-2xl flex flex-col overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5 flex-shrink-0">
+                    <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-lg">DSA CHALLENGE</span>
+                    <span className="text-[10px] font-mono text-emerald-400 font-bold">Lang: {selectedLanguage || 'java'}</span>
                   </div>
-                  {/* Right: Code Sandbox */}
-                  <div className="bg-slate-900/30 border border-white/10 rounded-2xl overflow-hidden flex flex-col min-h-[300px]">
-                    <div className="bg-slate-950 px-4 py-2 border-b border-white/5 flex justify-between items-center">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Solution Editor</span>
-                      <select
-                        value={selectedLanguage}
-                        onChange={(e) => setSelectedLanguage(e.target.value)}
-                        className="bg-slate-900 border border-white/10 rounded px-2.5 py-1 text-[10px] text-white focus:outline-none"
-                      >
-                        <option value="javascript">JavaScript</option>
-                        <option value="python">Python</option>
-                        <option value="java">Java</option>
-                        <option value="cpp">C++</option>
-                      </select>
-                    </div>
-                    <div className="flex-1 min-h-0">
-                      <Editor
-                        theme="vs-dark"
-                        language={selectedLanguage}
-                        value={codeContent}
-                        onChange={setCodeContent}
-                        options={{
-                          minimap: { enabled: false },
-                          fontSize: 11,
-                          scrollBeyondLastLine: false,
-                          lineNumbersMinChars: 3
-                        }}
-                      />
+                  <div className="flex-1 overflow-y-auto p-4 no-scrollbar space-y-3">
+                    <h3 className="text-sm font-bold text-white">Problem Statement</h3>
+                    <p className="text-xs text-slate-300 leading-relaxed font-sans">{currentQuestion}</p>
+                    <div className="bg-slate-950/80 border border-white/5 rounded-xl p-3 space-y-1.5 text-[11px] mt-2">
+                      <span className="font-bold text-indigo-400 block">Constraints:</span>
+                      <p className="text-slate-400">• Time Complexity: O(N log N) or better</p>
+                      <p className="text-slate-400">• Space Complexity: O(1) auxiliary</p>
                     </div>
                   </div>
                 </div>
-              ) : archetype === 'resume' ? (
+
+                {/* Right: Monaco Solution Editor */}
+                <div className="bg-slate-900/70 border border-emerald-500/30 rounded-2xl overflow-hidden flex flex-col shadow-2xl">
+                  {/* Editor toolbar */}
+                  <div className="bg-slate-950 px-4 py-2 border-b border-white/10 flex justify-between items-center flex-shrink-0">
+                    <div className="flex items-center gap-2">
+                      <Code2 className="w-4 h-4 text-emerald-400" />
+                      <span className="text-[11px] font-black text-white uppercase tracking-wider">Solution Editor</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={selectedLanguage}
+                        onChange={(e) => setSelectedLanguage(e.target.value)}
+                        className="bg-slate-900 border border-white/10 rounded-lg px-2.5 py-1 text-[11px] font-bold text-emerald-300 focus:outline-none focus:border-emerald-500 cursor-pointer"
+                      >
+                        <option value="java">Java</option>
+                        <option value="python">Python</option>
+                        <option value="javascript">JavaScript</option>
+                        <option value="cpp">C++</option>
+                        <option value="c">C</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => submitAnswer && submitAnswer()}
+                        disabled={isAIThinking}
+                        className="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-[11px] px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 transition-all shadow-lg disabled:opacity-50 cursor-pointer"
+                      >
+                        <Send className="w-3.5 h-3.5" /> Submit Code
+                      </button>
+                    </div>
+                  </div>
+                  {/* Monaco Editor fills remaining height */}
+                  <div className="flex-1 min-h-0">
+                    <Editor
+                      height="100%"
+                      theme="vs-dark"
+                      language={selectedLanguage === 'cpp' || selectedLanguage === 'c' ? 'cpp' : selectedLanguage}
+                      value={codeContent}
+                      onChange={setCodeContent}
+                      onMount={(editor) => {
+                        // Prevent keyboard events from bubbling to page (fixes Space/C camera toggle)
+                        editor.getDomNode()?.addEventListener('keydown', (e) => {
+                          e.stopPropagation();
+                        }, true);
+                        editor.getDomNode()?.addEventListener('keyup', (e) => {
+                          e.stopPropagation();
+                        }, true);
+                        editor.getDomNode()?.addEventListener('keypress', (e) => {
+                          e.stopPropagation();
+                        }, true);
+                      }}
+                      options={{
+                        minimap: { enabled: false },
+                        fontSize: 13,
+                        fontFamily: '"Fira Code", "Cascadia Code", monospace',
+                        fontLigatures: true,
+                        scrollBeyondLastLine: false,
+                        lineNumbersMinChars: 3,
+                        automaticLayout: true,
+                        tabSize: 4,
+                        wordWrap: 'on',
+                        suggestOnTriggerCharacters: true,
+                        quickSuggestions: true,
+                        padding: { top: 12, bottom: 12 },
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* BOTTOM STRIP: Compact voice/answer area for coding mode */}
+              <div className="flex-shrink-0 bg-slate-900/50 border border-white/10 rounded-2xl px-4 py-3 flex items-center gap-4">
+                {/* Voice status indicator */}
+                <div className="flex items-center gap-2 min-w-0">
+                  {isRecording && !isMuted ? (
+                    <>
+                      <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
+                      </span>
+                      <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex-shrink-0">Listening</span>
+                      <span className="text-[11px] text-slate-300 truncate max-w-[300px] font-mono">
+                        {interimTranscript || finalTranscript || 'Speak your explanation…'}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
+                      <span className="text-[11px] text-slate-500">Mic off — explain your approach verbally or just submit code above</span>
+                    </>
+                  )}
+                </div>
+
+                {/* Voice submit / clear buttons */}
+                <div className="ml-auto flex items-center gap-2 flex-shrink-0">
+                  {(finalTranscript || interimTranscript) && (
+                    <>
+                      <button
+                        onClick={() => { if (setFinalTranscript) setFinalTranscript(''); if (setInterimTranscript) setInterimTranscript(''); }}
+                        className="px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg text-[10px] font-bold text-slate-400 hover:text-red-400 transition-all flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3 h-3" /> Clear
+                      </button>
+                      <button
+                        onClick={() => submitAnswer()}
+                        disabled={isAIThinking}
+                        className="px-3.5 py-1 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-[11px] font-bold text-white transition-all flex items-center gap-1.5 disabled:opacity-50"
+                      >
+                        <Send className="w-3 h-3" /> Submit Voice
+                      </button>
+                    </>
+                  )}
+                  <button
+                    onClick={isTypingMode ? switchToSpeaking : switchToTyping}
+                    className="px-3 py-1 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg text-[10px] font-bold text-slate-300 transition-all flex items-center gap-1.5"
+                  >
+                    {isTypingMode ? <><Mic className="w-3 h-3 text-indigo-400" /> Voice</> : <><Keyboard className="w-3 h-3 text-indigo-400" /> Type</>}
+                  </button>
+                </div>
+              </div>
+
+              {/* Bottom bar shortcuts for coding mode */}
+              <div className="flex-shrink-0 bg-slate-950 border-t border-white/[0.06] py-2 flex justify-between items-center gap-4 rounded-b-xl px-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      const msg = `Let me repeat the question for you: ${currentQuestion}`;
+                      if (speakText) { speakText(msg); } else if (window.speechSynthesis) { window.speechSynthesis.cancel(); const utt = new SpeechSynthesisUtterance(msg); utt.lang = 'en-US'; window.speechSynthesis.speak(utt); }
+                    }}
+                    className="bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 text-[10px] font-bold px-3 py-1.5 rounded-xl transition-all"
+                  >
+                    Repeat Question
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setConversationLogOpen(!conversationLogOpen)}
+                    className="bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 text-[10px] font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1"
+                  >
+                    <MessageSquare className="w-3 h-3 text-indigo-400" /> Chat Log
+                  </button>
+                  <button
+                    onClick={() => setShowNotesModal(true)}
+                    className="bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 text-[10px] font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1"
+                  >
+                    <Edit className="w-3 h-3 text-indigo-400" /> Notes
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          ) : (
+            /* ============================================================ */
+            /* ALL OTHER ARCHETYPES — scrollable flex-col layout            */
+            /* ============================================================ */
+            <>
+            <div className="flex-1 p-6 overflow-y-auto no-scrollbar flex flex-col justify-between">
+
+              <div className="flex-1 flex flex-col min-h-0">
+
+                {archetype === 'resume' ? (
                 /* RESUME SPLIT SCREEN */
                 <div className="flex-1 grid grid-cols-1 xl:grid-cols-2 gap-4 min-h-0 overflow-hidden mb-6">
                   {/* Left: Resume Section highlights */}
@@ -441,18 +584,16 @@ const MockInterviewRoom = ({
                 </div>
               ) : (
                 /* DEFAULT TECHNICAL / HR / BEHAVIORAL QUESTIONS CARD */
-                <div className="flex-1 flex flex-col justify-center max-w-xl mx-auto w-full mb-6">
-                  <div className="bg-slate-900/40 border border-white/10 rounded-3xl p-6 md:p-8 backdrop-blur-xl relative overflow-hidden shadow-2xl">
+                <div className="flex-1 flex flex-col justify-center max-w-2xl mx-auto w-full my-auto py-2">
+                  <div className="bg-slate-900/90 border border-white/10 rounded-3xl p-5 md:p-6 backdrop-blur-xl relative shadow-2xl">
                     <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
-                    
                     <div className="flex items-center gap-2 mb-3">
                       <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-ping" />
                       <span className="text-[10px] font-black uppercase text-indigo-400 tracking-widest">Interviewer Prompt</span>
                     </div>
-
-                    <h2 className="text-sm md:text-base font-black text-white leading-relaxed tracking-tight">
-                      {currentQuestion}
-                    </h2>
+                    <div className="overflow-y-auto pr-1 text-slate-100 font-sans max-h-[200px] no-scrollbar">
+                      <p className="text-sm font-semibold text-white leading-relaxed">{currentQuestion}</p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -464,10 +605,16 @@ const MockInterviewRoom = ({
               
               {/* Dynamic Subtitles / Transcription Feed */}
               {isRecording && !isMuted && (
-                <div className="bg-slate-900/40 border border-white/5 p-3 rounded-2xl flex gap-3 items-center">
+                <div className="bg-slate-900/60 border border-white/10 p-3 rounded-2xl flex gap-3 items-center">
                   <Mic className="w-4 h-4 text-rose-500 animate-pulse shrink-0" />
-                  <div className="flex-1 text-[11px] text-slate-400 italic leading-relaxed">
-                    Voice response stream: Speaking detected...
+                  <div className="flex-1 text-[11px] text-slate-300 italic leading-relaxed truncate">
+                    Voice response stream: {(interimTranscript || finalTranscript) ? (
+                      <span className="text-emerald-400 font-medium font-mono not-italic">
+                        "{interimTranscript || finalTranscript}"
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">Listening... Speak clearly into your microphone</span>
+                    )}
                   </div>
                 </div>
               )}
@@ -505,28 +652,74 @@ const MockInterviewRoom = ({
                       </button>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center py-6 border border-white/[0.05] bg-slate-950/60 rounded-2xl">
-                      <span className="text-xs text-slate-400 font-bold mb-2">Speak your response aloud</span>
-                      <p className="text-[10px] text-slate-600">The AI will automatically capture and evaluate your speech flow.</p>
+                    <div className="border border-white/[0.08] bg-slate-950/80 rounded-2xl p-4 transition-all">
+                      {(finalTranscript || interimTranscript) ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between border-b border-white/5 pb-2 flex-wrap gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                              </span>
+                              <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">Live Speech Transcribing</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => {
+                                  if (setFinalTranscript) setFinalTranscript('');
+                                  if (setInterimTranscript) setInterimTranscript('');
+                                }}
+                                className="px-2.5 py-1 bg-white/5 hover:bg-white/10 rounded-lg text-[10px] font-bold text-slate-400 hover:text-red-400 transition-all border border-white/5 flex items-center gap-1"
+                                title="Clear speech transcript"
+                              >
+                                <Trash2 className="w-3 h-3" /> Clear
+                              </button>
+                              <button
+                                onClick={() => submitAnswer()}
+                                disabled={isAIThinking || (!finalTranscript.trim() && !interimTranscript.trim())}
+                                className="px-3.5 py-1 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-[11px] font-bold text-white transition-all flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 disabled:opacity-50"
+                              >
+                                <Send className="w-3 h-3" /> Submit Answer
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="min-h-[70px] text-xs md:text-sm text-slate-100 font-normal leading-relaxed bg-slate-900/60 p-3 rounded-xl border border-white/5 break-words">
+                            <span>{finalTranscript}</span>
+                            <span className="text-indigo-400 font-semibold animate-pulse">{interimTranscript ? ` ${interimTranscript}` : ''}</span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 italic">
+                            💡 The AI is capturing your voice live. Speak your full answer and stop speaking or click 'Submit Answer'.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between py-2.5 px-4 border border-dashed border-white/10 bg-slate-950/80 rounded-xl text-left">
+                          <div className="flex items-center gap-3">
+                            <div className="w-7 h-7 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
+                              <Mic className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
+                            </div>
+                            <div>
+                              <span className="text-[11px] text-slate-200 font-bold block">Speak your response aloud or type solution</span>
+                              <p className="text-[10px] text-slate-400">The AI interviewer is listening in real-time or click 'Submit Code'.</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               </div>
 
             </div>
-
           </div>
 
-          {/* BOTTOM BAR PANEL SHORTCUTS */}
+          {/* BOTTOM BAR PANEL SHORTCUTS — non-coding modes */}
           <footer className="flex-shrink-0 bg-slate-950 border-t border-white/[0.06] p-3 flex justify-between items-center gap-4">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {
-                  setIsAIThinking(true);
-                  setTimeout(() => {
-                    setIsAIThinking(false);
-                    alert("Sarah: 'Certainly, let me repeat the question for you: ' + currentQuestion");
-                  }, 1200);
+                  const msg = `Let me repeat the question for you: ${currentQuestion}`;
+                  if (speakText) { speakText(msg); } else if (window.speechSynthesis) { window.speechSynthesis.cancel(); const utt = new SpeechSynthesisUtterance(msg); utt.lang = 'en-US'; window.speechSynthesis.speak(utt); }
                 }}
                 className="bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 text-[10px] font-bold px-3 py-1.5 rounded-xl transition-all"
               >
@@ -534,31 +727,29 @@ const MockInterviewRoom = ({
               </button>
               <button
                 onClick={() => {
-                  alert("Sarah: 'Could you clarify if you'd like me to repeat the scenario description or the technical bounds of the prompt?'");
+                  const msg = `Could you please clarify: ${currentQuestion}`;
+                  if (speakText) { speakText(msg); } else if (window.speechSynthesis) { window.speechSynthesis.cancel(); const utt = new SpeechSynthesisUtterance(msg); utt.lang = 'en-US'; window.speechSynthesis.speak(utt); }
                 }}
                 className="bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 text-[10px] font-bold px-3 py-1.5 rounded-xl transition-all"
               >
                 Request Clarification
               </button>
             </div>
-
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setConversationLogOpen(!conversationLogOpen)}
-                className="bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 text-[10px] font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1"
-              >
+              <button onClick={() => setConversationLogOpen(!conversationLogOpen)} className="bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 text-[10px] font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1">
                 <MessageSquare className="w-3 h-3 text-indigo-400" /> Chat Log
               </button>
-              <button
-                onClick={() => setShowNotesModal(true)}
-                className="bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 text-[10px] font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1"
-              >
+              <button onClick={() => setShowNotesModal(true)} className="bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 text-[10px] font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1">
                 <Edit className="w-3 h-3 text-indigo-400" /> Take Notes
               </button>
             </div>
           </footer>
 
+            </>
+          )}
+
         </section>
+
 
         {/* RIGHT PANEL: Dynamic telemetry & Progress logs */}
         {rightPanelOpen && (

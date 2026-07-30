@@ -14,6 +14,8 @@ import {
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
 
+import CognizantPrepDetail from './CognizantPrepDetail';
+
 const ROLES_LIST = [
   'Software Engineer', 'Java Developer', 'Frontend Developer', 
   'Backend Developer', 'Full Stack Developer', 'Cloud Engineer', 
@@ -22,6 +24,15 @@ const ROLES_LIST = [
 
 const CompanyDetail = () => {
   const { companyName } = useParams();
+
+  if (companyName?.toLowerCase() === 'cognizant') {
+    return <CognizantPrepDetail />;
+  }
+
+  return <CompanyDetailInner companyName={companyName} />;
+};
+
+const CompanyDetailInner = ({ companyName }) => {
   const navigate = useNavigate();
 
   // ── CORE LIFECYCLE STATES ──
