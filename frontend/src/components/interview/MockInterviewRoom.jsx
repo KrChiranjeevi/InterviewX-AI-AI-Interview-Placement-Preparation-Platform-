@@ -326,7 +326,7 @@ const MockInterviewRoom = ({
                   </div>
                   <div className="flex-1 overflow-y-auto p-4 no-scrollbar space-y-3">
                     <h3 className="text-sm font-bold text-white">Problem Statement</h3>
-                    <p className="text-xs text-slate-300 leading-relaxed font-sans">{currentQuestion}</p>
+                    <p className="text-xs text-slate-300 leading-relaxed font-sans whitespace-pre-wrap">{currentQuestion}</p>
                     <div className="bg-slate-950/80 border border-white/5 rounded-xl p-3 space-y-1.5 text-[11px] mt-2">
                       <span className="font-bold text-indigo-400 block">Constraints:</span>
                       <p className="text-slate-400">• Time Complexity: O(N log N) or better</p>
@@ -354,6 +354,7 @@ const MockInterviewRoom = ({
                         <option value="javascript">JavaScript</option>
                         <option value="cpp">C++</option>
                         <option value="c">C</option>
+                        <option value="sql">SQL</option>
                       </select>
                       <button
                         type="button"
@@ -592,7 +593,7 @@ const MockInterviewRoom = ({
                       <span className="text-[10px] font-black uppercase text-indigo-400 tracking-widest">Interviewer Prompt</span>
                     </div>
                     <div className="overflow-y-auto pr-1 text-slate-100 font-sans max-h-[200px] no-scrollbar">
-                      <p className="text-sm font-semibold text-white leading-relaxed">{currentQuestion}</p>
+                      <p className="text-sm font-semibold text-white leading-relaxed whitespace-pre-wrap">{currentQuestion}</p>
                     </div>
                   </div>
                 </div>
@@ -676,7 +677,7 @@ const MockInterviewRoom = ({
                               </button>
                               <button
                                 onClick={() => submitAnswer()}
-                                disabled={isAIThinking || (!finalTranscript.trim() && !interimTranscript.trim())}
+                                disabled={isAIThinking || !finalTranscript.trim()}
                                 className="px-3.5 py-1 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-[11px] font-bold text-white transition-all flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 disabled:opacity-50"
                               >
                                 <Send className="w-3 h-3" /> Submit Answer

@@ -40,16 +40,37 @@ const AssessmentRoom = () => {
 
   // Fetch Questions
   useEffect(() => {
+    let isMounted = true;
     const fetchQuestions = async () => {
       try {
+        setLoading(true);
         const res = await api.get(`/assessments/${category}?limit=35`);
-        // Process questions to add stable shuffled options and mock difficulty if missing
-        const processed = res.data.map((q) => {
-          const shuffledOptions = [...q.options].sort(() => Math.random() - 0.5);
+        
+        if (!isMounted) return;
+
+        // Strict frontend deduplication by question text
+        const seenTexts = new Set();
+        const uniqueItems = [];
+        const rawList = Array.isArray(res.data) ? res.data : [];
+
+        for (const q of rawList) {
+          const normText = (q.question || '').trim().toLowerCase();
+          if (normText && !seenTexts.has(normText)) {
+            seenTexts.add(normText);
+            uniqueItems.push(q);
+          }
+        }
+
+        // Process questions to add stable shuffled options and difficulty
+        const processed = uniqueItems.map((q) => {
+          const shuffledOptions = Array.isArray(q.options) 
+            ? [...q.options].sort(() => Math.random() - 0.5) 
+            : [];
           const diffs = ['Easy', 'Medium', 'Hard'];
           const difficulty = q.difficulty || diffs[Math.floor(Math.random() * diffs.length)];
           return { ...q, shuffledOptions, difficulty };
         });
+
         setQuestions(processed);
         
         // Calculate dynamic timer based on difficulty
@@ -63,14 +84,18 @@ const AssessmentRoom = () => {
         setTimeLeft(totalSeconds > 0 ? totalSeconds : fallbackTimeMinutes * 60);
         setCalculatedDurationMins(totalSeconds > 0 ? Math.round(totalSeconds / 60) : fallbackTimeMinutes);
       } catch (err) {
-        toast.error('Failed to load assessment questions.');
-        console.error(err);
+        toast.error('Failed to load assessment questions. Please try again.');
+        console.error('Fetch questions error:', err);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
     fetchQuestions();
-  }, [category]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [category, fallbackTimeMinutes]);
 
   // Proctoring: Block Tab Switching
   useEffect(() => {
@@ -119,6 +144,7 @@ const AssessmentRoom = () => {
     // Format responses
     const formattedResponses = questions.map((q, idx) => ({
       questionId: q._id,
+      questionText: q.question,
       selectedOption: responses[idx] || null,
       isSkipped: !responses[idx],
       timeSpent: timeSpentMap[idx] || 0
@@ -233,10 +259,13 @@ const AssessmentRoom = () => {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-6 text-center">
         <div>
-          <AlertCircle className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">No Questions Found</h2>
-          <p className="text-slate-500 max-w-md mx-auto mb-6">We couldn't find any questions for the {category} module. Please contact support if this is an error.</p>
-          <button onClick={() => navigate('/coding')} className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700">Return to Home Page</button>
+          <AlertCircle className="w-12 h-12 text-indigo-400 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Session Ready to Initialize</h2>
+          <p className="text-slate-500 max-w-md mx-auto mb-6">Could not load questions for <strong>{category}</strong> right now. Tap retry to initialize your session.</p>
+          <div className="flex gap-3 justify-center">
+            <button onClick={() => window.location.reload()} className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20">Retry Session</button>
+            <button onClick={() => navigate('/coding')} className="px-6 py-2.5 border border-slate-700 bg-white/5 text-slate-300 rounded-xl font-semibold hover:bg-white/10 transition-all">Back to Practice</button>
+          </div>
         </div>
       </div>
     );

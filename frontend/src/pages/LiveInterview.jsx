@@ -246,48 +246,124 @@ const COMPANY_INTERVIEWS = {
 };
 
 const CODING_PROBLEMS = {
+  twoSum: {
+    title: 'Two Sum',
+    difficulty: 'Easy',
+    description: "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.\n\nYou may assume that each input would have exactly one solution, and you may not use the same element twice. You can return the answer in any order.",
+    examples: [
+      { input: "nums = [2,7,11,15], target = 9", output: "[0,1]", explanation: "Because nums[0] + nums[1] == 9, we return [0, 1]." },
+      { input: "nums = [3,2,4], target = 6", output: "[1,2]", explanation: "Because nums[1] + nums[2] == 6, we return [1, 2]." }
+    ],
+    constraints: [
+      "2 <= nums.length <= 10^4",
+      "-10^9 <= nums[i] <= 10^9",
+      "-10^9 <= target <= 10^9",
+      "Only one valid answer exists."
+    ],
+    starterCode: {
+      python: 'class Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        # Write your code here\n        pass',
+      javascript: 'class Solution {\n    twoSum(nums, target) {\n        // Write your code here\n        \n    }\n}',
+      java: 'class Solution {\n    public int[] twoSum(int[] nums, int target) {\n        // Write your code here\n        return new int[]{};\n    }\n}',
+      cpp: 'class Solution {\npublic:\n    vector<int> twoSum(vector<int>& nums, int target) {\n        // Write your code here\n        return {};\n    }\n};',
+      c: 'int* twoSum(int* nums, int numsSize, int target, int* returnSize) {\n    // Write your code here\n    return NULL;\n}'
+    }
+  },
+  sql_highest_salary: {
+    title: 'Second Highest Salary',
+    difficulty: 'Medium',
+    description: "Write a SQL query to find the second highest distinct salary from the Employee table. If there is no second highest salary, return null.",
+    examples: [
+      { input: "Employee table:\n+----+--------+\n| id | salary |\n+----+--------+\n| 1  | 100    |\n| 2  | 200    |\n| 3  | 300    |\n+----+--------+", output: "+---------------------+\n| SecondHighestSalary |\n+---------------------+\n| 200                 |\n+---------------------+" }
+    ],
+    constraints: [
+      "1 <= Employee.length <= 10^5",
+      "0 <= salary <= 10^9"
+    ],
+    starterCode: {
+      sql: "-- Write your SQL query here\nSELECT\n    (SELECT DISTINCT salary\n     FROM Employee\n     ORDER BY salary DESC\n     LIMIT 1 OFFSET 1) AS SecondHighestSalary;\n",
+      python: "# SQL Query implementation\nquery = '''\nSELECT MAX(salary) AS SecondHighestSalary\nFROM Employee\nWHERE salary < (SELECT MAX(salary) FROM Employee);\n'''",
+      javascript: "// SQL Query implementation\nconst query = `\nSELECT MAX(salary) AS SecondHighestSalary\nFROM Employee\nWHERE salary < (SELECT MAX(salary) FROM Employee);\n`;",
+      java: "// Write SQL query string\nString query = \"SELECT MAX(salary) AS SecondHighestSalary FROM Employee WHERE salary < (SELECT MAX(salary) FROM Employee);\";",
+      cpp: "// Write SQL query string\nstring query = \"SELECT MAX(salary) AS SecondHighestSalary FROM Employee WHERE salary < (SELECT MAX(salary) FROM Employee);\";"
+    }
+  },
   islands: {
     title: 'Number of Islands',
     difficulty: 'Medium',
     description: "Given an m x n 2D binary grid which represents a map of '1's (land) and '0's (water), return the number of islands. An island is surrounded by water and is formed by connecting adjacent lands horizontally or vertically.",
+    examples: [
+      { input: "grid = [[\"1\",\"1\",\"0\"],[\"1\",\"1\",\"0\"],[\"0\",\"0\",\"1\"]]", output: "2" }
+    ],
+    constraints: [
+      "m == grid.length",
+      "n == grid[i].length",
+      "1 <= m, n <= 300",
+      "grid[i][j] is '0' or '1'."
+    ],
     starterCode: {
       python: 'class Solution:\n    def numIslands(self, grid: List[List[str]]) -> int:\n        # Write your logic here\n        pass',
       javascript: 'class Solution {\n    numIslands(grid) {\n        // Write your logic here\n        \n    }\n}',
-      java: 'class Solution {\n    public int numIslands(char[][] grid) {\n        // Write your logic here\n        \n    }\n}',
-      cpp: 'class Solution {\npublic:\n    int numIslands(vector<vector<char>>& grid) {\n        // Write your logic here\n        \n    }\n};'
+      java: 'class Solution {\n    public int numIslands(char[][] grid) {\n        // Write your logic here\n        return 0;\n    }\n}',
+      cpp: 'class Solution {\npublic:\n    int numIslands(vector<vector<char>>& grid) {\n        // Write your logic here\n        return 0;\n    }\n};',
+      c: 'int numIslands(char** grid, int gridSize, int* gridColSize) {\n    // Write your logic here\n    return 0;\n}'
     }
   },
   subarray: {
     title: 'Maximum Subarray Sum',
     difficulty: 'Easy',
     description: 'Given an integer array nums, find the subarray with the largest sum, and return its sum.',
+    examples: [
+      { input: "nums = [-2,1,-3,4,-1,2,1,-5,4]", output: "6", explanation: "The subarray [4,-1,2,1] has the largest sum 6." }
+    ],
+    constraints: [
+      "1 <= nums.length <= 10^5",
+      "-10^4 <= nums[i] <= 10^4"
+    ],
     starterCode: {
       python: 'class Solution:\n    def maxSubArray(self, nums: List[int]) -> int:\n        # Write your logic here\n        pass',
       javascript: 'class Solution {\n    maxSubArray(nums) {\n        // Write your logic here\n        \n    }\n}',
-      java: 'class Solution {\n    public int maxSubArray(int[] nums) {\n        // Write your logic here\n        \n    }\n}',
-      cpp: 'class Solution {\npublic:\n    int maxSubArray(vector<int>& nums) {\n        // Write your logic here\n        \n    }\n};'
+      java: 'class Solution {\n    public int maxSubArray(int[] nums) {\n        // Write your logic here\n        return 0;\n    }\n}',
+      cpp: 'class Solution {\npublic:\n    int maxSubArray(vector<int>& nums) {\n        // Write your logic here\n        return 0;\n    }\n};',
+      c: 'int maxSubArray(int* nums, int numsSize) {\n    // Write your logic here\n    return 0;\n}'
     }
   },
   parentheses: {
     title: 'Valid Parentheses',
     difficulty: 'Easy',
     description: "Given a string s containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid.",
+    examples: [
+      { input: "s = \"()[]{}\"", output: "true" },
+      { input: "s = \"(]\"", output: "false" }
+    ],
+    constraints: [
+      "1 <= s.length <= 10^4",
+      "s consists of parentheses only '()[]{}'."
+    ],
     starterCode: {
       python: 'class Solution:\n    def isValid(self, s: str) -> bool:\n        # Write your logic here\n        pass',
       javascript: 'class Solution {\n    isValid(s) {\n        // Write your logic here\n        \n    }\n}',
-      java: 'class Solution {\n    public boolean isValid(String s) {\n        // Write your logic here\n        \n    }\n}',
-      cpp: 'class Solution {\npublic:\n    bool isValid(string s) {\n        // Write your logic here\n        \n    }\n};'
+      java: 'class Solution {\n    public boolean isValid(String s) {\n        // Write your logic here\n        return false;\n    }\n}',
+      cpp: 'class Solution {\npublic:\n    bool isValid(string s) {\n        // Write your logic here\n        return false;\n    }\n};',
+      c: 'bool isValid(char* s) {\n    // Write your logic here\n    return false;\n}'
     }
   },
   reverse: {
     title: 'Reverse a Linked List',
     difficulty: 'Medium',
     description: 'Given the head of a singly linked list, reverse the list, and return the reversed list.',
+    examples: [
+      { input: "head = [1,2,3,4,5]", output: "[5,4,3,2,1]" }
+    ],
+    constraints: [
+      "The number of nodes in the list is the range [0, 5000].",
+      "-5000 <= Node.val <= 5000"
+    ],
     starterCode: {
       python: 'class Solution:\n    def reverseList(self, head: Optional[ListNode]) -> Optional[ListNode]:\n        # Write your logic here\n        pass',
       javascript: 'class Solution {\n    reverseList(head) {\n        // Write your logic here\n        \n    }\n}',
-      java: 'class Solution {\n    public ListNode reverseList(ListNode head) {\n        // Write your logic here\n        \n    }\n}',
-      cpp: 'class Solution {\npublic:\n    ListNode* reverseList(ListNode* head) {\n        // Write your logic here\n        \n    }\n};'
+      java: 'class Solution {\n    public ListNode reverseList(ListNode head) {\n        // Write your logic here\n        return head;\n    }\n}',
+      cpp: 'class Solution {\npublic:\n    ListNode* reverseList(ListNode* head) {\n        // Write your logic here\n        return head;\n    }\n};',
+      c: 'struct ListNode* reverseList(struct ListNode* head) {\n    // Write your logic here\n    return head;\n}'
     }
   }
 };
@@ -366,6 +442,7 @@ const LiveInterview = () => {
   const [conversationLogOpen,  setConversationLogOpen]  = useState(false); // slide-out log panel
   const [pendingSpeech,        setPendingSpeech]        = useState(null); // { ack, transition, question }
   const [greetingDone,         setGreetingDone]         = useState(false); // track greeting completion
+  const [isSubmitting,         setIsSubmitting]         = useState(false); // duplicate submission guard
 
   // Dynamic Workspaces States
   const [selectedLanguage, setSelectedLanguage] = useState('python');
@@ -412,6 +489,7 @@ const LiveInterview = () => {
   const toastTimers        = useRef([]);
   const interviewStageRef  = useRef('greeting'); // track stage in callbacks
   const questionNumberRef  = useRef(1);          // track question number in callbacks
+  const isSubmittingRef    = useRef(false);
 
   // Sync ref hooks
   useEffect(() => { currentQuestionRef.current = currentQuestion;  }, [currentQuestion]);
@@ -420,6 +498,7 @@ const LiveInterview = () => {
   useEffect(() => { isTypingModeRef.current    = isTypingMode;    }, [isTypingMode]);
   useEffect(() => { isPausedRef.current        = isPaused;        }, [isPaused]);
   useEffect(() => { isMutedRef.current         = isMuted;         }, [isMuted]);
+  useEffect(() => { isSubmittingRef.current    = isSubmitting;    }, [isSubmitting]);
 
   // Determine current company configuration
   const companyKey = useMemo(() => {
@@ -451,10 +530,13 @@ const LiveInterview = () => {
     if (!interview?.type) return 'technical';
     const typeStr = interview.type.toLowerCase();
     if (typeStr.includes('coding')) return 'coding';
-    if (typeStr.includes('system design') || typeStr.includes('architecture') || typeStr.includes('design') || typeStr.includes('cloud') || typeStr.includes('devops')) return 'system_design';
+    if (typeStr.includes('system design') || typeStr.includes('system_design')) return 'system_design';
     if (typeStr.includes('resume')) return 'resume';
     if (typeStr.includes('behavioral')) return 'behavioral';
     if (typeStr.includes('hr')) return 'hr';
+    if (typeStr.includes('project')) return 'project';
+    if (typeStr.includes('extempore')) return 'extempore';
+    if (typeStr.includes('group discussion') || typeStr.includes('gd')) return 'gd';
     return 'technical';
   }, [interview]);
 
@@ -462,20 +544,29 @@ const LiveInterview = () => {
   
   const currentRound = useMemo(() => {
     if (isMock) {
+      const isSql = interview?.codingTrack?.toLowerCase() === 'sql' || interview?.domain?.toLowerCase() === 'sql';
       return {
-        type: mockArchetype === 'coding' ? 'coding' : mockArchetype === 'system_design' ? 'whiteboard' : 'text',
-        problemId: 'twoSum'
+        type: mockArchetype === 'coding' ? (isSql ? 'sql' : 'coding') : mockArchetype === 'system_design' ? 'whiteboard' : 'text',
+        problemId: isSql ? 'sql_highest_salary' : 'twoSum',
+        label: mockArchetype === 'coding' ? (isSql ? 'SQL Challenge Round' : 'DSA Coding Round') : mockArchetype === 'system_design' ? 'System Design Whiteboard' : `${interview?.type || 'Mock'} Round`
       };
     }
     return companyConfig.rounds[currentRoundIdx];
-  }, [isMock, mockArchetype, companyConfig, currentRoundIdx]);
+  }, [isMock, mockArchetype, companyConfig, currentRoundIdx, interview]);
 
   // Initialize Code Content on round transition
   useEffect(() => {
-    if (currentRound && currentRound.type === 'coding' && currentRound.problemId) {
+    if (currentRound && (currentRound.type === 'coding' || currentRound.type === 'sql') && currentRound.problemId) {
       const prob = CODING_PROBLEMS[currentRound.problemId];
       if (prob) {
-        setCodeContent(prob.starterCode[selectedLanguage] || '');
+        if (prob.starterCode?.[selectedLanguage]) {
+          setCodeContent(prob.starterCode[selectedLanguage]);
+        } else if (prob.starterCode?.python) {
+          setCodeContent(prob.starterCode.python);
+        }
+        if (prob.starterCode?.sql) {
+          setSqlQuery(prob.starterCode.sql);
+        }
       }
     }
   }, [currentRound, selectedLanguage]);
@@ -710,8 +801,49 @@ const LiveInterview = () => {
         const isCurrentlyMock = !urlCompany && (!interviewData || !interviewData.company);
 
         if (isCurrentlyMock) {
-          // Small delay to let camera/mic initialize
-          setTimeout(() => triggerMockGreeting(interviewData), 1200);
+          if (interviewData.questions && interviewData.questions.length > 0) {
+            // Resuming an in-progress session: restore progress without re-greeting
+            const answeredCount = interviewData.questions.length;
+            const nextQNum = answeredCount + 1;
+            setQuestionNumber(nextQNum);
+            questionNumberRef.current = nextQNum;
+
+            const restoredHistory = [];
+            const restoredLogs = [];
+            interviewData.questions.forEach((q, idx) => {
+              restoredHistory.push({ sender: 'ai', text: q.question, timestamp: Date.now() - (answeredCount - idx) * 60000 });
+              restoredLogs.push({ sender: 'ai', text: q.question });
+              if (q.userAnswer) {
+                restoredHistory.push({ sender: 'user', text: q.userAnswer, timestamp: Date.now() - (answeredCount - idx) * 60000 + 1000 });
+                restoredLogs.push({ sender: 'user', text: q.userAnswer });
+              }
+            });
+            setConversationHistory(restoredHistory);
+            setDialogLogs(restoredLogs);
+
+            let stage = 'core';
+            if (nextQNum >= 9) stage = 'closing';
+            else if (nextQNum >= 5) stage = 'deepdive';
+            setInterviewStage(stage);
+            interviewStageRef.current = stage;
+            setGreetingDone(true);
+
+            api.post(`/interviews/${id}/question`).then(qRes => {
+              const nextQ = qRes.data?.question || 'Please provide your answer to continue.';
+              setCurrentQuestion(nextQ);
+              currentQuestionRef.current = nextQ;
+              setIsAIThinking(false);
+              setInterviewerStatus('listening');
+              startListening();
+            }).catch(() => {
+              setIsAIThinking(false);
+              setInterviewerStatus('listening');
+              startListening();
+            });
+          } else {
+            // Fresh new session: trigger type-specific greeting
+            setTimeout(() => triggerMockGreeting(interviewData), 1200);
+          }
         } else {
           // Company interview — original round question trigger
           const firstRound = companyConfig.rounds[0];
@@ -847,11 +979,15 @@ const LiveInterview = () => {
   };
 
   const startSilenceCountdown = () => {
+    if (isTypingModeRef.current || isAIThinkingRef.current) return;
     if (autoSubmitTimer.current)   clearTimeout(autoSubmitTimer.current);
     if (countdownInterval.current) clearInterval(countdownInterval.current);
     autoSubmitTimer.current = setTimeout(() => {
       setAutoSubmitCountdown(null);
-      submitAnswer();
+      // Only auto-submit if candidate has spoken a meaningful response
+      if (finalTranscriptRef.current && finalTranscriptRef.current.trim().length > 10) {
+        submitAnswer();
+      }
     }, AUTO_SUBMIT_DELAY);
     setAutoSubmitCountdown(60);
     countdownInterval.current = setInterval(() => {
@@ -942,35 +1078,70 @@ const LiveInterview = () => {
      Fires once when the mock interview starts. Creates a warm, natural
      human opening before the first question.
   ─────────────────────────────────────────────────────────────────────── */
-  const triggerMockGreeting = async (interview) => {
-    const typeLabel = interview?.type || 'Technical';
-    const roleLabel = interview?.role || 'Software Engineer';
-    const greetingParts = [
-      `Good morning. Welcome to today's mock ${typeLabel} interview.`,
-      `My name is Sarah, and I'll be your interviewer today.`,
-      `I want this to feel like a real conversation, so please don't hesitate to think out loud.`,
-      `Before we dive in — could you start by telling me a little about yourself?`
-    ];
+  const triggerMockGreeting = async (interviewData) => {
+    const typeLabel = interviewData?.type || 'Technical';
+    const roleLabel = interviewData?.role || 'Software Engineer';
+    const typeLowerG = typeLabel.toLowerCase();
+    
+    let openingQuestion = '';
+    let spokenIntro = '';
+    const isCoding = typeLowerG.includes('coding');
+
+    if (typeLowerG.includes('hr')) {
+      openingQuestion = `To start us off, could you give me a brief introduction — tell me about yourself, your background, and what brings you here today?`;
+      spokenIntro = `Good morning. Welcome to today's mock HR interview. My name is Sarah, and I'll be your interviewer today. Let's start with a brief introduction. Could you tell me about yourself?`;
+    } else if (typeLowerG.includes('behavioral')) {
+      openingQuestion = `To begin, could you introduce yourself and share a real scenario where you took personal ownership of a challenging situation?`;
+      spokenIntro = `Good morning. Welcome to your Behavioral interview. I'm Sarah, and today we'll explore real-world scenarios using the STAR method. Let's begin with your background and a time you took ownership.`;
+    } else if (typeLowerG.includes('resume')) {
+      openingQuestion = `I've reviewed your resume and credentials. Could you walk me through your technical background and the project you're most proud of?`;
+      spokenIntro = `Good morning. Welcome to your Resume interview. I'm Sarah. I've examined your resume profile. Let's walk through your journey and notable projects.`;
+    } else if (isCoding) {
+      const isSql = interviewData?.codingTrack?.toLowerCase() === 'sql' || interviewData?.domain?.toLowerCase() === 'sql';
+      const probKey = isSql ? 'sql_highest_salary' : 'twoSum';
+      const prob = CODING_PROBLEMS[probKey] || CODING_PROBLEMS.twoSum;
+
+      // Provide full structured coding problem
+      const fullProblemFormatted = `### ${prob.title} (${prob.difficulty})\n\n${prob.description}\n\n**Examples:**\n${prob.examples.map(ex => `Input: ${ex.input}\nOutput: ${ex.output}${ex.explanation ? `\nExplanation: ${ex.explanation}` : ''}`).join('\n\n')}\n\n**Constraints:**\n${prob.constraints.map(c => `• ${c}`).join('\n')}`;
+      openingQuestion = fullProblemFormatted;
+      spokenIntro = `Welcome to your Coding Interview. I've placed your first coding problem on the left: "${prob.title}". Please examine the problem description, example cases, and constraints. When you're ready, write your solution in the code editor and submit so we can review your logic and time complexity.`;
+
+      // Preload starter code
+      if (isSql) {
+        setSqlQuery(prob.starterCode?.sql || '-- Write your SQL query here\n');
+      } else {
+        setCodeContent(prob.starterCode?.[selectedLanguage] || prob.starterCode?.python || '');
+      }
+    } else if (typeLowerG.includes('project')) {
+      const proj = interviewData?.projectName || 'your project';
+      openingQuestion = `I'd love to start with a technical walkthrough — could you describe "${proj}" at an architectural level and explain what problem it was designed to solve?`;
+      spokenIntro = `Good morning. Welcome to your Project Discussion round. I'm Sarah. Let's dive into the architecture and technical implementation of "${proj}".`;
+    } else if (typeLowerG.includes('system design')) {
+      openingQuestion = `Before we jump into our architecture challenge, could you share your experience with distributed systems, high availability, and database scaling?`;
+      spokenIntro = `Good morning. Welcome to your System Design interview. I'm Sarah. Today we'll tackle scalable architecture and design trade-offs.`;
+    } else {
+      // Technical Interview
+      const track = interviewData?.technicalTrack || interviewData?.domain || roleLabel;
+      const topics = interviewData?.selectedTopics?.length > 0 ? interviewData.selectedTopics.join(', ') : track;
+      openingQuestion = `Welcome! Today's session will focus on ${track} (${topics}). Could you start by introducing yourself and sharing your hands-on experience with these technologies?`;
+      spokenIntro = `Good morning. Welcome to your Technical Interview. I'm Sarah. Today we'll cover key concepts in ${track}. Let's begin with your hands-on experience.`;
+    }
     
     setIsAIThinking(false);
     setInterviewerStatus('speaking');
     setAiSpeaking(true);
 
-    for (let i = 0; i < greetingParts.length; i++) {
-      setCurrentQuestion(greetingParts[i]);
-      currentQuestionRef.current = greetingParts[i];
-      await speakChunk(greetingParts[i], { rate: 0.88, pitch: 1.09 });
-      await delay(i < greetingParts.length - 1 ? 300 : 500);
-    }
+    // Set full formatted question display in UI immediately
+    setCurrentQuestion(openingQuestion);
+    currentQuestionRef.current = openingQuestion;
 
-    // Set full greeting as question display
-    const fullGreeting = greetingParts.join(' ');
-    setCurrentQuestion(fullGreeting);
-    currentQuestionRef.current = fullGreeting;
+    // Speak natural audio greeting
+    await speakChunk(spokenIntro, { rate: 0.88, pitch: 1.08 });
 
     // Log greeting in conversation history
-    setConversationHistory([{ sender: 'ai', text: fullGreeting, timestamp: Date.now() }]);
-    setDialogLogs([{ sender: 'ai', text: fullGreeting }]);
+    const aiLogEntry = { sender: 'ai', text: isCoding ? `[Presented Coding Challenge]: ${openingQuestion}` : openingQuestion, timestamp: Date.now() };
+    setConversationHistory([aiLogEntry]);
+    setDialogLogs([aiLogEntry]);
 
     setAiSpeaking(false);
     setInterviewerStatus('listening');
@@ -989,6 +1160,8 @@ const LiveInterview = () => {
 
   /* ─── Submit answer ───────────────────────────────────────────────────── */
   const submitAnswer = async () => {
+    if (isSubmittingRef.current || isAIThinkingRef.current) return;
+
     let answer = isTypingModeRef.current ? typedAnswer.trim() : finalTranscriptRef.current.trim();
     if (currentRound.type === 'coding') {
       answer = `[Submitted Solution Code in ${selectedLanguage}]:\n\n` + codeContent;
@@ -1000,144 +1173,154 @@ const LiveInterview = () => {
 
     if (!answer && currentRound.type === 'text') return;
 
-    setSubmittedAnswers(prev => [...prev, {
-      roundIndex: questionNumber - 1,
-      type: currentRound.type,
-      answer: answer,
-      skipped: false
-    }]);
-
-    recognitionRef.current?.stop();
-    setIsRecording(false);
-    clearAutoSubmitTimers();
-    setIsAIThinking(true);
-
-    // Save logs for bubble display
-    const userAnswerDisplay = currentRound.type === 'coding' ? 'Shared source implementation in SDE editor.'
-      : currentRound.type === 'sql' ? 'Submitted SQL query logic.'
-      : currentRound.type === 'whiteboard' ? 'Finalized system architecture configuration.'
-      : answer;
-
-    const userMsg = { sender: 'user', text: userAnswerDisplay, timestamp: Date.now() };
-    const aiMsg   = { sender: 'ai',   text: currentQuestion,   timestamp: Date.now() - 1 };
-    setDialogLogs(prev => [...prev, aiMsg, userMsg]);
-
-    setFinalTranscript('');
-    setInterimTranscript('');
-    setTypedAnswer('');
-    finalTranscriptRef.current = '';
-
-    const wasBookmarked = isBookmarked;
-    setIsBookmarked(false);
+    setIsSubmitting(true);
+    isSubmittingRef.current = true;
 
     try {
-      await api.post(`/interviews/${id}/answer`, {
-        question: currentQuestionRef.current,
-        answer,
-        bookmarked: wasBookmarked,
-      });
-    } catch (e) {
-      console.warn('Backend logging failed, fallback client evaluation active');
-    }
+      setSubmittedAnswers(prev => [...prev, {
+        roundIndex: questionNumber - 1,
+        type: currentRound.type,
+        answer: answer,
+        skipped: false
+      }]);
 
-    // ══════════════════════════════════════════════════════════════════
-    // MOCK MODE — Premium Conversational AI Engine
-    // ══════════════════════════════════════════════════════════════════
-    if (isMock) {
-      const currentStage = interviewStageRef.current;
-      const currentQNum  = questionNumberRef.current;
+      recognitionRef.current?.stop();
+      setIsRecording(false);
+      clearAutoSubmitTimers();
+      setIsAIThinking(true);
 
-      // Step 1: Analyzing state (1.5s) — avatar tilts head, thinks
-      setInterviewerStatus('analyzing');
-      await new Promise(res => setTimeout(res, 1500));
+      // Save logs for bubble display
+      const userAnswerDisplay = currentRound.type === 'coding' ? 'Shared source implementation in SDE editor.'
+        : currentRound.type === 'sql' ? 'Submitted SQL query logic.'
+        : currentRound.type === 'whiteboard' ? 'Finalized system architecture configuration.'
+        : answer;
 
-      // Step 2: Typing Notes state (0.7s) — avatar looks down
-      setInterviewerStatus('typing');
-      await new Promise(res => setTimeout(res, 700));
+      const userMsg = { sender: 'user', text: userAnswerDisplay, timestamp: Date.now() };
+      const aiMsg   = { sender: 'ai',   text: currentQuestion,   timestamp: Date.now() - 1 };
+      setDialogLogs(prev => [...prev, aiMsg, userMsg]);
 
-      // Step 3: Preparing follow-up state (0.6s) — avatar looks up
-      setInterviewerStatus('preparing');
-      await new Promise(res => setTimeout(res, 600));
+      setFinalTranscript('');
+      setInterimTranscript('');
+      setTypedAnswer('');
+      finalTranscriptRef.current = '';
 
-      let convResponse = null;
+      const wasBookmarked = isBookmarked;
+      setIsBookmarked(false);
+
       try {
-        const convRes = await api.post(`/interviews/${id}/conversational-response`, {
-          userAnswer: userAnswerDisplay,
-          questionAsked: currentQuestionRef.current,
-          conversationHistory: conversationHistory.slice(-6),
-          questionNumber: currentQNum,
-          interviewStage: currentStage
+        await api.post(`/interviews/${id}/answer`, {
+          question: currentQuestionRef.current,
+          answer,
+          bookmarked: wasBookmarked,
+          isMock: isMock,
+          skipNextQuestionGeneration: isMock
         });
-        convResponse = convRes.data;
-      } catch (err) {
-        console.warn('Conversational response API failed, using fallback');
+      } catch (e) {
+        console.warn('Backend logging failed, fallback client evaluation active');
       }
 
-      // Advance question counter and determine next stage
-      const nextQNum = currentQNum + 1;
-      questionNumberRef.current = nextQNum;
-      setQuestionNumber(nextQNum);
+      // ══════════════════════════════════════════════════════════════════
+      // MOCK MODE — Premium Conversational AI Engine
+      // ══════════════════════════════════════════════════════════════════
+      if (isMock) {
+        const currentStage = interviewStageRef.current;
+        const currentQNum  = questionNumberRef.current;
 
-      let nextStage = currentStage;
-      if (currentStage === 'greeting') nextStage = 'warmup';
-      else if (currentStage === 'warmup' && nextQNum >= 2) nextStage = 'core';
-      else if (currentStage === 'core' && nextQNum >= 5) nextStage = 'deepdive';
-      else if (nextQNum >= 9) nextStage = 'closing';
-      setInterviewStage(nextStage);
-      interviewStageRef.current = nextStage;
+        // Step 1: Analyzing state (1.5s) — avatar tilts head, thinks
+        setInterviewerStatus('analyzing');
+        await new Promise(res => setTimeout(res, 1500));
 
-      // Trigger smile for excellent answers (> 80 words)
-      const wordCount = userAnswerDisplay.split(/\s+/).length;
-      if (wordCount > 80) {
-        setOnExcellentAnswer(true);
-        setTimeout(() => setOnExcellentAnswer(false), 2200);
-      }
+        // Step 2: Typing Notes state (0.7s) — avatar looks down
+        setInterviewerStatus('typing');
+        await new Promise(res => setTimeout(res, 700));
 
-      if (convResponse) {
-        const { acknowledgement, transition, nextQuestion, isClosing } = convResponse;
+        // Step 3: Preparing follow-up state (0.6s) — avatar looks up
+        setInterviewerStatus('preparing');
+        await new Promise(res => setTimeout(res, 600));
 
-        // Append full exchange to conversation log
-        const aiResponseText = [acknowledgement, transition, nextQuestion].filter(Boolean).join(' ');
-        setConversationHistory(prev => [
-          ...prev,
-          { sender: 'user', text: userAnswerDisplay, timestamp: Date.now() - 2 },
-          { sender: 'ai',   text: aiResponseText,    timestamp: Date.now() }
-        ]);
-
-        if (isClosing || nextStage === 'closing') {
-          setCurrentQuestion(aiResponseText);
-          currentQuestionRef.current = aiResponseText;
-          setIsAIThinking(false);
-          await speakTextConversational(acknowledgement, transition, nextQuestion);
-          setTimeout(() => endInterview(), 2000);
-          return;
+        let convResponse = null;
+        try {
+          const convRes = await api.post(`/interviews/${id}/conversational-response`, {
+            userAnswer: userAnswerDisplay,
+            questionAsked: currentQuestionRef.current,
+            conversationHistory: conversationHistory.slice(-6),
+            questionNumber: currentQNum,
+            interviewStage: currentStage
+          });
+          convResponse = convRes.data;
+        } catch (err) {
+          console.warn('Conversational response API failed, using fallback');
         }
 
-        setCurrentQuestion(nextQuestion);
-        currentQuestionRef.current = nextQuestion;
-        setIsAIThinking(false);
+        // Advance question counter and determine next stage
+        const nextQNum = currentQNum + 1;
+        questionNumberRef.current = nextQNum;
+        setQuestionNumber(nextQNum);
 
-        // Speak conversationally: acknowledgement → pause → question
-        await speakTextConversational(acknowledgement, transition, nextQuestion);
-      } else {
-        // Fallback for API failure
-        setIsAIThinking(false);
-        setInterviewerStatus('listening');
-        startListening();
+        let nextStage = currentStage;
+        if (currentStage === 'greeting') nextStage = 'warmup';
+        else if (currentStage === 'warmup' && nextQNum >= 2) nextStage = 'core';
+        else if (currentStage === 'core' && nextQNum >= 5) nextStage = 'deepdive';
+        else if (nextQNum >= 9) nextStage = 'closing';
+        setInterviewStage(nextStage);
+        interviewStageRef.current = nextStage;
+
+        // Trigger smile for excellent answers (> 80 words)
+        const wordCount = userAnswerDisplay.split(/\s+/).length;
+        if (wordCount > 80) {
+          setOnExcellentAnswer(true);
+          setTimeout(() => setOnExcellentAnswer(false), 2200);
+        }
+
+        if (convResponse) {
+          const { acknowledgement, transition, nextQuestion, isClosing } = convResponse;
+
+          // Append full exchange to conversation log
+          const aiResponseText = [acknowledgement, transition, nextQuestion].filter(Boolean).join(' ');
+          setConversationHistory(prev => [
+            ...prev,
+            { sender: 'user', text: userAnswerDisplay, timestamp: Date.now() - 2 },
+            { sender: 'ai',   text: aiResponseText,    timestamp: Date.now() }
+          ]);
+
+          if (isClosing || nextStage === 'closing') {
+            setCurrentQuestion(aiResponseText);
+            currentQuestionRef.current = aiResponseText;
+            setIsAIThinking(false);
+            await speakTextConversational(acknowledgement, transition, nextQuestion);
+            setTimeout(() => endInterview(), 2000);
+            return;
+          }
+
+          setCurrentQuestion(nextQuestion);
+          currentQuestionRef.current = nextQuestion;
+          setIsAIThinking(false);
+
+          // Speak conversationally: acknowledgement → pause → question
+          await speakTextConversational(acknowledgement, transition, nextQuestion);
+        } else {
+          // Fallback for API failure
+          setIsAIThinking(false);
+          setInterviewerStatus('listening');
+          startListening();
+        }
+        return;
       }
-      return;
-    }
 
-    // ══════════════════════════════════════════════════════════════════
-    // COMPANY INTERVIEW MODE — Original round-based flow (PRESERVED)
-    // ══════════════════════════════════════════════════════════════════
-    const nextQ = questionNumber + 1;
-    if (nextQ <= companyConfig.rounds.length) {
-      setQuestionNumber(nextQ);
-      const nextRound = companyConfig.rounds[nextQ - 1];
-      triggerRoundQuestion(nextRound);
-    } else {
-      endInterview();
+      // ══════════════════════════════════════════════════════════════════
+      // COMPANY INTERVIEW MODE — Original round-based flow (PRESERVED)
+      // ══════════════════════════════════════════════════════════════════
+      const nextQ = questionNumber + 1;
+      if (nextQ <= companyConfig.rounds.length) {
+        setQuestionNumber(nextQ);
+        const nextRound = companyConfig.rounds[nextQ - 1];
+        triggerRoundQuestion(nextRound);
+      } else {
+        endInterview();
+      }
+    } finally {
+      setIsSubmitting(false);
+      isSubmittingRef.current = false;
     }
   };
 

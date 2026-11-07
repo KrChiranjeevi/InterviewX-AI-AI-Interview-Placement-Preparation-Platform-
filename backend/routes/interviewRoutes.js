@@ -80,7 +80,10 @@ const getNextQuestion = async (req, res) => {
       interview.domain,
       interview.subLanguage,
       interview.projectName,
-      interview.projectDescription
+      interview.projectDescription,
+      interview.selectedTopics || [],
+      interview.technicalTrack || '',
+      interview.codingTrack || ''
     );
     
     res.json({ question: questionText });
@@ -116,6 +119,17 @@ const submitAnswer = async (req, res) => {
       interview.score = Math.round((totalScore / interview.questions.length) * 10);
       await interview.save();
 
+      // If mock mode or caller requested skipping speculative generation, do not make redundant AI calls
+      if (req.body.isMock || req.body.skipNextQuestionGeneration) {
+        return res.json({
+          isClarification: false,
+          feedback: 'No response was provided.',
+          score: 0,
+          overallScore: interview.score,
+          nextQuestion: null
+        });
+      }
+
       const nextQuestionText = await generateQuestion(
         interview.role,
         interview.type,
@@ -127,7 +141,10 @@ const submitAnswer = async (req, res) => {
         interview.domain,
         interview.subLanguage,
         interview.projectName,
-        interview.projectDescription
+        interview.projectDescription,
+        interview.selectedTopics || [],
+        interview.technicalTrack || '',
+        interview.codingTrack || ''
       );
 
       return res.json({
@@ -193,7 +210,18 @@ const submitAnswer = async (req, res) => {
     // Save state
     await interview.save();
 
-    // Step 5: Speculatively generate next question with updated history
+    // If mock mode or caller requested skipping speculative generation, do not make redundant AI calls
+    if (req.body.isMock || req.body.skipNextQuestionGeneration) {
+      return res.json({ 
+        isClarification: false, 
+        feedback: analysis.feedback, 
+        score: analysis.score, 
+        overallScore: interview.score,
+        nextQuestion: null
+      });
+    }
+
+    // Step 5: Speculatively generate next question with updated history (for non-mock/company flow)
     const nextQuestionText = await generateQuestion(
       interview.role,
       interview.type,
@@ -205,7 +233,10 @@ const submitAnswer = async (req, res) => {
       interview.domain,
       interview.subLanguage,
       interview.projectName,
-      interview.projectDescription
+      interview.projectDescription,
+      interview.selectedTopics || [],
+      interview.technicalTrack || '',
+      interview.codingTrack || ''
     );
     
     res.json({ 
@@ -356,7 +387,13 @@ const getConversationalResponse = async (req, res) => {
       interviewStage: interviewStage || 'core',
       adaptiveState,
       lastEvaluation,
-      duration: interview.duration
+      duration: interview.duration,
+      selectedTopics: interview.selectedTopics || [],
+      technicalTrack: interview.technicalTrack || '',
+      codingTrack: interview.codingTrack || '',
+      systemDesignDomain: interview.systemDesignDomain || '',
+      resumeText: interview.resumeText || '',
+      resumeSkills: interview.resumeSkills || [],
     });
 
     // Save updated adaptive state back to the interview document

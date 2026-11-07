@@ -12,27 +12,15 @@ const topUpQuestionBank = async (moduleName) => {
   if (generatingModules.has(mod)) return;
   generatingModules.add(mod);
 
-  console.log(`[Assessment] Background top-up worker started for ${mod}`);
   try {
-    let count = await AssessmentQuestion.countDocuments({ module: mod });
-    const target = 650;
-    
-    while (count < target) {
-      console.log(`[Assessment] ${mod} question count: ${count}/${target}. Triggering generation of 15...`);
-      const generated = await generateAndSaveQuestions(mod, 15);
-      
-      if (!generated || generated.length === 0) {
-        console.log(`[Assessment] Background top-up returned 0 for ${mod}. Waiting 30s before retry...`);
-        await new Promise(resolve => setTimeout(resolve, 30000));
-      } else {
-        count = await AssessmentQuestion.countDocuments({ module: mod });
-        // Wait 12 seconds between batches to avoid rate limit exhausts
-        await new Promise(resolve => setTimeout(resolve, 12000));
-      }
+    const count = await AssessmentQuestion.countDocuments({ module: mod });
+    // If fewer than 100 questions, generate 1 batch of 15 questions in the background
+    if (count < 100) {
+      console.log(`[Assessment] Background top-up worker: generating batch of 15 for ${mod} (current count: ${count})`);
+      await generateAndSaveQuestions(mod, 15);
     }
-    console.log(`[Assessment] Background top-up complete for ${mod}. Final count: ${count}`);
   } catch (err) {
-    console.error(`[Assessment] Background top-up failed for ${mod}:`, err);
+    console.error(`[Assessment] Background top-up failed for ${mod}:`, err.message);
   } finally {
     generatingModules.delete(mod);
   }
@@ -45,166 +33,180 @@ const getQuestions = async (req, res) => {
   try {
     const { module } = req.params;
     let { limit = 35, difficulty } = req.query;
-    limit = parseInt(limit, 10);
+    limit = Math.min(parseInt(limit, 10) || 35, 50);
 
     const moduleName = module.toLowerCase();
     
-    // 1. Fetch user's previous attempts to avoid repeating questions (only exclude answered questions)
-    const previousAttempts = await AssessmentAttempt.find({ userId: req.user._id, module: moduleName });
-    let seenQuestionIds = [];
+    // 1. Fetch user's previous attempts to identify questions answered CORRECTLY
+    const previousAttempts = await AssessmentAttempt.find(
+      { userId: req.user._id, module: moduleName },
+      'responses'
+    ).lean();
+
+    const correctlyAnsweredIds = new Set();
+    const correctlyAnsweredTexts = new Set();
+
     previousAttempts.forEach(attempt => {
-      attempt.responses.forEach(r => {
-        // ONLY count as seen/attempted if the user actually answered the question (not skipped, option selected)
-        if (r.questionId && !r.isSkipped && r.selectedOption) {
-          seenQuestionIds.push(r.questionId.toString());
+      (attempt.responses || []).forEach(r => {
+        // User rule: Once answered correctly, NEVER repeat again.
+        // If wrong or skipped, it CAN be repeated for practice.
+        const isCorrect = r.isCorrect === true || 
+          (Boolean(r.selectedOption) && Boolean(r.correctOption) && r.selectedOption === r.correctOption);
+
+        if (isCorrect) {
+          if (r.questionId) {
+            correctlyAnsweredIds.add(r.questionId.toString());
+          }
+          if (r.questionText) {
+            correctlyAnsweredTexts.add(r.questionText.trim().toLowerCase());
+          }
         }
       });
     });
 
-    // 2. Count total questions in DB for this module
-    let totalCount = await AssessmentQuestion.countDocuments({ module: moduleName });
-    
-    // Count how many questions are unseen by this user
-    const unseenCount = await AssessmentQuestion.countDocuments({ 
-      module: moduleName, 
-      _id: { $nin: seenQuestionIds.map(id => {
-        try { return new mongoose.Types.ObjectId(id); } catch(e) { return null; }
-      }).filter(Boolean) }
-    });
+    console.log(`[Assessment] User ${req.user._id} has mastered ${correctlyAnsweredTexts.size} questions for module ${moduleName}. These will never repeat.`);
 
-    // If the database has questions, but the user has seen almost all of them (fewer than the required limit left)
-    if (totalCount > 0 && unseenCount < limit) {
-      console.log(`[Assessment] User has exhausted the question pool for ${moduleName} (${unseenCount} unseen left of ${totalCount}). Deleting and generating a fresh set of 600+ questions.`);
-      await AssessmentQuestion.deleteMany({ module: moduleName });
-      totalCount = 0; // reset local count to trigger fresh generation
-      seenQuestionIds = []; // clear seen list for the new pool
-    }
-    
-    // Trigger background top-up if the database pool is smaller than 650
-    if (totalCount < 650) {
-      topUpQuestionBank(moduleName).catch(err => {
-        console.error(`[Assessment] topUpQuestionBank failed for ${moduleName}:`, err);
-      });
+    // 2. Query questions from DB excluding those the user answered CORRECTLY
+    let baseMatch = { module: moduleName };
+    if (difficulty) baseMatch.difficulty = difficulty;
+
+    const excludeObjectIds = Array.from(correctlyAnsweredIds).map(id => {
+      try { return new mongoose.Types.ObjectId(id); } catch (e) { return null; }
+    }).filter(Boolean);
+
+    let matchQuery = { ...baseMatch };
+    if (excludeObjectIds.length > 0) {
+      matchQuery._id = { $nin: excludeObjectIds };
     }
 
-    let baseQuery = { module: moduleName };
-    if (difficulty) baseQuery.difficulty = difficulty;
-
-    const fetchQuestionsWithExclusion = async (excludeIds) => {
-      const excludeObjectIds = excludeIds.map(id => {
-        try {
-          return new mongoose.Types.ObjectId(id);
-        } catch (e) {
-          return null;
-        }
-      }).filter(Boolean);
-
-      const matchQuery = { ...baseQuery };
-      if (excludeObjectIds.length > 0) {
-        matchQuery._id = { $nin: excludeObjectIds };
-      }
-      
+    // Helper: sample questions with difficulty distribution
+    const sampleFromDB = async (query, targetCount) => {
       if (difficulty) {
         return await AssessmentQuestion.aggregate([
-          { $match: matchQuery },
-          { $sample: { size: limit } },
+          { $match: query },
+          { $sample: { size: targetCount } },
           { $project: { correctAnswer: 0 } }
         ]);
-      } else {
-        const easyCount = Math.round(limit * 0.3);
-        const hardCount = Math.round(limit * 0.3);
-        const mediumCount = limit - easyCount - hardCount;
-
-        const facetResults = await AssessmentQuestion.aggregate([
-          { $match: matchQuery },
-          {
-            $facet: {
-              easy: [ { $match: { difficulty: 'Easy' } }, { $sample: { size: easyCount } } ],
-              medium: [ { $match: { difficulty: 'Medium' } }, { $sample: { size: mediumCount } } ],
-              hard: [ { $match: { difficulty: 'Hard' } }, { $sample: { size: hardCount } } ]
-            }
-          }
-        ]);
-
-        const combined = [
-          ...(facetResults[0].easy || []),
-          ...(facetResults[0].medium || []),
-          ...(facetResults[0].hard || [])
-        ];
-
-        return combined.sort(() => Math.random() - 0.5).map(q => {
-          delete q.correctAnswer;
-          return q;
-        });
       }
+
+      const easyCount = Math.round(targetCount * 0.3);
+      const hardCount = Math.round(targetCount * 0.3);
+      const medCount = targetCount - easyCount - hardCount;
+
+      const facetResults = await AssessmentQuestion.aggregate([
+        { $match: query },
+        {
+          $facet: {
+            easy: [{ $match: { difficulty: 'Easy' } }, { $sample: { size: easyCount } }],
+            medium: [{ $match: { difficulty: 'Medium' } }, { $sample: { size: medCount } }],
+            hard: [{ $match: { difficulty: 'Hard' } }, { $sample: { size: hardCount } }]
+          }
+        }
+      ]);
+
+      const easy = facetResults[0]?.easy || [];
+      const medium = facetResults[0]?.medium || [];
+      const hard = facetResults[0]?.hard || [];
+      const combined = [...easy, ...medium, ...hard];
+
+      // If facet didn't return enough due to uneven distribution, fill from general sample
+      if (combined.length < targetCount) {
+        const existingIds = combined.map(c => c._id);
+        const more = await AssessmentQuestion.aggregate([
+          { $match: { ...query, _id: { $nin: existingIds } } },
+          { $sample: { size: targetCount - combined.length } },
+          { $project: { correctAnswer: 0 } }
+        ]);
+        combined.push(...more);
+      }
+
+      return combined.map(q => {
+        delete q.correctAnswer;
+        return q;
+      });
     };
 
-    let questions = await fetchQuestionsWithExclusion(seenQuestionIds);
+    // First try strictly un-mastered questions
+    let candidateQuestions = await sampleFromDB(matchQuery, limit);
 
-    // 3. Fallback Mechanism: If we ran out of unseen questions, top up and reuse seen ones
-    if (questions.length < limit) {
-      console.log(`[Assessment] Running low on unseen questions for ${moduleName} (${questions.length}/${limit}). Triggering top-up.`);
+    // In-memory unique tracker to guarantee ZERO repeats in the same test
+    const uniqueMap = new Map();
+    for (const q of candidateQuestions) {
+      const norm = (q.question || '').trim().toLowerCase();
+      // Strictly skip if user has EVER answered this question correctly
+      if (correctlyAnsweredTexts.has(norm)) continue;
+      if (!uniqueMap.has(norm)) {
+        uniqueMap.set(norm, q);
+      }
+    }
+
+    // If still less than limit, sample more questions from DB (unseen or previously wrong/skipped)
+    // BUT NEVER include questions answered correctly
+    if (uniqueMap.size < limit) {
+      const needed = limit - uniqueMap.size;
+      const currentIds = Array.from(uniqueMap.values()).map(q => q._id);
+      const allExcludedIds = [...currentIds, ...excludeObjectIds];
       
-      // Trigger top-up worker to generate more questions in background
-      topUpQuestionBank(moduleName).catch(err => {
-        console.error(`[Assessment] topUpQuestionBank failed for ${moduleName}:`, err);
-      });
+      const poolQuestions = await AssessmentQuestion.aggregate([
+        { $match: { module: moduleName, _id: { $nin: allExcludedIds } } },
+        { $sample: { size: Math.max(needed * 2, 20) } },
+        { $project: { correctAnswer: 0 } }
+      ]);
 
-      if (questions.length === 0) {
-        // Database has 0 unseen questions. Let's try to query with fewer exclusions (fallback to repeating)
-        console.log(`[Assessment] 0 unseen questions left. Falling back to full pool (repeats) for ${moduleName}`);
-        questions = await fetchQuestionsWithExclusion([]);
-      } else {
-        // Mix what unseen we have with some random seen ones to satisfy the limit
-        const needed = limit - questions.length;
-        const seenQuestions = await fetchQuestionsWithExclusion([]);
-        const currentIds = questions.map(q => q._id.toString());
-        const repeats = seenQuestions.filter(q => !currentIds.includes(q._id.toString())).slice(0, needed);
-        questions = [...questions, ...repeats];
-      }
-
-      // If STILL < limit (database is literally empty for this module, first time run):
-      if (questions.length < limit) {
-        console.log(`[Assessment] Database is empty/has too few questions for ${moduleName}. Synchronously generating initial set...`);
-        const generated = await generateAndSaveQuestions(moduleName, limit - questions.length);
-        if (generated && generated.length > 0) {
-          const fresh = await fetchQuestionsWithExclusion(seenQuestionIds);
-          // Combine existing questions with new fresh ones
-          const freshIds = questions.map(q => q._id.toString());
-          const newQuestions = fresh.filter(q => !freshIds.includes(q._id.toString()));
-          questions = [...questions, ...newQuestions];
+      for (const q of poolQuestions) {
+        if (uniqueMap.size >= limit) break;
+        const norm = (q.question || '').trim().toLowerCase();
+        // NEVER include if correctly answered before
+        if (!correctlyAnsweredTexts.has(norm) && !uniqueMap.has(norm)) {
+          delete q.correctAnswer;
+          uniqueMap.set(norm, q);
         }
-      }
-
-      // If STILL < limit (e.g. all APIs blocked/quota exceeded, or offline fallback needed):
-      if (questions.length < limit) {
-        console.log(`[Assessment] Serving/padding emergency static fallback questions to reach limit of ${limit}`);
-        const fallbacks = getFallbackQuestions(moduleName);
-        let padded = [...questions];
-        
-        while (padded.length < limit && fallbacks.length > 0) {
-          padded = padded.concat(fallbacks.map(q => ({
-            ...q,
-            _id: new mongoose.Types.ObjectId() // unique ObjectIds to prevent key clashes
-          })));
-        }
-        
-        questions = padded.slice(0, limit).map(q => {
-          const qCopy = { ...q };
-          delete qCopy.correctAnswer;
-          return qCopy;
-        });
       }
     }
 
-    if (!questions || questions.length === 0) {
-      return res.status(404).json({ message: `No questions found for module: ${module}` });
+    // If STILL less than limit, use emergency fallbacks (filtering out correctly answered)
+    if (uniqueMap.size < limit) {
+      const fallbacks = getFallbackQuestions(moduleName);
+      const shuffledFallbacks = [...fallbacks].sort(() => Math.random() - 0.5);
+      for (const fb of shuffledFallbacks) {
+        if (uniqueMap.size >= limit) break;
+        const norm = (fb.question || fb.q || '').trim().toLowerCase();
+        // NEVER include if correctly answered before
+        if (!correctlyAnsweredTexts.has(norm) && !uniqueMap.has(norm)) {
+          const fbCopy = { ...fb };
+          delete fbCopy.correctAnswer;
+          uniqueMap.set(norm, {
+            ...fbCopy,
+            _id: fbCopy._id || new mongoose.Types.ObjectId()
+          });
+        }
+      }
     }
 
-    res.status(200).json(questions);
+    let finalQuestions = Array.from(uniqueMap.values()).sort(() => Math.random() - 0.5);
+
+    // Trigger background top-up asynchronously IF DB has fewer than 100 questions (never blocks response)
+    AssessmentQuestion.countDocuments({ module: moduleName }).then(totalInDB => {
+      if (totalInDB < 100) {
+        topUpQuestionBank(moduleName).catch(() => {});
+      }
+    }).catch(() => {});
+
+    return res.status(200).json(finalQuestions);
   } catch (error) {
     console.error('getQuestions Error:', error);
-    res.status(500).json({ message: 'Server Error' });
+    // Safe emergency response: return shuffled fallbacks directly
+    try {
+      const fallbacks = getFallbackQuestions(req.params.module || 'mixed');
+      const safeQs = fallbacks.slice(0, 35).map(q => {
+        const copy = { ...q };
+        delete copy.correctAnswer;
+        return copy;
+      });
+      return res.status(200).json(safeQs);
+    } catch (e2) {
+      return res.status(500).json({ message: 'Server Error' });
+    }
   }
 };
 
@@ -230,39 +232,63 @@ const submitAssessment = async (req, res) => {
 
     // Evaluate each response
     for (const response of responses) {
-      const { questionId, selectedOption, isSkipped, timeSpent } = response;
+      const { questionId, questionText, selectedOption, isSkipped, timeSpent } = response;
       
-      const question = await AssessmentQuestion.findById(questionId);
-      if (!question) continue;
+      let question = null;
+      if (questionId) {
+        try {
+          question = await AssessmentQuestion.findById(questionId);
+        } catch (e) {}
+      }
+      if (!question && questionText) {
+        question = await AssessmentQuestion.findOne({ question: questionText.trim() });
+      }
+
+      let actualCorrectOption = question ? question.correctAnswer : '';
+      let qSubCategory = question ? question.subCategory : 'General';
+      let qDifficulty = question ? question.difficulty : 'Medium';
+      let qText = question ? question.question : (questionText || '');
+      let qExplanation = question ? question.explanation : '';
+      let qStepByStep = question ? question.stepByStep : [];
+      let qReferences = question ? question.references : [];
+
+      // Fallback question lookup if question not in DB
+      if (!actualCorrectOption && qText) {
+        const fallbacks = getFallbackQuestions(module);
+        const fb = fallbacks.find(f => (f.question || f.q || '').trim().toLowerCase() === qText.trim().toLowerCase());
+        if (fb) {
+          actualCorrectOption = fb.correctAnswer || fb.a;
+          qSubCategory = fb.subCategory || fb.sub || 'General';
+          qDifficulty = fb.difficulty || 'Medium';
+          qExplanation = fb.explanation || `The correct answer is ${actualCorrectOption}.`;
+        }
+      }
 
       let isCorrect = false;
-      const actualCorrectOption = question.correctAnswer;
-
-      if (isSkipped) {
+      if (isSkipped || !selectedOption) {
         skippedQuestions++;
-      } else if (selectedOption === actualCorrectOption) {
+      } else if (actualCorrectOption && selectedOption === actualCorrectOption) {
         isCorrect = true;
         correctAnswers++;
       } else {
         incorrectAnswers++;
       }
 
-      // Generate a synthetic explanation if none exists in DB
-      const syntheticExplanation = `The correct answer is ${actualCorrectOption}. This problem evaluates your understanding of ${question.subCategory} concepts.`;
+      const syntheticExplanation = `The correct answer is ${actualCorrectOption || 'N/A'}. This problem evaluates your understanding of ${qSubCategory} concepts.`;
 
       evaluatedResponses.push({
-        questionId: question._id,
-        questionText: question.question,
+        questionId: question ? question._id : (questionId ? new mongoose.Types.ObjectId() : undefined),
+        questionText: qText,
         selectedOption: selectedOption || '',
-        correctOption: actualCorrectOption,
+        correctOption: actualCorrectOption || '',
         isCorrect,
-        isSkipped: Boolean(isSkipped),
+        isSkipped: Boolean(isSkipped || !selectedOption),
         timeSpent: timeSpent || 0,
-        difficulty: question.difficulty,
-        subCategory: question.subCategory,
-        explanation: question.explanation || syntheticExplanation,
-        stepByStep: question.stepByStep || [],
-        references: question.references || []
+        difficulty: qDifficulty,
+        subCategory: qSubCategory,
+        explanation: qExplanation || syntheticExplanation,
+        stepByStep: qStepByStep || [],
+        references: qReferences || []
       });
     }
 
