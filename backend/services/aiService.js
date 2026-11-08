@@ -216,6 +216,33 @@ const generateQuestion = async (
   selectedTopics = [], technicalTrack = '', codingTrack = '', systemDesignDomain = '',
   resumeProjects = [], resumeExperience = [], resumeEducation = []
 ) => {
+  // Support both object parameter and positional arguments
+  if (typeof role === 'object' && role !== null) {
+    const opts = role;
+    role = opts.role || 'Software Engineer';
+    type = opts.type || opts.interviewType || 'Technical Interview';
+    difficulty = opts.difficulty || 'Medium';
+    history = opts.history || opts.questionHistory || opts.questions || [];
+    resumeSkills = opts.resumeSkills || [];
+    resumeText = opts.resumeText || '';
+    company = opts.company || '';
+    domain = opts.domain || '';
+    subLanguage = opts.subLanguage || '';
+    projectName = opts.projectName || opts.selectedProject || '';
+    projectDescription = opts.projectDescription || '';
+    selectedTopics = opts.selectedTopics || [];
+    technicalTrack = opts.technicalTrack || '';
+    codingTrack = opts.codingTrack || '';
+    systemDesignDomain = opts.systemDesignDomain || '';
+    resumeProjects = opts.resumeProjects || [];
+    resumeExperience = opts.resumeExperience || [];
+    resumeEducation = opts.resumeEducation || [];
+  } else {
+    role = typeof role === 'string' ? role : 'Software Engineer';
+    type = typeof type === 'string' ? type : 'Technical Interview';
+    difficulty = typeof difficulty === 'string' ? difficulty : 'Medium';
+    history = Array.isArray(history) ? history : [];
+  }
   try {
     const difficultyGuide = {
       'Beginner': `BEGINNER level: Ask basic definitions, fundamental syntax rules, and simple single-variable iterations. Keep it clear and introductory.`,
