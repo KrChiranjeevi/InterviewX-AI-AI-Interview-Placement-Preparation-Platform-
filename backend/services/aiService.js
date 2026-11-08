@@ -18,72 +18,111 @@ const openrouter = new OpenAI({
   }
 });
 
-// Industry-level AI Provider Abstraction with Fallback
-// Order: Gemini 3.5 Flash Lite (Fastest & Active) -> Gemini 3.6 Flash -> Groq -> OpenAI -> OpenRouter
+// Helper for strict per-provider timeout
+const withTimeout = (promise, ms, name = 'AI Call') => {
+  let timer;
+  const timeoutPromise = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${name} timed out after ${ms}ms`)), ms);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer));
+};
+
+// Industry-level Low-Latency AI Provider Abstraction with Resilient Fallback
+// Order: Gemini 2.0 Flash -> Gemini 1.5 Flash -> Groq (Llama 3.1 8B instant) -> Groq (Llama 3.3 70B) -> OpenAI (gpt-4o-mini) -> OpenRouter
 const ai = {
   models: {
-    generateContent: async ({ contents }) => {
-      // 1. Try Native Gemini (gemini-3.5-flash-lite - verified ultra fast)
+    generateContent: async ({ contents, timeoutMs = 3500 }) => {
+      // 1. Try Native Gemini (gemini-2.0-flash / gemini-1.5-flash)
       try {
-        const response = await gemini.models.generateContent({
-          model: 'gemini-3.5-flash-lite',
-          contents: contents,
-        });
+        const response = await withTimeout(
+          gemini.models.generateContent({
+            model: 'gemini-2.0-flash',
+            contents: contents,
+          }),
+          timeoutMs,
+          'Gemini 2.0 Flash'
+        );
         if (response && response.text) {
           return { text: response.text };
         }
       } catch (errGemini1) {
-        console.warn("⚠️ Native Gemini (3.5-flash-lite) failed, trying 3.6-flash:", errGemini1.message);
+        try {
+          const response = await withTimeout(
+            gemini.models.generateContent({
+              model: 'gemini-1.5-flash',
+              contents: contents,
+            }),
+            timeoutMs,
+            'Gemini 1.5 Flash'
+          );
+          if (response && response.text) {
+            return { text: response.text };
+          }
+        } catch (errGemini2) {}
       }
 
-      // 2. Try Native Gemini (gemini-3.6-flash)
+      // 2. Try Groq (Llama 3.1 8B instant - ultra low latency ~300 tok/sec)
       try {
-        const response = await gemini.models.generateContent({
-          model: 'gemini-3.6-flash',
-          contents: contents,
-        });
-        if (response && response.text) {
-          return { text: response.text };
+        const response = await withTimeout(
+          groq.chat.completions.create({
+            model: "llama-3.1-8b-instant",
+            messages: [{ role: "user", content: contents }],
+            max_tokens: 1500,
+          }),
+          timeoutMs,
+          'Groq Llama 3.1 8B'
+        );
+        if (response?.choices?.[0]?.message?.content) {
+          return { text: response.choices[0].message.content };
         }
-      } catch (errGemini2) {
-        console.warn("⚠️ Native Gemini (3.6-flash) failed:", errGemini2.message);
+      } catch (errGroq1) {
+        try {
+          const response = await withTimeout(
+            groq.chat.completions.create({
+              model: "llama-3.3-70b-versatile",
+              messages: [{ role: "user", content: contents }],
+              max_tokens: 1500,
+            }),
+            timeoutMs,
+            'Groq Llama 3.3 70B'
+          );
+          if (response?.choices?.[0]?.message?.content) {
+            return { text: response.choices[0].message.content };
+          }
+        } catch (errGroq2) {}
       }
 
-      // 3. Try Groq (if key active)
+      // 3. Try OpenAI (gpt-4o-mini)
       try {
-        const response = await groq.chat.completions.create({
-          model: "llama-3.3-70b-versatile",
-          messages: [{ role: "user", content: contents }],
-          max_tokens: 4096,
-        }, { timeout: 6000 });
-        return { text: response.choices[0].message.content };
-      } catch (errGroq) {
-        // quiet warning
-      }
+        const response = await withTimeout(
+          openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [{ role: "user", content: contents }],
+            max_tokens: 1500,
+          }),
+          timeoutMs,
+          'OpenAI gpt-4o-mini'
+        );
+        if (response?.choices?.[0]?.message?.content) {
+          return { text: response.choices[0].message.content };
+        }
+      } catch (errOpenAI) {}
 
-      // 4. Try OpenAI
+      // 4. Try OpenRouter
       try {
-        const response = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          messages: [{ role: "user", content: contents }],
-          max_tokens: 4096,
-        }, { timeout: 6000 });
-        return { text: response.choices[0].message.content };
-      } catch (errOpenAI) {
-        // quiet warning
-      }
-
-      // 5. Try OpenRouter
-      try {
-        const response = await openrouter.chat.completions.create({
-          model: "google/gemini-2.0-flash-001",
-          messages: [{ role: "user", content: contents }],
-          max_tokens: 4096,
-        }, { timeout: 6000 });
-        return { text: response.choices[0].message.content };
-      } catch (errOR) {
-        // quiet warning
-      }
+        const response = await withTimeout(
+          openrouter.chat.completions.create({
+            model: "google/gemini-2.0-flash-001",
+            messages: [{ role: "user", content: contents }],
+            max_tokens: 1500,
+          }),
+          timeoutMs,
+          'OpenRouter Gemini'
+        );
+        if (response?.choices?.[0]?.message?.content) {
+          return { text: response.choices[0].message.content };
+        }
+      } catch (errOR) {}
 
       throw new Error("All AI providers failed or timed out.");
     }
@@ -635,23 +674,47 @@ CODING INTERVIEW FLOW LIMITS:
 - Never repeat any sentence listed in askedFollowupQuestions. Avoid duplicates and generic prompts.
 
 YOUR TASK:
-1. Update the internal adaptive state metrics (knowledgeScore, confidenceScore, communicationScore, technicalScore, domainScore, overallScore, difficultyLevel, knowledgeGraph, mistakes, notes, historyTopics, conceptualFollowupsCount, optimizationFollowupsCount, edgeCaseFollowupsCount, askedFollowupQuestions) based on candidate answers and the last evaluation metrics. Keep these notes internal.
+1. Evaluate the candidate's answer:
+   - Determine whether the candidate answered adequately, gave an incomplete answer, or indicated they do not know / are unfamiliar with the topic.
+   - If they said "I don't know", "not sure", or "no idea": Do not penalize harshly; acknowledge encouragingly and pivot to a different planned competency without getting stuck.
+   - Grade technical accuracy and reasoning from 1 to 10. Provide 1-2 sentences of constructive feedback.
+   - Assess 6 live metrics (1-10): technicalKnowledge, problemSolving, communication, confidence, accuracy, logicalThinking.
 2. Formulate your response as Sarah:
-   - ACKNOWLEDGEMENT (1-2 sentences): React naturally to the candidate's last response. Refer to specific technical concepts they used. Encourage them if they struggle. NEVER say "Correct", "Wrong", "That's right", etc.
-   - TRANSITION (optional, 0-1 sentence): Transition to the next question.
-   - NEXT QUESTION (1-2 sentences): Ask ONE clear question.
-     * Keep questions relevant to the role, domain, and difficultyLevel.
-     * Check askedFollowupQuestions: Never repeat any follow-up that was already asked or is similar to it.
+   - ACKNOWLEDGEMENT (1 short sentence, 5-15 words):
+     * React naturally to the candidate's specific response.
+     * If they cited specific libraries, algorithms, architectures, or design decisions, reference their exact choice.
+     * If they said "I don't know" or struggled, reassure them warmly (e.g. "No problem at all, let's move forward.").
+     * NEVER invent experience or claim they mentioned something they did not say.
+     * AVOID repetitive robotic affirmations (do NOT repeat "Great answer!", "Awesome!", or "That's correct" after every question).
+   - TRANSITION (optional, 0-1 short sentence): Smooth bridge to the question.
+   - NEXT QUESTION (1-2 clear, focused sentences):
+     * If the candidate's answer was incomplete or vague, ask ONE focused clarification.
+     * If their answer was solid and mentioned a specific trade-off or implementation, ask ONE targeted follow-up probing that decision.
+     * If the topic is thoroughly covered or candidate did not know, move forward to the next competency in the interview plan.
+     * Keep questions strictly relevant to the interview type, role, and current difficultyLevel.
+     * Check askedFollowupQuestions: Never repeat any question that was already asked.
      * If closing stage, do not ask a question; deliver a warm closing statement summarizing the conversation.
      * Monitor remaining time based on questionNumber vs total duration. If near the end, prioritize important questions and close naturally.
 
 OUTPUT FORMAT (STRICT — return ONLY valid JSON, no markdown wrapper):
 {
-  "acknowledgement": "<1-2 sentence natural acknowledgement>",
+  "acknowledgement": "<1 short natural acknowledgement sentence>",
   "transition": "<0-1 sentence transition or empty string>",
   "nextQuestion": "<1-2 sentence next question or closing statement>",
   "isFollowUp": <true if probing same answer, false if new topic>,
   "isClosing": <true if this is the final closing message>,
+  "evaluation": {
+    "score": number (1-10),
+    "feedback": "<1-2 sentence constructive assessment>",
+    "metrics": {
+      "technicalKnowledge": number (1-10),
+      "problemSolving": number (1-10),
+      "communication": number (1-10),
+      "confidence": number (1-10),
+      "accuracy": number (1-10),
+      "logicalThinking": number (1-10)
+    }
+  },
   "adaptiveState": {
     "knowledgeScore": number (0-100),
     "confidenceScore": number (0-100),
@@ -686,12 +749,26 @@ OUTPUT FORMAT (STRICT — return ONLY valid JSON, no markdown wrapper):
       updatedState.askedFollowupQuestions.push(parsed.nextQuestion);
     }
 
+    const defaultEval = {
+      score: 7,
+      feedback: parsed.acknowledgement || 'Good explanation provided.',
+      metrics: {
+        technicalKnowledge: 7,
+        problemSolving: 7,
+        communication: 7,
+        confidence: 7,
+        accuracy: 7,
+        logicalThinking: 7
+      }
+    };
+
     return {
       acknowledgement: parsed.acknowledgement || 'I see. Thank you for that.',
       transition: parsed.transition || '',
       nextQuestion: parsed.nextQuestion || 'Could you tell me more about your experience?',
       isFollowUp: parsed.isFollowUp || false,
       isClosing: parsed.isClosing || false,
+      evaluation: parsed.evaluation || defaultEval,
       adaptiveState: updatedState,
       // Combined full text for TTS
       fullSpeech: [
@@ -702,70 +779,131 @@ OUTPUT FORMAT (STRICT — return ONLY valid JSON, no markdown wrapper):
     };
   } catch (error) {
     console.error('❌ generateConversationalResponse failed:', error.message);
-    const fallbackAcks = [
-      "I see. Thank you for sharing that.",
-      "That makes sense. Let me ask you something related.",
-      "Interesting perspective. Let's continue.",
-      "I appreciate you walking me through that."
-    ];
+    const updatedState = { ...adaptiveState };
+    if (!updatedState.askedFollowupQuestions) updatedState.askedFollowupQuestions = [];
+
+    const isDontKnow = Boolean(userAnswer && /i don't know|not sure|no idea|cannot remember|haven't used|never worked/i.test(userAnswer));
+    const fallbackAcks = isDontKnow
+      ? [
+          "No problem at all, that's completely fine. Let's move on to our next area.",
+          "That is completely okay, no worries. Let's shift our focus forward.",
+          "Understood. Let's explore a different topic in our agenda."
+        ]
+      : [
+          "I see, thank you for walking me through that.",
+          "Understood. That's a practical approach.",
+          "That makes sense. Let's examine another aspect.",
+          "Got it. Let's shift our focus to the next topic.",
+          "Thanks for sharing your perspective on that."
+        ];
 
     const typeLower3 = type ? type.toLowerCase() : '';
     let fallbackQuestion = '';
     
     if (typeLower3.includes('hr')) {
       const hrFallbacks = [
-        "Can you tell me about a time when you had to meet a tight deadline? How did you manage your time?",
-        "What would you say is your greatest professional strength, and how has it helped you in past experiences?",
-        "Describe a situation where you had to work closely with a difficult team member. How did you handle it?",
-        "Where do you see yourself professionally in the next three years, and how does this role align with your goals?",
-        "Tell me about a time you received constructive criticism. How did you respond to it?"
+        "Can you tell me about a time when you had to meet a tight deadline? How did you prioritize tasks and manage your time?",
+        "What would you say is your greatest professional strength, and how has it helped you deliver impact in past experiences?",
+        "Describe a situation where you had to work closely with a colleague who had a very different working style or viewpoint. How did you handle it?",
+        "Where do you see yourself professionally in the next three years, and how does this role align with your personal growth goals?",
+        "Tell me about a time you received constructive criticism or feedback that was difficult to hear. How did you respond and improve?",
+        "What kind of team environment and culture brings out your best performance and motivation?"
       ];
-      fallbackQuestion = hrFallbacks[Math.floor(Math.random() * hrFallbacks.length)];
+      fallbackQuestion = hrFallbacks.find(q => !updatedState.askedFollowupQuestions.includes(q)) || hrFallbacks[0];
     } else if (typeLower3.includes('behavioral')) {
       const behavFallbacks = [
-        "Tell me about a situation where you demonstrated strong leadership. What was your specific role and what was the outcome?",
-        "Describe a time you had to adapt quickly to a major change at work or in a project. What actions did you take?",
-        "Tell me about a time you failed at something. What did you learn, and how did you apply that lesson afterward?",
-        "Give an example of when you had to make a difficult decision with limited information. What was your process?"
+        "Tell me about a situation where you took personal ownership of a challenging project without being asked. What was your specific action and the outcome?",
+        "Describe a time you had to adapt quickly to a major shift in requirements or priorities mid-sprint. What actions did you take?",
+        "Tell me about a professional setback or failure. What did you learn from it, and how have you applied that lesson since?",
+        "Give an example of a difficult technical or product decision you had to make with ambiguous or incomplete data. What was your process?",
+        "Describe a time you resolved a disagreement within your team regarding technical direction or project architecture."
       ];
-      fallbackQuestion = behavFallbacks[Math.floor(Math.random() * behavFallbacks.length)];
+      fallbackQuestion = behavFallbacks.find(q => !updatedState.askedFollowupQuestions.includes(q)) || behavFallbacks[0];
     } else if (typeLower3.includes('resume')) {
-      fallbackQuestion = "Could you walk me through the technical decisions you made in your most significant project? What problem were you solving?";
+      const unaskedProj = resumeProjects && resumeProjects.find(p => {
+        const title = typeof p === 'string' ? p : (p.name || p.title || '');
+        return title && (!updatedState.askedFollowupQuestions || !updatedState.askedFollowupQuestions.some(q => q.includes(title)));
+      });
+
+      if (unaskedProj) {
+        const pName = typeof unaskedProj === 'string' ? unaskedProj : (unaskedProj.name || unaskedProj.title || 'your project');
+        fallbackQuestion = `Could you walk me through the architecture of "${pName}", your individual contribution, and the main technical trade-offs you made?`;
+      } else if (resumeSkills && resumeSkills.length > 0) {
+        const unaskedSkill = (Array.isArray(resumeSkills) ? resumeSkills : [resumeSkills]).find(s => 
+          !updatedState.askedFollowupQuestions || !updatedState.askedFollowupQuestions.some(q => q.includes(s))
+        ) || (Array.isArray(resumeSkills) ? resumeSkills[0] : resumeSkills);
+        fallbackQuestion = `Your resume highlights hands-on experience with ${unaskedSkill}. Could you describe a challenging technical problem you solved using ${unaskedSkill}?`;
+      } else {
+        fallbackQuestion = "Could you walk me through the technical decisions you made in your most significant project from your resume?";
+      }
     } else if (typeLower3.includes('coding')) {
       const codingFallbacks = [
-        "What is the time complexity of your approach, and can you think of a way to optimize it further?",
-        "How would your algorithm handle edge cases like empty input, duplicate values, or very large inputs?",
-        "Can you walk me through your algorithm step by step and explain why you chose this particular data structure?"
+        "What is the worst-case time complexity and auxiliary space complexity of your implementation, and could we optimize it further?",
+        "How does your algorithm handle edge cases such as empty inputs, single-element collections, duplicate values, or maximum integer bounds?",
+        "If the input dataset were too massive to fit into system RAM, how would you adapt your algorithm using external memory or streaming?",
+        "Can you walk me through your code line by line for an example input and explain the invariant maintained by your data structure?"
       ];
-      fallbackQuestion = codingFallbacks[Math.floor(Math.random() * codingFallbacks.length)];
+      fallbackQuestion = codingFallbacks.find(q => !updatedState.askedFollowupQuestions.includes(q)) || codingFallbacks[0];
     } else if (typeLower3.includes('system design')) {
-      fallbackQuestion = "How would you handle horizontal scalability in your proposed architecture, and what are the trade-offs of your approach?";
+      const sdFallbacks = [
+        "Let's start by clarifying the functional and non-functional requirements: what read/write throughput and latency targets are we designing for?",
+        "Could you outline the high-level architecture and the API interfaces between clients and our backend services?",
+        "What database technology would you select for this workload, and how would you design the data model and partitioning strategy?",
+        "Where would you introduce caching or asynchronous message queues to reduce database load and smooth out traffic spikes?",
+        "How would you ensure high availability, fault tolerance, and data durability in the event of a datacenter or node failure?",
+        "What are the key trade-offs in your design regarding the CAP theorem, consistency models, and operational complexity?"
+      ];
+      fallbackQuestion = sdFallbacks.find(q => !updatedState.askedFollowupQuestions.includes(q)) || sdFallbacks[0];
     } else if (typeLower3.includes('project')) {
-      fallbackQuestion = "What was the most challenging technical problem you faced in this project, and how did you resolve it?";
+      const pName = projectName || 'your project';
+      const projFallbacks = [
+        `What was the most challenging technical problem or architectural bottleneck you faced while building "${pName}", and how did you resolve it?`,
+        `How did you handle database schema design, indexing, and data consistency in "${pName}"?`,
+        `If you had to scale "${pName}" to support a 50x increase in concurrent active users, what architectural changes would you prioritize?`,
+        `How did you approach automated testing, continuous integration, and monitoring for "${pName}"?`
+      ];
+      fallbackQuestion = projFallbacks.find(q => !updatedState.askedFollowupQuestions.includes(q)) || projFallbacks[0];
     } else {
       // Technical Interview fallbacks based on selected topics
-      const topicsStr = selectedTopics.length > 0 ? selectedTopics[0] : (technicalTrack || 'your selected technical domain');
+      const topic = selectedTopics.length > 0
+        ? (selectedTopics.find(t => !updatedState.askedFollowupQuestions.some(q => q.includes(t))) || selectedTopics[0])
+        : (technicalTrack || domain || 'core engineering');
       const techFallbacks = [
-        `Can you explain a core concept in ${topicsStr} and describe how you've applied it in a project?`,
-        `What are some common performance pitfalls in ${topicsStr}, and how would you avoid them?`,
-        `How does ${topicsStr} handle concurrency or state management, and what are the best practices?`
+        `Can you explain a fundamental concept in ${topic} and describe how you've implemented it in a production scenario?`,
+        `What are the most common performance bottlenecks or memory management pitfalls in ${topic}, and how do you avoid them?`,
+        `How does ${topic} handle concurrency, state synchronization, or asynchronous task execution?`,
+        `What trade-offs do you consider when choosing between alternative architectural patterns or design decisions in ${topic}?`
       ];
-      fallbackQuestion = techFallbacks[Math.floor(Math.random() * techFallbacks.length)];
+      fallbackQuestion = techFallbacks.find(q => !updatedState.askedFollowupQuestions.includes(q)) || techFallbacks[0];
     }
 
-    const updatedState = { ...adaptiveState };
-    if (!updatedState.askedFollowupQuestions) updatedState.askedFollowupQuestions = [];
     if (!updatedState.askedFollowupQuestions.includes(fallbackQuestion)) {
       updatedState.askedFollowupQuestions.push(fallbackQuestion);
     }
 
     const ack = fallbackAcks[Math.floor(Math.random() * fallbackAcks.length)];
+    const evaluation = {
+      score: isDontKnow ? 3 : 7,
+      feedback: isDontKnow
+        ? "Acknowledged lack of familiarity with this topic; interview progressed to adjacent competencies."
+        : "Provided foundational explanation; continued exploration of implementation details.",
+      metrics: {
+        technicalKnowledge: isDontKnow ? 3 : 7,
+        problemSolving: isDontKnow ? 4 : 7,
+        communication: 7,
+        confidence: isDontKnow ? 5 : 8,
+        accuracy: isDontKnow ? 3 : 7,
+        logicalThinking: 7
+      }
+    };
+
     return {
       acknowledgement: ack,
       transition: '',
       nextQuestion: fallbackQuestion,
-      isFollowUp: true,
+      isFollowUp: !isDontKnow,
       isClosing: false,
+      evaluation,
       adaptiveState: updatedState,
       fullSpeech: `${ack} ${fallbackQuestion}`
     };

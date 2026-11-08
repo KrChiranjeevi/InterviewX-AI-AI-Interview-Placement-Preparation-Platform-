@@ -511,6 +511,8 @@ const LiveInterview = () => {
   const isRecognitionActiveRef   = useRef(false);
   const isRecognitionStartingRef = useRef(false);
   const lastSubmissionRef        = useRef(null);
+  const turnAbortControllerRef   = useRef(null);
+  const confirmEndInterviewRef   = useRef(null);
 
   // Sync ref hooks
   useEffect(() => { currentQuestionRef.current = currentQuestion;  }, [currentQuestion]);
@@ -858,19 +860,29 @@ const LiveInterview = () => {
     }
     isRecognitionActiveRef.current = false;
     isRecognitionStartingRef.current = false;
+    // Preserve spoken words into typedAnswer so candidate never loses their response
+    if (finalTranscriptRef.current && !typedAnswer.trim()) {
+      setTypedAnswer(finalTranscriptRef.current.trim());
+    }
     setIsTypingMode(true);
     isTypingModeRef.current = true;
     setInterviewState('TYPING_MODE');
     interviewStateRef.current = 'TYPING_MODE';
-  }, [clearAutoSubmitTimers]);
+  }, [clearAutoSubmitTimers, typedAnswer]);
 
   const switchToSpeaking = useCallback(() => {
     setIsTypingMode(false);
     isTypingModeRef.current = false;
+    // If user typed something and switches back to speaking, preserve in finalTranscript
+    if (typedAnswer.trim() && !finalTranscriptRef.current.trim()) {
+      const trimmed = typedAnswer.trim();
+      setFinalTranscript(trimmed);
+      finalTranscriptRef.current = trimmed;
+    }
     if (!isAiSpeakingRef.current && !isAIThinkingRef.current) {
       startListening();
     }
-  }, []);
+  }, [typedAnswer, startListening]);
 
   /* ─── Speech Recognition Control with Acoustic Settling Buffer ───────── */
   const stopListening = useCallback(() => {
@@ -1019,21 +1031,9 @@ const LiveInterview = () => {
     setInterviewerStatus('speaking');
 
     try {
-      // Part 1: Acknowledgement — warm, slightly slower
-      if (ackText) {
-        await speakChunk(ackText, { rate: 0.88, pitch: 1.10 });
-        await delay(350); // micro-pause after acknowledgement
-      }
-
-      // Part 2: Transition (optional)
-      if (transitionText) {
-        await speakChunk(transitionText, { rate: 0.91, pitch: 1.07 });
-        await delay(250);
-      }
-
-      // Part 3: The actual question — clear, professional
-      if (questionText) {
-        await speakChunk(questionText, { rate: 0.93, pitch: 1.05 });
+      const fullSpeech = [ackText, transitionText, questionText].filter(Boolean).join(' ');
+      if (fullSpeech) {
+        await speakChunk(fullSpeech, { rate: 0.92, pitch: 1.06 });
       }
     } catch (err) {
       console.warn('Conversational speech error, advancing cleanly:', err);
@@ -1042,7 +1042,7 @@ const LiveInterview = () => {
       isAiSpeakingRef.current = false;
       startListening();
     }
-  }, [stopListening, speakChunk, delay, startListening]);
+  }, [stopListening, speakChunk, startListening]);
 
   const speakText = useCallback((text) => {
     stopListening();
@@ -1581,8 +1581,15 @@ const LiveInterview = () => {
     }
 
     return () => {
+      if (turnAbortControllerRef.current) {
+        try { turnAbortControllerRef.current.abort(); } catch {}
+      }
       stream?.getTracks().forEach(t => t.stop());
-      synthRef.current.cancel();
+      try { synthRef.current.cancel(); } catch {}
+      if (ttsWatchdogRef.current) {
+        clearTimeout(ttsWatchdogRef.current);
+        ttsWatchdogRef.current = null;
+      }
       if (settlingTimerRef.current) clearTimeout(settlingTimerRef.current);
       if (recognitionRef.current) {
         try { recognitionRef.current.abort(); } catch {}
@@ -1667,16 +1674,18 @@ const LiveInterview = () => {
       const wasBookmarked = isBookmarked;
       setIsBookmarked(false);
 
-      try {
-        await api.post(`/interviews/${id}/answer`, {
-          question: currentQuestionRef.current,
-          answer,
-          bookmarked: wasBookmarked,
-          isMock: isMock,
-          skipNextQuestionGeneration: isMock
-        });
-      } catch {
-        console.warn('Backend logging failed, fallback client evaluation active');
+      if (!isMock) {
+        try {
+          await api.post(`/interviews/${id}/answer`, {
+            question: currentQuestionRef.current,
+            answer,
+            bookmarked: wasBookmarked,
+            isMock: false,
+            skipNextQuestionGeneration: false
+          });
+        } catch {
+          console.warn('Backend logging failed, fallback client evaluation active');
+        }
       }
 
       // ══════════════════════════════════════════════════════════════════
@@ -1695,31 +1704,39 @@ const LiveInterview = () => {
         };
         setNetworkError(null);
 
+        if (turnAbortControllerRef.current) {
+          try { turnAbortControllerRef.current.abort(); } catch {}
+        }
+        const abortController = new AbortController();
+        turnAbortControllerRef.current = abortController;
+
         setInterviewerStatus('analyzing');
         setInterviewState('GENERATING_NEXT_QUESTION');
         interviewStateRef.current = 'GENERATING_NEXT_QUESTION';
 
-        // Fire conversational response request immediately in parallel
-        const convPromise = api.post(`/interviews/${id}/conversational-response`, {
-          userAnswer: userAnswerDisplay,
-          questionAsked: currentQuestionRef.current,
-          conversationHistory: conversationHistory.slice(-6),
-          questionNumber: currentQNum,
-          interviewStage: currentStage
-        }).catch(err => {
+        // Fire conversational response request immediately in a single pass with saveAnswer: true
+        let convResponse = null;
+        try {
+          const convRes = await api.post(`/interviews/${id}/conversational-response`, {
+            userAnswer: userAnswerDisplay,
+            rawAnswer: answer,
+            questionAsked: currentQuestionRef.current,
+            conversationHistory: conversationHistory.slice(-6),
+            questionNumber: currentQNum,
+            interviewStage: currentStage,
+            bookmarked: wasBookmarked,
+            saveAnswer: true
+          }, {
+            signal: abortController.signal
+          });
+          convResponse = convRes ? convRes.data : null;
+        } catch (err) {
+          if (err.name === 'CanceledError' || err.name === 'AbortError') {
+            console.log('Turn request canceled.');
+            return;
+          }
           console.warn('Conversational response API failed, using fallback', err);
-          return null;
-        });
-
-        // Natural responsive avatar transitions while request is in-flight
-        await new Promise(res => setTimeout(res, 400));
-        setInterviewerStatus('typing');
-        await new Promise(res => setTimeout(res, 350));
-        setInterviewerStatus('preparing');
-
-        // Await the API response
-        const convRes = await convPromise;
-        const convResponse = convRes ? convRes.data : null;
+        }
 
         if (convResponse) {
           setNetworkError(null);
@@ -1763,7 +1780,7 @@ const LiveInterview = () => {
             setIsAIThinking(false);
             isAIThinkingRef.current = false;
             await speakTextConversational(acknowledgement, transition, nextQuestion);
-            setTimeout(() => endInterview(), 2000);
+            setTimeout(() => confirmEndInterview(), 2000);
             return;
           }
 
@@ -1772,7 +1789,7 @@ const LiveInterview = () => {
           setIsAIThinking(false);
           isAIThinkingRef.current = false;
 
-          // Speak conversationally: acknowledgement → pause → question
+          // Speak conversationally: acknowledgement + transition + question
           await speakTextConversational(acknowledgement, transition, nextQuestion);
         } else {
           // Fallback for API failure
@@ -1810,7 +1827,7 @@ const LiveInterview = () => {
   const retryLastSubmission = useCallback(async () => {
     if (isSubmittingRef.current || isAiSpeakingRef.current) return;
     if (!lastSubmissionRef.current) return;
-    const { userAnswerDisplay, currentQNum, currentStage } = lastSubmissionRef.current;
+    const { userAnswerDisplay, answer, currentQNum, currentStage, wasBookmarked } = lastSubmissionRef.current;
 
     setNetworkError(null);
     setIsAIThinking(true);
@@ -1819,13 +1836,24 @@ const LiveInterview = () => {
     setInterviewState('GENERATING_NEXT_QUESTION');
     interviewStateRef.current = 'GENERATING_NEXT_QUESTION';
 
+    if (turnAbortControllerRef.current) {
+      try { turnAbortControllerRef.current.abort(); } catch {}
+    }
+    const abortController = new AbortController();
+    turnAbortControllerRef.current = abortController;
+
     try {
       const convRes = await api.post(`/interviews/${id}/conversational-response`, {
         userAnswer: userAnswerDisplay,
+        rawAnswer: answer,
         questionAsked: currentQuestionRef.current,
         conversationHistory: conversationHistory.slice(-6),
         questionNumber: currentQNum,
-        interviewStage: currentStage
+        interviewStage: currentStage,
+        bookmarked: wasBookmarked,
+        saveAnswer: true
+      }, {
+        signal: abortController.signal
       });
 
       if (convRes?.data) {
@@ -1860,7 +1888,10 @@ const LiveInterview = () => {
           setIsAIThinking(false);
           isAIThinkingRef.current = false;
           await speakTextConversational(acknowledgement, transition, nextQuestion);
-          setTimeout(() => endInterview(), 2000);
+          setTimeout(() => {
+            if (confirmEndInterviewRef.current) confirmEndInterviewRef.current();
+            else endInterview();
+          }, 2000);
           return;
         }
 
@@ -1872,6 +1903,7 @@ const LiveInterview = () => {
         return;
       }
     } catch (err) {
+      if (err.name === 'CanceledError' || err.name === 'AbortError') return;
       console.warn('Retry conversational response failed', err);
       setNetworkError('Connection retry failed. Please click retry or check your network connection.');
     }
@@ -1909,12 +1941,14 @@ const LiveInterview = () => {
       clearTranscript();
       setTypedAnswer('');
 
-      try {
-        await api.post(`/interviews/${id}/answer`, {
-          question: currentQuestionRef.current,
-          answer:   'Skipped',
-        });
-      } catch {}
+      if (!isMock) {
+        try {
+          await api.post(`/interviews/${id}/answer`, {
+            question: currentQuestionRef.current,
+            answer:   'Skipped',
+          });
+        } catch {}
+      }
 
       if (isMock) {
         const currentStage = interviewStageRef.current;
@@ -1935,13 +1969,23 @@ const LiveInterview = () => {
         setInterviewState('GENERATING_NEXT_QUESTION');
         interviewStateRef.current = 'GENERATING_NEXT_QUESTION';
 
+        if (turnAbortControllerRef.current) {
+          try { turnAbortControllerRef.current.abort(); } catch {}
+        }
+        const abortController = new AbortController();
+        turnAbortControllerRef.current = abortController;
+
         try {
           const convRes = await api.post(`/interviews/${id}/conversational-response`, {
             userAnswer: 'I would like to skip this question and move on to the next topic.',
+            rawAnswer: 'Skipped',
             questionAsked: currentQuestionRef.current,
             conversationHistory: conversationHistory.slice(-6),
             questionNumber: currentQNum,
-            interviewStage: currentStage
+            interviewStage: currentStage,
+            saveAnswer: true
+          }, {
+            signal: abortController.signal
           });
           if (convRes?.data) {
             const { acknowledgement, transition, nextQuestion } = convRes.data;
@@ -1957,6 +2001,7 @@ const LiveInterview = () => {
             return;
           }
         } catch (err) {
+          if (err.name === 'CanceledError' || err.name === 'AbortError') return;
           console.warn('Skip response failed:', err);
         }
         setIsAIThinking(false);
@@ -2158,6 +2203,26 @@ const LiveInterview = () => {
     setIsEnding(true);
     setEndingStep(0);
 
+    // Cancel in-flight AI turn request immediately
+    if (turnAbortControllerRef.current) {
+      try { turnAbortControllerRef.current.abort(); } catch {}
+      turnAbortControllerRef.current = null;
+    }
+    // Stop audio & speech synthesis immediately
+    try { synthRef.current.cancel(); } catch {}
+    if (ttsWatchdogRef.current) {
+      clearTimeout(ttsWatchdogRef.current);
+      ttsWatchdogRef.current = null;
+    }
+    if (recognitionRef.current) {
+      try { recognitionRef.current.abort(); } catch {}
+    }
+    stopListening();
+    setAiSpeaking(false);
+    isAiSpeakingRef.current = false;
+    setIsAIThinking(false);
+    isAIThinkingRef.current = false;
+
     // Dynamic AI Scoring engine based on candidate interactions
     const totalConfidenceCount = confidenceData.current.count || 1;
     const calculatedConf = Math.round(confidenceData.current.total / totalConfidenceCount);
@@ -2314,6 +2379,10 @@ const LiveInterview = () => {
     setIsEnding(false);
     setShowReportPage(true);
   };
+
+  useEffect(() => {
+    confirmEndInterviewRef.current = confirmEndInterview;
+  });
 
   // Write finalized scores to simulation board context
   const handleSaveAndProceed = () => {

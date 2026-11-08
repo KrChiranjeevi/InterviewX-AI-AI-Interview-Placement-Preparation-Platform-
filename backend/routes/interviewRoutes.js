@@ -424,14 +424,179 @@ const getConversationalResponse = async (req, res) => {
       resumeSnapshot: interview.resumeSnapshot || null,
     });
 
+    // Unified turn saving: If saveAnswer is requested or userAnswer provided, persist immediately
+    if (req.body.saveAnswer !== false && userAnswer && questionAsked) {
+      const evalObj = result.evaluation || {
+        score: Math.min(10, Math.max(1, Math.round((result.adaptiveState?.overallScore || 70) / 10))),
+        feedback: result.acknowledgement || 'Response evaluated.',
+        metrics: {
+          technicalKnowledge: Math.round((result.adaptiveState?.technicalScore || 70) / 10),
+          problemSolving: Math.round((result.adaptiveState?.overallScore || 70) / 10),
+          communication: Math.round((result.adaptiveState?.communicationScore || 75) / 10),
+          confidence: Math.round((result.adaptiveState?.confidenceScore || 75) / 10),
+          accuracy: Math.round((result.adaptiveState?.knowledgeScore || 70) / 10),
+          logicalThinking: Math.round((result.adaptiveState?.technicalScore || 70) / 10)
+        }
+      };
+
+      interview.questions.push({
+        question: questionAsked,
+        userAnswer: req.body.rawAnswer || userAnswer,
+        aiFeedback: evalObj.feedback,
+        score: evalObj.score,
+        metrics: evalObj.metrics,
+        speechStats: {
+          speakingSpeed: 120,
+          fillerWordsCount: 0,
+          eyeContactScore: 85,
+          voiceClarity: 90,
+          grammarScore: 90
+        },
+        bookmarked: req.body.bookmarked || false
+      });
+
+      const totalScore = interview.questions.reduce((acc, curr) => acc + (curr.score || 0), 0);
+      interview.score = Math.round((totalScore / interview.questions.length) * 10);
+      if (result.adaptiveState?.difficultyLevel) {
+        interview.difficulty = result.adaptiveState.difficultyLevel;
+      }
+    }
+
     // Save updated adaptive state back to the interview document
     interview.adaptiveState = result.adaptiveState || adaptiveState;
     await interview.save();
 
-    res.json(result);
+    res.json({
+      ...result,
+      overallScore: interview.score,
+      evaluation: result.evaluation
+    });
   } catch (error) {
     console.error('getConversationalResponse error:', error);
     res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+const streamConversationalResponse = async (req, res) => {
+  try {
+    const interview = await Interview.findById(req.params.id);
+    if (!interview) return res.status(404).json({ message: 'Interview not found' });
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    if (res.flushHeaders) res.flushHeaders();
+
+    res.write(`data: ${JSON.stringify({ type: 'status', status: 'evaluating' })}\n\n`);
+
+    const {
+      userAnswer,
+      questionAsked,
+      conversationHistory,
+      questionNumber,
+      interviewStage
+    } = req.body;
+
+    let lastEvaluation = null;
+    if (interview.questions && interview.questions.length > 0) {
+      const lastQ = interview.questions[interview.questions.length - 1];
+      lastEvaluation = {
+        score: lastQ.score,
+        metrics: lastQ.metrics,
+        speechStats: lastQ.speechStats
+      };
+    }
+
+    let adaptiveState = interview.adaptiveState || {
+      knowledgeScore: 50,
+      confidenceScore: 50,
+      communicationScore: 50,
+      technicalScore: 50,
+      domainScore: 50,
+      overallScore: 50,
+      difficultyLevel: interview.difficulty || 'Medium',
+      knowledgeGraph: {},
+      mistakes: [],
+      notes: [],
+      historyTopics: [],
+      conceptualFollowupsCount: 0,
+      optimizationFollowupsCount: 0,
+      edgeCaseFollowupsCount: 0,
+      askedFollowupQuestions: []
+    };
+
+    const result = await generateConversationalResponse({
+      userAnswer,
+      questionAsked,
+      conversationHistory: conversationHistory || [],
+      role: interview.role,
+      type: interview.type,
+      domain: interview.domain || '',
+      subLanguage: interview.subLanguage || '',
+      projectName: interview.projectName || '',
+      projectDescription: interview.projectDescription || '',
+      difficulty: interview.difficulty || 'Intermediate',
+      questionNumber: questionNumber || 1,
+      interviewStage: interviewStage || 'core',
+      adaptiveState,
+      lastEvaluation,
+      duration: interview.duration,
+      selectedTopics: interview.selectedTopics || [],
+      technicalTrack: interview.technicalTrack || '',
+      codingTrack: interview.codingTrack || '',
+      systemDesignDomain: interview.systemDesignDomain || '',
+      resumeText: interview.resumeText || '',
+      resumeSkills: interview.resumeSkills || [],
+      resumeProjects: interview.resumeProjects || [],
+      resumeExperience: interview.resumeExperience || [],
+      resumeEducation: interview.resumeEducation || [],
+      resumeSnapshot: interview.resumeSnapshot || null,
+    });
+
+    res.write(`data: ${JSON.stringify({ type: 'ack', acknowledgement: result.acknowledgement, transition: result.transition })}\n\n`);
+    res.write(`data: ${JSON.stringify({ type: 'question', nextQuestion: result.nextQuestion, isFollowUp: result.isFollowUp, isClosing: result.isClosing })}\n\n`);
+
+    if (req.body.saveAnswer !== false && userAnswer && questionAsked) {
+      const evalObj = result.evaluation || {
+        score: Math.min(10, Math.max(1, Math.round((result.adaptiveState?.overallScore || 70) / 10))),
+        feedback: result.acknowledgement || 'Response evaluated.',
+        metrics: {
+          technicalKnowledge: 7, problemSolving: 7, communication: 7, confidence: 7, accuracy: 7, logicalThinking: 7
+        }
+      };
+
+      interview.questions.push({
+        question: questionAsked,
+        userAnswer: req.body.rawAnswer || userAnswer,
+        aiFeedback: evalObj.feedback,
+        score: evalObj.score,
+        metrics: evalObj.metrics,
+        speechStats: {
+          speakingSpeed: 120,
+          fillerWordsCount: 0,
+          eyeContactScore: 85,
+          voiceClarity: 90,
+          grammarScore: 90
+        },
+        bookmarked: req.body.bookmarked || false
+      });
+
+      const totalScore = interview.questions.reduce((acc, curr) => acc + (curr.score || 0), 0);
+      interview.score = Math.round((totalScore / interview.questions.length) * 10);
+      if (result.adaptiveState?.difficultyLevel) {
+        interview.difficulty = result.adaptiveState.difficultyLevel;
+      }
+    }
+
+    interview.adaptiveState = result.adaptiveState || adaptiveState;
+    await interview.save();
+
+    res.write(`data: ${JSON.stringify({ type: 'complete', result, overallScore: interview.score })}\n\n`);
+    res.end();
+  } catch (error) {
+    console.error('streamConversationalResponse error:', error);
+    res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+    res.end();
   }
 };
 
@@ -640,6 +805,7 @@ router.get('/:id', protect, getInterviewById);
 router.post('/:id/question', protect, getNextQuestion);
 router.post('/:id/answer', protect, submitAnswer);
 router.post('/:id/conversational-response', protect, getConversationalResponse);
+router.post('/:id/conversational-response-stream', protect, streamConversationalResponse);
 router.post('/:id/mock-report', protect, getMockReport);
 router.get('/:id/mock-report', protect, getMockReport);
 router.post('/gd/topic', protect, setupGD);
