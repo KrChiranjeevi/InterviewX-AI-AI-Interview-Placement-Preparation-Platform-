@@ -442,8 +442,13 @@ const LiveInterview = () => {
   const [conversationLogOpen,  setConversationLogOpen]  = useState(false); // slide-out log panel
   const [pendingSpeech,        setPendingSpeech]        = useState(null); // { ack, transition, question }
   const [greetingDone,         setGreetingDone]         = useState(false); // track greeting completion
-  const [isSubmitting,         setIsSubmitting]         = useState(false); // duplicate submission guard
-  const [interviewState,       setInterviewState]       = useState('IDLE'); // Explicit state machine: 'IDLE' | 'AI_SPEAKING' | 'WAITING_FOR_CANDIDATE' | 'LISTENING' | 'TYPING_MODE' | 'PROCESSING_ANSWER' | 'GENERATING_NEXT_QUESTION' | 'PAUSED' | 'COMPLETED'
+  const [isSubmitting,               setIsSubmitting]               = useState(false); // duplicate submission guard
+  const [interviewState,             setInterviewState]             = useState('IDLE'); // Explicit state machine: 'IDLE' | 'AI_SPEAKING' | 'WAITING_FOR_CANDIDATE' | 'LISTENING' | 'TYPING_MODE' | 'PROCESSING_ANSWER' | 'GENERATING_NEXT_QUESTION' | 'PAUSED' | 'COMPLETED'
+  const [micPermissionStatus,        setMicPermissionStatus]        = useState('prompt'); // 'prompt' | 'granted' | 'denied' | 'unavailable'
+  const [speechRecognitionSupported, setSpeechRecognitionSupported] = useState(typeof window !== 'undefined' && Boolean(window.SpeechRecognition || window.webkitSpeechRecognition));
+  const [activeMicDeviceName,        setActiveMicDeviceName]        = useState('Microphone');
+  const [currentQuestionId,          setCurrentQuestionId]          = useState('q-1');
+  const [networkError,               setNetworkError]               = useState(null);
 
   // Dynamic Workspaces States
   const [selectedLanguage, setSelectedLanguage] = useState('python');
@@ -472,30 +477,40 @@ const LiveInterview = () => {
   const [finalReportData, setFinalReportData] = useState(null);
 
   // ── Existing refs (ALL PRESERVED) ─────────────────────────────────────────
-  const recognitionRef     = useRef(null);
-  const synthRef           = useRef(window.speechSynthesis);
-  const autoSubmitTimer    = useRef(null);
-  const countdownInterval  = useRef(null);
-  const silenceTimer       = useRef(null);
-  const currentQuestionRef = useRef('Loading AI question...');
-  const isAIThinkingRef    = useRef(true);
-  const finalTranscriptRef = useRef('');
-  const isTypingModeRef    = useRef(false);
-  const isPausedRef        = useRef(false);
-  const isMutedRef         = useRef(false);
-  const confidenceData     = useRef({ total: 0, count: 0 });
-  const faceInterval       = useRef(null);
-  const sessionTimerRef    = useRef(null);
-  const voiceRef           = useRef(null);
-  const toastTimers        = useRef([]);
-  const interviewStageRef  = useRef('greeting'); // track stage in callbacks
-  const questionNumberRef  = useRef(1);          // track question number in callbacks
-  const isSubmittingRef    = useRef(false);
-  const isAiSpeakingRef    = useRef(false);
-  const interviewStateRef  = useRef('IDLE');
-  const isListeningRef     = useRef(false);
-  const submitAnswerRef    = useRef(null);
-  const settlingTimerRef   = useRef(null);
+  const recognitionRef           = useRef(null);
+  const synthRef                 = useRef(window.speechSynthesis);
+  const autoSubmitTimer          = useRef(null);
+  const countdownInterval        = useRef(null);
+  const silenceTimer             = useRef(null);
+  const currentQuestionRef       = useRef('Loading AI question...');
+  const isAIThinkingRef          = useRef(true);
+  const finalTranscriptRef       = useRef('');
+  const isTypingModeRef          = useRef(false);
+  const isPausedRef              = useRef(false);
+  const isMutedRef               = useRef(false);
+  const confidenceData           = useRef({ total: 0, count: 0 });
+  const faceInterval             = useRef(null);
+  const sessionTimerRef          = useRef(null);
+  const voiceRef                 = useRef(null);
+  const toastTimers              = useRef([]);
+  const interviewStageRef        = useRef('greeting'); // track stage in callbacks
+  const questionNumberRef        = useRef(1);          // track question number in callbacks
+  const isSubmittingRef          = useRef(false);
+  const isAiSpeakingRef          = useRef(false);
+  const interviewStateRef        = useRef('IDLE');
+  const isListeningRef           = useRef(false);
+  const submitAnswerRef          = useRef(null);
+  const settlingTimerRef         = useRef(null);
+  const currentQuestionIdRef     = useRef('q-1');
+  const listeningQuestionIdRef   = useRef('q-1');
+  const activeUtteranceRef       = useRef(null);
+  const ttsWatchdogRef           = useRef(null);
+  const sessionStartTimeRef      = useRef(Date.now());
+  const pausedDurationRef        = useRef(0);
+  const pauseStartTimeRef        = useRef(null);
+  const isRecognitionActiveRef   = useRef(false);
+  const isRecognitionStartingRef = useRef(false);
+  const lastSubmissionRef        = useRef(null);
 
   // Sync ref hooks
   useEffect(() => { currentQuestionRef.current = currentQuestion;  }, [currentQuestion]);
@@ -507,6 +522,7 @@ const LiveInterview = () => {
   useEffect(() => { isSubmittingRef.current    = isSubmitting;    }, [isSubmitting]);
   useEffect(() => { isAiSpeakingRef.current    = aiSpeaking;      }, [aiSpeaking]);
   useEffect(() => { interviewStateRef.current  = interviewState;  }, [interviewState]);
+  useEffect(() => { currentQuestionIdRef.current = currentQuestionId; }, [currentQuestionId]);
 
   // Determine current company configuration
   const companyKey = useMemo(() => {
@@ -701,34 +717,42 @@ const LiveInterview = () => {
     return () => window.speechSynthesis.removeEventListener('voiceschanged', pickVoice);
   }, []);
 
-  /* ─── Session duration countdown (PRESERVED) ──────────────────────────── */
+  /* ─── Session duration countdown (Accurate elapsed timer across all questions) ── */
   useEffect(() => {
-    if (!interview) return;
+    if (!interview || !interview.duration) return;
     const parseDuration = (dur) => {
       const match = String(dur || '').match(/(\d+)/);
       return match ? parseInt(match[1], 10) * 60 : 30 * 60;
     };
     const totalSecs = parseDuration(interview.duration);
-    let elapsedSecs = 0;
-    if (interview.createdAt) {
-      const startMs = new Date(interview.createdAt).getTime();
-      const nowMs = Date.now();
-      elapsedSecs = Math.max(0, Math.floor((nowMs - startMs) / 1000));
+
+    if (!sessionStartTimeRef.current) {
+      if (interview.createdAt) {
+        sessionStartTimeRef.current = new Date(interview.createdAt).getTime();
+      } else {
+        sessionStartTimeRef.current = Date.now();
+      }
     }
-    let secs = Math.max(0, totalSecs - elapsedSecs);
-    setSessionTimeLeft(secs);
-    sessionTimerRef.current = setInterval(() => {
+
+    const tick = () => {
       if (isPausedRef.current) return;
-      secs -= 1;
+      const now = Date.now();
+      const currentPaused = pausedDurationRef.current + (pauseStartTimeRef.current ? (now - pauseStartTimeRef.current) : 0);
+      const activeElapsedSecs = Math.max(0, Math.floor((now - sessionStartTimeRef.current - currentPaused) / 1000));
+      const secs = Math.max(0, totalSecs - activeElapsedSecs);
       setSessionTimeLeft(secs);
+
       if (secs <= 0) {
         clearInterval(sessionTimerRef.current);
         addToast('Time limit reached! Concluding interview session...', 'info');
         confirmEndInterview();
       }
-    }, 1000);
+    };
+
+    tick();
+    sessionTimerRef.current = setInterval(tick, 1000);
     return () => clearInterval(sessionTimerRef.current);
-  }, [interview]);
+  }, [interview?.duration]);
 
   /* ─── Face-API models (PRESERVED) ─────────────────────────────────────── */
   useEffect(() => {
@@ -824,6 +848,30 @@ const LiveInterview = () => {
     finalTranscriptRef.current = '';
   }, []);
 
+  /* ─── Typing mode toggling (Isolated modes) ─────────────────────────── */
+  const switchToTyping = useCallback(() => {
+    isListeningRef.current = false;
+    setIsRecording(false);
+    clearAutoSubmitTimers();
+    if (recognitionRef.current) {
+      try { recognitionRef.current.abort(); } catch {}
+    }
+    isRecognitionActiveRef.current = false;
+    isRecognitionStartingRef.current = false;
+    setIsTypingMode(true);
+    isTypingModeRef.current = true;
+    setInterviewState('TYPING_MODE');
+    interviewStateRef.current = 'TYPING_MODE';
+  }, [clearAutoSubmitTimers]);
+
+  const switchToSpeaking = useCallback(() => {
+    setIsTypingMode(false);
+    isTypingModeRef.current = false;
+    if (!isAiSpeakingRef.current && !isAIThinkingRef.current) {
+      startListening();
+    }
+  }, []);
+
   /* ─── Speech Recognition Control with Acoustic Settling Buffer ───────── */
   const stopListening = useCallback(() => {
     if (settlingTimerRef.current) {
@@ -840,6 +888,8 @@ const LiveInterview = () => {
         try { recognitionRef.current.stop(); } catch {}
       }
     }
+    isRecognitionActiveRef.current = false;
+    isRecognitionStartingRef.current = false;
   }, [clearAutoSubmitTimers]);
 
   const startListening = useCallback(() => {
@@ -859,6 +909,9 @@ const LiveInterview = () => {
     ) {
       return;
     }
+
+    // Bind listening session to currently active question ID
+    listeningQuestionIdRef.current = currentQuestionIdRef.current;
 
     // Enter WAITING_FOR_CANDIDATE state while acoustic settling delay elapses
     setInterviewState('WAITING_FOR_CANDIDATE');
@@ -883,34 +936,75 @@ const LiveInterview = () => {
       setIsRecording(true);
       setInterviewerStatus('listening');
 
-      if (recognitionRef.current) {
+      if (recognitionRef.current && !isRecognitionActiveRef.current && !isRecognitionStartingRef.current) {
+        isRecognitionStartingRef.current = true;
         try {
           recognitionRef.current.start();
+          isRecognitionActiveRef.current = true;
+          isRecognitionStartingRef.current = false;
           startSilenceCountdown();
-        } catch {
-          // already active or starting
+        } catch (e) {
+          isRecognitionStartingRef.current = false;
+          if (e.name !== 'InvalidStateError') {
+            console.warn('SpeechRecognition start error:', e);
+          }
         }
       }
     }, 400);
   }, [startSilenceCountdown]);
 
-  /* ─── TTS Speech Synthesis ────────────────────────────────────────────── */
+  /* ─── TTS Speech Synthesis with Watchdog Timer Fallback ────────────────── */
   const speakChunk = useCallback((text, opts = {}) => new Promise((resolve) => {
     if (!text) { resolve(); return; }
     // Critical: Abort speech recognition immediately so outgoing audio is never captured
     stopListening();
     synthRef.current.cancel();
+
+    if (ttsWatchdogRef.current) {
+      clearTimeout(ttsWatchdogRef.current);
+      ttsWatchdogRef.current = null;
+    }
+
     if (window.speechSynthesis && window.speechSynthesis.paused) {
       window.speechSynthesis.resume();
     }
+
     const utt = new SpeechSynthesisUtterance(text);
+    activeUtteranceRef.current = utt; // Retain reference in ref to prevent Chromium GC cancellation bug
+
     if (voiceRef.current) utt.voice = voiceRef.current;
     utt.lang   = 'en-US';
     utt.rate   = opts.rate   ?? 0.90;
     utt.pitch  = opts.pitch  ?? 1.08;
     utt.volume = opts.volume ?? 1.0;
-    utt.onend   = () => resolve();
-    utt.onerror = () => resolve();
+
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      if (ttsWatchdogRef.current) {
+        clearTimeout(ttsWatchdogRef.current);
+        ttsWatchdogRef.current = null;
+      }
+      activeUtteranceRef.current = null;
+      resolve();
+    };
+
+    utt.onend = finish;
+    utt.onerror = (e) => {
+      console.warn('SpeechSynthesis error:', e);
+      finish();
+    };
+
+    // Dynamic timeout fallback based on word count (prevents indefinite hanging if onend drops)
+    const wordCount = text.trim().split(/\s+/).length;
+    const safeTimeoutMs = Math.max(3000, Math.min(25000, wordCount * 600 + 3500));
+    ttsWatchdogRef.current = setTimeout(() => {
+      console.warn(`TTS utterance timeout (${safeTimeoutMs}ms); proceeding to listening.`);
+      try { synthRef.current.cancel(); } catch {}
+      finish();
+    }, safeTimeoutMs);
+
     synthRef.current.speak(utt);
   }), [stopListening]);
 
@@ -924,26 +1018,30 @@ const LiveInterview = () => {
     setAiSpeaking(true);
     setInterviewerStatus('speaking');
 
-    // Part 1: Acknowledgement — warm, slightly slower
-    if (ackText) {
-      await speakChunk(ackText, { rate: 0.88, pitch: 1.10 });
-      await delay(420); // micro-pause after acknowledgement
-    }
+    try {
+      // Part 1: Acknowledgement — warm, slightly slower
+      if (ackText) {
+        await speakChunk(ackText, { rate: 0.88, pitch: 1.10 });
+        await delay(350); // micro-pause after acknowledgement
+      }
 
-    // Part 2: Transition (optional)
-    if (transitionText) {
-      await speakChunk(transitionText, { rate: 0.91, pitch: 1.07 });
-      await delay(280);
-    }
+      // Part 2: Transition (optional)
+      if (transitionText) {
+        await speakChunk(transitionText, { rate: 0.91, pitch: 1.07 });
+        await delay(250);
+      }
 
-    // Part 3: The actual question — clear, professional
-    if (questionText) {
-      await speakChunk(questionText, { rate: 0.93, pitch: 1.05 });
+      // Part 3: The actual question — clear, professional
+      if (questionText) {
+        await speakChunk(questionText, { rate: 0.93, pitch: 1.05 });
+      }
+    } catch (err) {
+      console.warn('Conversational speech error, advancing cleanly:', err);
+    } finally {
+      setAiSpeaking(false);
+      isAiSpeakingRef.current = false;
+      startListening();
     }
-
-    setAiSpeaking(false);
-    isAiSpeakingRef.current = false;
-    startListening();
   }, [stopListening, speakChunk, delay, startListening]);
 
   const speakText = useCallback((text) => {
@@ -959,29 +1057,69 @@ const LiveInterview = () => {
       window.speechSynthesis.resume();
     }
     const utterance = new SpeechSynthesisUtterance(text);
+    activeUtteranceRef.current = utterance;
     if (voiceRef.current) utterance.voice = voiceRef.current;
     utterance.lang   = 'en-US';
     utterance.rate   = 0.92;
     utterance.pitch  = 1.08;
     utterance.volume = 1.0;
+
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      if (ttsWatchdogRef.current) {
+        clearTimeout(ttsWatchdogRef.current);
+        ttsWatchdogRef.current = null;
+      }
+      activeUtteranceRef.current = null;
+      setAiSpeaking(false);
+      isAiSpeakingRef.current = false;
+      startListening();
+    };
+
     utterance.onstart = () => {
       stopListening();
       setAiSpeaking(true);
       isAiSpeakingRef.current = true;
       setInterviewerStatus('speaking');
     };
-    utterance.onend   = () => {
-      setAiSpeaking(false);
-      isAiSpeakingRef.current = false;
-      startListening();
-    };
-    utterance.onerror = () => {
-      setAiSpeaking(false);
-      isAiSpeakingRef.current = false;
-      startListening();
-    };
+    utterance.onend = finish;
+    utterance.onerror = finish;
+
+    const wordCount = (text || '').trim().split(/\s+/).length;
+    const safeTimeoutMs = Math.max(3000, Math.min(25000, wordCount * 600 + 3500));
+    ttsWatchdogRef.current = setTimeout(() => {
+      console.warn(`speakText watchdog timeout (${safeTimeoutMs}ms); returning to listening.`);
+      try { synthRef.current.cancel(); } catch {}
+      finish();
+    }, safeTimeoutMs);
+
     synthRef.current.speak(utterance);
   }, [stopListening, startListening]);
+
+  /* ─── Candidate Interrupt: Skip TTS and Listen Immediately ────────────── */
+  const skipAiSpeakingAndListen = useCallback(() => {
+    if (synthRef.current) {
+      try { synthRef.current.cancel(); } catch {}
+    }
+    if (ttsWatchdogRef.current) {
+      clearTimeout(ttsWatchdogRef.current);
+      ttsWatchdogRef.current = null;
+    }
+    activeUtteranceRef.current = null;
+    setAiSpeaking(false);
+    isAiSpeakingRef.current = false;
+    startListening();
+  }, [startListening]);
+
+  /* ─── Repeat Question Audio ───────────────────────────────────────────── */
+  const repeatQuestion = useCallback(() => {
+    if (isSubmittingRef.current || isAIThinkingRef.current) return;
+    const qText = currentQuestionRef.current;
+    if (!qText) return;
+    speakText(qText);
+  }, [speakText]);
 
   /* ─── Mock Interview Greeting Flow ───────────────────────────────────── */
   const triggerMockGreeting = useCallback(async (interviewData) => {
@@ -1058,6 +1196,9 @@ const LiveInterview = () => {
     // Set full formatted question display in UI immediately
     setCurrentQuestion(openingQuestion);
     currentQuestionRef.current = openingQuestion;
+    const initialQId = `q-1-${Date.now()}`;
+    setCurrentQuestionId(initialQId);
+    currentQuestionIdRef.current = initialQId;
 
     // Speak natural audio greeting
     await speakChunk(spokenIntro, { rate: 0.88, pitch: 1.08 });
@@ -1077,6 +1218,12 @@ const LiveInterview = () => {
 
   /* ─── Camera + Microphone init with Echo Cancellation ─────────────────── */
   const initCamera = useCallback(async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setMicPermissionStatus('unavailable');
+      addToast('Microphone access is not supported in this browser.', 'warning');
+      return null;
+    }
+
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 1280 }, height: { ideal: 720 } },
@@ -1089,7 +1236,19 @@ const LiveInterview = () => {
       setStream(mediaStream);
       if (videoRef.current) videoRef.current.srcObject = mediaStream;
       setIsCameraOn(mediaStream.getVideoTracks()[0]?.enabled ?? true);
-      setIsMuted(!(mediaStream.getAudioTracks()[0]?.enabled ?? true));
+      
+      const audioTrack = mediaStream.getAudioTracks()[0];
+      if (audioTrack) {
+        setIsMuted(!audioTrack.enabled);
+        setMicPermissionStatus('granted');
+        setActiveMicDeviceName(audioTrack.label || 'Default Microphone');
+        audioTrack.onended = () => {
+          console.warn('Microphone track ended / disconnected');
+          setMicPermissionStatus('denied');
+          stopListening();
+          switchToTyping();
+        };
+      }
       return mediaStream;
     } catch (err) {
       console.warn('Video + Audio access failed, attempting audio-only with echo cancellation...', err);
@@ -1104,23 +1263,62 @@ const LiveInterview = () => {
         setStream(audioStream);
         setFaceStatus('Camera access denied (Audio active)');
         setIsCameraOn(false);
-        setIsMuted(!(audioStream.getAudioTracks()[0]?.enabled ?? true));
+
+        const audioTrack = audioStream.getAudioTracks()[0];
+        if (audioTrack) {
+          setIsMuted(!audioTrack.enabled);
+          setMicPermissionStatus('granted');
+          setActiveMicDeviceName(audioTrack.label || 'Default Microphone');
+          audioTrack.onended = () => {
+            console.warn('Microphone track ended / disconnected');
+            setMicPermissionStatus('denied');
+            stopListening();
+            switchToTyping();
+          };
+        }
         return audioStream;
       } catch (audioErr) {
         console.error('Microphone access denied', audioErr);
         setFaceStatus('Microphone & Camera access denied');
         setIsCameraOn(false);
         setIsMuted(true);
+        if (audioErr.name === 'NotAllowedError' || audioErr.name === 'PermissionDeniedError') {
+          setMicPermissionStatus('denied');
+          switchToTyping();
+          addToast('Microphone access denied. You can complete your interview in Typing Mode.', 'warning');
+        } else {
+          setMicPermissionStatus('unavailable');
+        }
         return null;
       }
     }
-  }, []);
+  }, [stopListening, switchToTyping]);
+
+  /* ─── Re-request / Retry Microphone Access ────────────────────────────── */
+  const retryMicrophone = useCallback(async () => {
+    addToast('Re-requesting microphone access...', 'info');
+    const mediaStream = await initCamera();
+    if (mediaStream && mediaStream.getAudioTracks().length > 0) {
+      setMicPermissionStatus('granted');
+      setIsMuted(false);
+      isMutedRef.current = false;
+      addToast('Microphone connected successfully!', 'success');
+      if (!isAiSpeakingRef.current && !isAIThinkingRef.current) {
+        startListening();
+      }
+    } else {
+      addToast('Could not access microphone. Please enable it in browser settings.', 'error');
+    }
+  }, [initCamera, startListening]);
 
   // Sync current question on round load
   const triggerRoundQuestion = useCallback((round) => {
     if (!round) return;
     setIsAIThinking(true);
     setCurrentQuestion(round.q);
+    const newQId = `q-round-${Date.now()}`;
+    setCurrentQuestionId(newQId);
+    currentQuestionIdRef.current = newQId;
     speakText(round.q);
     setIsAIThinking(false);
   }, [speakText]);
@@ -1225,14 +1423,17 @@ const LiveInterview = () => {
       recognition.maxAlternatives = 1;
 
       recognition.onstart = () => {
+        isRecognitionActiveRef.current = true;
+        isRecognitionStartingRef.current = false;
         isListeningRef.current = true;
         setIsRecording(true);
       };
 
       recognition.onresult = (event) => {
         // STRICT ECHO PREVENTION & STATE GUARDS
-        // Do not process incoming audio if AI is speaking, interviewer is not listening, or user is typing/muted/submitting
+        // Do not process incoming audio if AI is speaking, interviewer is not listening, question changed, or user is typing/muted/submitting
         if (
+          listeningQuestionIdRef.current !== currentQuestionIdRef.current ||
           interviewStateRef.current !== 'LISTENING' ||
           isAiSpeakingRef.current ||
           isAIThinkingRef.current ||
@@ -1255,6 +1456,7 @@ const LiveInterview = () => {
 
         // Secondary state guard check before committing transcript to candidate response
         if (
+          listeningQuestionIdRef.current !== currentQuestionIdRef.current ||
           interviewStateRef.current !== 'LISTENING' ||
           isAiSpeakingRef.current ||
           isAIThinkingRef.current
@@ -1291,6 +1493,12 @@ const LiveInterview = () => {
           console.warn('Speech recognition warning:', e.error);
         }
         if (e.error === 'not-allowed') {
+          setMicPermissionStatus('denied');
+          switchToTyping();
+          return;
+        }
+        if (e.error === 'service-not-allowed') {
+          setSpeechRecognitionSupported(false);
           switchToTyping();
           return;
         }
@@ -1302,7 +1510,9 @@ const LiveInterview = () => {
             !isTypingModeRef.current &&
             !isPausedRef.current &&
             !isMutedRef.current &&
-            !isSubmittingRef.current
+            !isSubmittingRef.current &&
+            !isRecognitionActiveRef.current &&
+            !isRecognitionStartingRef.current
           ) {
             setTimeout(() => {
               if (
@@ -1312,9 +1522,18 @@ const LiveInterview = () => {
                 !isTypingModeRef.current &&
                 !isPausedRef.current &&
                 !isMutedRef.current &&
-                !isSubmittingRef.current
+                !isSubmittingRef.current &&
+                !isRecognitionActiveRef.current &&
+                !isRecognitionStartingRef.current
               ) {
-                try { recognition.start(); } catch {}
+                isRecognitionStartingRef.current = true;
+                try {
+                  recognition.start();
+                  isRecognitionActiveRef.current = true;
+                  isRecognitionStartingRef.current = false;
+                } catch {
+                  isRecognitionStartingRef.current = false;
+                }
               }
             }, 300);
           }
@@ -1322,6 +1541,8 @@ const LiveInterview = () => {
       };
 
       recognition.onend = () => {
+        isRecognitionActiveRef.current = false;
+        isRecognitionStartingRef.current = false;
         if (
           interviewStateRef.current === 'LISTENING' &&
           !isAiSpeakingRef.current &&
@@ -1339,9 +1560,18 @@ const LiveInterview = () => {
               !isTypingModeRef.current &&
               !isPausedRef.current &&
               !isMutedRef.current &&
-              !isSubmittingRef.current
+              !isSubmittingRef.current &&
+              !isRecognitionActiveRef.current &&
+              !isRecognitionStartingRef.current
             ) {
-              try { recognition.start(); } catch {}
+              isRecognitionStartingRef.current = true;
+              try {
+                recognition.start();
+                isRecognitionActiveRef.current = true;
+                isRecognitionStartingRef.current = false;
+              } catch {
+                isRecognitionStartingRef.current = false;
+              }
             }
           }, 300);
         }
@@ -1456,6 +1686,15 @@ const LiveInterview = () => {
         const currentStage = interviewStageRef.current;
         const currentQNum  = questionNumberRef.current;
 
+        lastSubmissionRef.current = {
+          userAnswerDisplay,
+          answer,
+          currentQNum,
+          currentStage,
+          wasBookmarked
+        };
+        setNetworkError(null);
+
         setInterviewerStatus('analyzing');
         setInterviewState('GENERATING_NEXT_QUESTION');
         interviewStateRef.current = 'GENERATING_NEXT_QUESTION';
@@ -1482,27 +1721,32 @@ const LiveInterview = () => {
         const convRes = await convPromise;
         const convResponse = convRes ? convRes.data : null;
 
-        // Advance question counter and determine next stage
-        const nextQNum = currentQNum + 1;
-        questionNumberRef.current = nextQNum;
-        setQuestionNumber(nextQNum);
-
-        let nextStage = currentStage;
-        if (currentStage === 'greeting') nextStage = 'warmup';
-        else if (currentStage === 'warmup' && nextQNum >= 2) nextStage = 'core';
-        else if (currentStage === 'core' && nextQNum >= 5) nextStage = 'deepdive';
-        else if (nextQNum >= 9) nextStage = 'closing';
-        setInterviewStage(nextStage);
-        interviewStageRef.current = nextStage;
-
-        // Trigger smile for excellent answers (> 80 words)
-        const wordCount = userAnswerDisplay.split(/\s+/).length;
-        if (wordCount > 80) {
-          setOnExcellentAnswer(true);
-          setTimeout(() => setOnExcellentAnswer(false), 2200);
-        }
-
         if (convResponse) {
+          setNetworkError(null);
+          // Advance question counter and determine next stage
+          const nextQNum = currentQNum + 1;
+          questionNumberRef.current = nextQNum;
+          setQuestionNumber(nextQNum);
+
+          const nextQId = `q-${nextQNum}-${Date.now()}`;
+          setCurrentQuestionId(nextQId);
+          currentQuestionIdRef.current = nextQId;
+
+          let nextStage = currentStage;
+          if (currentStage === 'greeting') nextStage = 'warmup';
+          else if (currentStage === 'warmup' && nextQNum >= 2) nextStage = 'core';
+          else if (currentStage === 'core' && nextQNum >= 5) nextStage = 'deepdive';
+          else if (nextQNum >= 9) nextStage = 'closing';
+          setInterviewStage(nextStage);
+          interviewStageRef.current = nextStage;
+
+          // Trigger smile for excellent answers (> 80 words)
+          const wordCount = userAnswerDisplay.split(/\s+/).length;
+          if (wordCount > 80) {
+            setOnExcellentAnswer(true);
+            setTimeout(() => setOnExcellentAnswer(false), 2200);
+          }
+
           const { acknowledgement, transition, nextQuestion, isClosing } = convResponse;
 
           // Append full exchange to conversation log
@@ -1532,6 +1776,7 @@ const LiveInterview = () => {
           await speakTextConversational(acknowledgement, transition, nextQuestion);
         } else {
           // Fallback for API failure
+          setNetworkError('Connection error: Failed to receive next question from interviewer. Your response is saved.');
           setIsAIThinking(false);
           isAIThinkingRef.current = false;
           setInterviewerStatus('listening');
@@ -1560,6 +1805,81 @@ const LiveInterview = () => {
   useEffect(() => {
     submitAnswerRef.current = submitAnswer;
   });
+
+  /* ─── Retry Last Submission ────────────────────────────────────────────── */
+  const retryLastSubmission = useCallback(async () => {
+    if (isSubmittingRef.current || isAiSpeakingRef.current) return;
+    if (!lastSubmissionRef.current) return;
+    const { userAnswerDisplay, currentQNum, currentStage } = lastSubmissionRef.current;
+
+    setNetworkError(null);
+    setIsAIThinking(true);
+    isAIThinkingRef.current = true;
+    setInterviewerStatus('analyzing');
+    setInterviewState('GENERATING_NEXT_QUESTION');
+    interviewStateRef.current = 'GENERATING_NEXT_QUESTION';
+
+    try {
+      const convRes = await api.post(`/interviews/${id}/conversational-response`, {
+        userAnswer: userAnswerDisplay,
+        questionAsked: currentQuestionRef.current,
+        conversationHistory: conversationHistory.slice(-6),
+        questionNumber: currentQNum,
+        interviewStage: currentStage
+      });
+
+      if (convRes?.data) {
+        setNetworkError(null);
+        const { acknowledgement, transition, nextQuestion, isClosing } = convRes.data;
+        const nextQNum = currentQNum + 1;
+        questionNumberRef.current = nextQNum;
+        setQuestionNumber(nextQNum);
+
+        const nextQId = `q-${nextQNum}-${Date.now()}`;
+        setCurrentQuestionId(nextQId);
+        currentQuestionIdRef.current = nextQId;
+
+        let nextStage = currentStage;
+        if (currentStage === 'greeting') nextStage = 'warmup';
+        else if (currentStage === 'warmup' && nextQNum >= 2) nextStage = 'core';
+        else if (currentStage === 'core' && nextQNum >= 5) nextStage = 'deepdive';
+        else if (nextQNum >= 9) nextStage = 'closing';
+        setInterviewStage(nextStage);
+        interviewStageRef.current = nextStage;
+
+        const aiResponseText = [acknowledgement, transition, nextQuestion].filter(Boolean).join(' ');
+        setConversationHistory(prev => [
+          ...prev,
+          { sender: 'user', text: userAnswerDisplay, timestamp: Date.now() - 2 },
+          { sender: 'ai',   text: aiResponseText,    timestamp: Date.now() }
+        ]);
+
+        if (isClosing || nextStage === 'closing') {
+          setCurrentQuestion(aiResponseText);
+          currentQuestionRef.current = aiResponseText;
+          setIsAIThinking(false);
+          isAIThinkingRef.current = false;
+          await speakTextConversational(acknowledgement, transition, nextQuestion);
+          setTimeout(() => endInterview(), 2000);
+          return;
+        }
+
+        setCurrentQuestion(nextQuestion);
+        currentQuestionRef.current = nextQuestion;
+        setIsAIThinking(false);
+        isAIThinkingRef.current = false;
+        await speakTextConversational(acknowledgement, transition, nextQuestion);
+        return;
+      }
+    } catch (err) {
+      console.warn('Retry conversational response failed', err);
+      setNetworkError('Connection retry failed. Please click retry or check your network connection.');
+    }
+    setIsAIThinking(false);
+    isAIThinkingRef.current = false;
+    setInterviewerStatus('listening');
+    startListening();
+  }, [id, conversationHistory, speakTextConversational, endInterview, startListening]);
 
   /* ─── Skip question ───────────────────────────────────────────────────── */
   const skipQuestion = async () => {
@@ -1625,6 +1945,9 @@ const LiveInterview = () => {
           });
           if (convRes?.data) {
             const { acknowledgement, transition, nextQuestion } = convRes.data;
+            const nextQId = `q-${nextQNum}-${Date.now()}`;
+            setCurrentQuestionId(nextQId);
+            currentQuestionIdRef.current = nextQId;
             const spokenAck = acknowledgement || "No problem at all, let's move forward.";
             setCurrentQuestion(nextQuestion);
             currentQuestionRef.current = nextQuestion;
@@ -1657,22 +1980,7 @@ const LiveInterview = () => {
     }
   };
 
-  /* ─── Typing mode toggling (Isolated modes) ─────────────────────────── */
-  const switchToTyping = () => {
-    stopListening();
-    setIsTypingMode(true);
-    isTypingModeRef.current = true;
-    setInterviewState('TYPING_MODE');
-    interviewStateRef.current = 'TYPING_MODE';
-  };
 
-  const switchToSpeaking = () => {
-    setIsTypingMode(false);
-    isTypingModeRef.current = false;
-    if (!isAiSpeakingRef.current && !isAIThinkingRef.current) {
-      startListening();
-    }
-  };
 
   const handleTypedChange = (e) => {
     setTypedAnswer(e.target.value);
@@ -1737,13 +2045,22 @@ const LiveInterview = () => {
       const next = !prev;
       isPausedRef.current = next;
       if (next) {
+        pauseStartTimeRef.current = Date.now();
         stopListening();
         synthRef.current.cancel();
+        if (ttsWatchdogRef.current) {
+          clearTimeout(ttsWatchdogRef.current);
+          ttsWatchdogRef.current = null;
+        }
         setAiSpeaking(false);
         isAiSpeakingRef.current = false;
         setInterviewState('PAUSED');
         interviewStateRef.current = 'PAUSED';
       } else {
+        if (pauseStartTimeRef.current) {
+          pausedDurationRef.current += (Date.now() - pauseStartTimeRef.current);
+          pauseStartTimeRef.current = null;
+        }
         startListening();
       }
       return next;
@@ -2381,6 +2698,14 @@ const LiveInterview = () => {
           interimTranscript={interimTranscript}
           setInterimTranscript={setInterimTranscript}
           speakText={speakText}
+          micPermissionStatus={micPermissionStatus}
+          speechRecognitionSupported={speechRecognitionSupported}
+          activeMicDeviceName={activeMicDeviceName}
+          repeatQuestion={repeatQuestion}
+          skipAiSpeakingAndListen={skipAiSpeakingAndListen}
+          retryMicrophone={retryMicrophone}
+          networkError={networkError}
+          retryLastSubmission={retryLastSubmission}
         />
       ) : (
         <div className="flex-1 flex gap-3 p-3 overflow-hidden min-h-0 relative">

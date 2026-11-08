@@ -78,6 +78,14 @@ const MockInterviewRoom = ({
   interimTranscript = '',
   setInterimTranscript = () => {},
   speakText = null,
+  micPermissionStatus = 'granted',
+  speechRecognitionSupported = true,
+  activeMicDeviceName = 'Microphone',
+  repeatQuestion = () => {},
+  skipAiSpeakingAndListen = () => {},
+  retryMicrophone = () => {},
+  networkError = null,
+  retryLastSubmission = () => {},
 }) => {
 
   const [activeHighlightSection, setActiveHighlightSection] = useState('projects');
@@ -215,6 +223,11 @@ const MockInterviewRoom = ({
           <div className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
             <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wide">Live Connected</span>
+          </div>
+
+          <div className="flex items-center gap-1.5 text-[10px] text-slate-400 bg-white/5 border border-white/5 px-2.5 py-1 rounded-lg">
+            <Mic className={`w-3 h-3 ${micPermissionStatus === 'denied' ? 'text-rose-400' : isMuted ? 'text-slate-500' : 'text-emerald-400'}`} />
+            <span className="truncate max-w-[120px]">{micPermissionStatus === 'denied' ? 'Mic Blocked' : activeMicDeviceName}</span>
           </div>
 
           {isRecording && !isMuted && (
@@ -419,9 +432,16 @@ const MockInterviewRoom = ({
                         <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500" />
                       </span>
                       <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex-shrink-0">Interviewer Speaking</span>
-                      <span className="text-[11px] text-amber-300/80 truncate max-w-[300px]">
-                        Mic transcription paused to prevent echo
+                      <span className="text-[11px] text-amber-300/80 truncate max-w-[200px]">
+                        Mic transcription paused
                       </span>
+                      <button
+                        onClick={skipAiSpeakingAndListen}
+                        className="px-2 py-0.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-200 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer flex-shrink-0"
+                        title="Interrupt AI and speak immediately"
+                      >
+                        <Zap className="w-3 h-3 text-amber-300" /> Speak Now
+                      </button>
                     </>
                   ) : isRecording && !isMuted ? (
                     <>
@@ -479,13 +499,31 @@ const MockInterviewRoom = ({
                 </div>
               </div>
 
+              {/* Warning/Error strips in coding mode if active */}
+              {networkError && (
+                <div className="bg-rose-950/40 border border-rose-500/30 px-4 py-2 rounded-xl flex items-center justify-between gap-3 text-xs text-rose-300">
+                  <span className="truncate">{networkError}</span>
+                  <button onClick={retryLastSubmission} className="px-2.5 py-1 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-200 text-[10px] font-bold rounded-lg flex items-center gap-1">
+                    <RefreshCw className="w-3 h-3" /> Retry
+                  </button>
+                </div>
+              )}
+              {micPermissionStatus === 'denied' && (
+                <div className="bg-amber-950/40 border border-amber-500/30 px-4 py-2 rounded-xl flex items-center justify-between gap-3 text-xs text-amber-300">
+                  <span>Microphone access blocked. Click <strong>Retry Microphone</strong> or use Solution Editor.</span>
+                  <button onClick={retryMicrophone} className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-[10px] font-bold rounded-lg flex items-center gap-1">
+                    <RefreshCw className="w-3 h-3" /> Retry Mic
+                  </button>
+                </div>
+              )}
+
               {/* Bottom bar shortcuts for coding mode */}
               <div className="flex-shrink-0 bg-slate-950 border-t border-white/[0.06] py-2 flex justify-between items-center gap-4 rounded-b-xl px-2">
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => {
-                      const msg = `Let me repeat the question for you: ${currentQuestion}`;
-                      if (speakText) { speakText(msg); } else if (window.speechSynthesis) { window.speechSynthesis.cancel(); const utt = new SpeechSynthesisUtterance(msg); utt.lang = 'en-US'; window.speechSynthesis.speak(utt); }
+                      if (repeatQuestion) repeatQuestion();
+                      else if (speakText) speakText(`Let me repeat the question for you: ${currentQuestion}`);
                     }}
                     className="bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 text-[10px] font-bold px-3 py-1.5 rounded-xl transition-all"
                   >
@@ -659,9 +697,18 @@ const MockInterviewRoom = ({
                 <div className="flex-1 flex flex-col justify-center max-w-2xl mx-auto w-full my-auto py-2">
                   <div className="bg-slate-900/90 border border-white/10 rounded-3xl p-5 md:p-6 backdrop-blur-xl relative shadow-2xl">
                     <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-ping" />
-                      <span className="text-[10px] font-black uppercase text-indigo-400 tracking-widest">Interviewer Prompt</span>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-ping" />
+                        <span className="text-[10px] font-black uppercase text-indigo-400 tracking-widest">Interviewer Prompt</span>
+                      </div>
+                      <button
+                        onClick={repeatQuestion}
+                        className="p-1 hover:bg-white/10 rounded text-slate-400 hover:text-slate-200 text-[10px] transition-all flex items-center gap-1 cursor-pointer"
+                        title="Repeat question audio"
+                      >
+                        <RefreshCw className="w-3 h-3" /> Repeat
+                      </button>
                     </div>
                     <div className="overflow-y-auto pr-1 text-slate-100 font-sans max-h-[200px] no-scrollbar">
                       <p className="text-sm font-semibold text-white leading-relaxed whitespace-pre-wrap">{currentQuestion}</p>
@@ -683,13 +730,70 @@ const MockInterviewRoom = ({
                 </p>
               </div>
 
+              {/* Diagnostic Alert Banners */}
+              {networkError && (
+                <div className="bg-rose-950/40 border border-rose-500/30 p-3 rounded-2xl flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2.5 text-rose-300 text-xs">
+                    <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                    <span>{networkError}</span>
+                  </div>
+                  <button
+                    onClick={retryLastSubmission}
+                    className="px-3 py-1 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-200 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                  >
+                    <RefreshCw className="w-3 h-3" /> Retry Question
+                  </button>
+                </div>
+              )}
+
+              {micPermissionStatus === 'denied' && (
+                <div className="bg-amber-950/40 border border-amber-500/30 p-3.5 rounded-2xl flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2.5 text-amber-300 text-xs">
+                    <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>Microphone access blocked. Click <strong>Retry Microphone</strong> or use <strong>Typing Mode</strong> below.</span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={retryMicrophone}
+                      className="px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer"
+                    >
+                      <RefreshCw className="w-3 h-3" /> Retry Microphone
+                    </button>
+                    {!isTypingMode && (
+                      <button
+                        onClick={switchToTyping}
+                        className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold rounded-lg transition-all cursor-pointer"
+                      >
+                        Use Typing Mode
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {!speechRecognitionSupported && (
+                <div className="bg-slate-900 border border-white/10 p-3 rounded-2xl flex items-center gap-2.5 text-slate-300 text-xs">
+                  <AlertCircle className="w-4 h-4 text-indigo-400 shrink-0" />
+                  <span>Speech recognition is unavailable in this browser. Please use Typing Mode to complete your interview.</span>
+                </div>
+              )}
+
               {/* Dynamic State Machine Subtitles / Transcription Feed */}
               {aiSpeaking || interviewerStatus === 'speaking' || interviewState === 'AI_SPEAKING' ? (
-                <div className="bg-amber-950/30 border border-amber-500/30 p-3 rounded-2xl flex gap-3 items-center">
-                  <div className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
-                  <div className="flex-1 text-[11px] text-amber-300 leading-relaxed">
-                    <span className="font-bold">Interviewer is speaking...</span> Microphone transcription is paused to prevent voice echo.
+                <div className="bg-amber-950/30 border border-amber-500/30 p-3 rounded-2xl flex flex-wrap gap-3 items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                    <div className="flex-1 text-[11px] text-amber-300 leading-relaxed">
+                      <span className="font-bold">Interviewer is speaking...</span> Microphone transcription is paused to prevent voice echo.
+                    </div>
                   </div>
+                  <button
+                    onClick={skipAiSpeakingAndListen}
+                    className="px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ml-auto"
+                    title="Interrupt AI and start speaking immediately"
+                  >
+                    <Zap className="w-3 h-3 text-amber-300" /> I'm Ready — Speak Now
+                  </button>
                 </div>
               ) : interviewState === 'WAITING_FOR_CANDIDATE' ? (
                 <div className="bg-slate-900/60 border border-white/10 p-3 rounded-2xl flex gap-3 items-center">
@@ -755,7 +859,7 @@ const MockInterviewRoom = ({
                   ) : (
                     <div className="border border-white/[0.08] bg-slate-950/80 rounded-2xl p-4 transition-all">
                       {aiSpeaking || interviewerStatus === 'speaking' || interviewState === 'AI_SPEAKING' ? (
-                        <div className="flex items-center justify-between py-3 px-4 border border-amber-500/20 bg-amber-950/20 rounded-xl text-left">
+                        <div className="flex items-center justify-between py-3 px-4 border border-amber-500/20 bg-amber-950/20 rounded-xl text-left flex-wrap gap-3">
                           <div className="flex items-center gap-3">
                             <div className="w-7 h-7 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
                               <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
@@ -765,6 +869,12 @@ const MockInterviewRoom = ({
                               <p className="text-[10px] text-amber-300/70">Listening is temporarily paused so AI audio is not transcribed as your response.</p>
                             </div>
                           </div>
+                          <button
+                            onClick={skipAiSpeakingAndListen}
+                            className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-200 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <Zap className="w-3 h-3 text-amber-300" /> I'm Ready — Speak Now
+                          </button>
                         </div>
                       ) : (finalTranscript || interimTranscript) ? (
                         <div className="space-y-3">
@@ -836,8 +946,8 @@ const MockInterviewRoom = ({
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {
-                  const msg = `Let me repeat the question for you: ${currentQuestion}`;
-                  if (speakText) { speakText(msg); } else if (window.speechSynthesis) { window.speechSynthesis.cancel(); const utt = new SpeechSynthesisUtterance(msg); utt.lang = 'en-US'; window.speechSynthesis.speak(utt); }
+                  if (repeatQuestion) repeatQuestion();
+                  else if (speakText) speakText(`Let me repeat the question for you: ${currentQuestion}`);
                 }}
                 className="bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 text-[10px] font-bold px-3 py-1.5 rounded-xl transition-all"
               >
