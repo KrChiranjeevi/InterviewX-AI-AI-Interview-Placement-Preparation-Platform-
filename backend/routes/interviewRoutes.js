@@ -641,6 +641,7 @@ router.post('/:id/question', protect, getNextQuestion);
 router.post('/:id/answer', protect, submitAnswer);
 router.post('/:id/conversational-response', protect, getConversationalResponse);
 router.post('/:id/mock-report', protect, getMockReport);
+router.get('/:id/mock-report', protect, getMockReport);
 router.post('/gd/topic', protect, setupGD);
 router.post('/:id/gd-turn', protect, processGDTurn);
 router.post('/:id/gd-report', protect, getGDReport);
@@ -648,6 +649,7 @@ router.post('/extempore/topic', protect, setupExtempore);
 router.post('/:id/extempore-followup', protect, processExtemporeFollowup);
 router.post('/:id/extempore-report', protect, getExtemporeReport);
 router.put('/:id/finish', protect, finishInterview);
+router.post('/:id/finish', protect, finishInterview);
 router.put('/:id/bookmark', protect, bookmarkQuestion);
 
 module.exports = router;
