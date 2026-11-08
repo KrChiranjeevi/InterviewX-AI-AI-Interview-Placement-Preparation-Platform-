@@ -83,6 +83,9 @@ const interviewSchema = new mongoose.Schema({
   selectedTopics: [{
     type: String
   }],
+  behavioralCompetencies: [{
+    type: String
+  }],
   codingTrack: {
     type: String,
     default: '',

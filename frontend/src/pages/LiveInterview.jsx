@@ -513,11 +513,13 @@ const LiveInterview = () => {
   const lastSubmissionRef        = useRef(null);
   const turnAbortControllerRef   = useRef(null);
   const confirmEndInterviewRef   = useRef(null);
+  const typedAnswerRef           = useRef('');
 
   // Sync ref hooks
   useEffect(() => { currentQuestionRef.current = currentQuestion;  }, [currentQuestion]);
   useEffect(() => { isAIThinkingRef.current    = isAIThinking;    }, [isAIThinking]);
   useEffect(() => { finalTranscriptRef.current = finalTranscript; }, [finalTranscript]);
+  useEffect(() => { typedAnswerRef.current     = typedAnswer;     }, [typedAnswer]);
   useEffect(() => { isTypingModeRef.current    = isTypingMode;    }, [isTypingMode]);
   useEffect(() => { isPausedRef.current        = isPaused;        }, [isPaused]);
   useEffect(() => { isMutedRef.current         = isMuted;         }, [isMuted]);
@@ -747,7 +749,23 @@ const LiveInterview = () => {
       if (secs <= 0) {
         clearInterval(sessionTimerRef.current);
         addToast('Time limit reached! Concluding interview session...', 'info');
-        confirmEndInterview();
+
+        // Preserve and auto-submit any active typed or spoken candidate response
+        const activeTyped = typedAnswerRef.current ? typedAnswerRef.current.trim() : '';
+        const activeTranscript = finalTranscriptRef.current ? finalTranscriptRef.current.trim() : '';
+        if ((activeTyped.length > 0 || activeTranscript.length > 0) && !isSubmittingRef.current && submitAnswerRef.current) {
+          try {
+            submitAnswerRef.current();
+          } catch (err) {
+            console.warn('Auto-submit on timer expiry error:', err);
+          }
+        }
+
+        if (confirmEndInterviewRef.current) {
+          confirmEndInterviewRef.current();
+        } else {
+          confirmEndInterview();
+        }
       }
     };
 

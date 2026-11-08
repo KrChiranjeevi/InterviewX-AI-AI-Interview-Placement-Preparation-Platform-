@@ -42,6 +42,17 @@ const SYSTEM_DESIGN_DOMAINS = [
   'Caching & CDNs', 'Microservices Architecture', 'API Design & Gateways', 'System Security & Auth'
 ];
 
+const BEHAVIORAL_COMPETENCIES = [
+  'Teamwork & Collaboration',
+  'Conflict Resolution',
+  'Leadership & Influence',
+  'Ownership & Accountability',
+  'Adaptability & Resilience',
+  'Problem Solving & Critical Thinking',
+  'Communication & Empathy',
+  'Time Management & Prioritization'
+];
+
 const EXTEMPORE_CATEGORIES = [
   'Artificial Intelligence', 'Climate Change', 'Future of Work', 'Remote Jobs',
   'Coding Culture', 'Digital India', 'Women Leadership', 'Online Education',
@@ -107,6 +118,25 @@ const InterviewSetup = () => {
   const [extemporeCategory, setExtemporeCategory] = useState('Artificial Intelligence');
   const [prepTime, setPrepTime] = useState('45 Seconds');
 
+  // Behavioral Competencies state
+  const [behavioralCompetencies, setBehavioralCompetencies] = useState([
+    'Teamwork & Collaboration',
+    'Ownership & Accountability',
+    'Conflict Resolution'
+  ]);
+
+  const toggleCompetency = (comp) => {
+    if (behavioralCompetencies.includes(comp)) {
+      if (behavioralCompetencies.length === 1) {
+        toast.error('At least one competency must be selected!');
+        return;
+      }
+      setBehavioralCompetencies(behavioralCompetencies.filter(c => c !== comp));
+    } else {
+      setBehavioralCompetencies([...behavioralCompetencies, comp]);
+    }
+  };
+
   // Shared Configs
   const [role, setRole] = useState('Software Engineer');
   const [difficulty, setDifficulty] = useState('Medium');
@@ -114,6 +144,23 @@ const InterviewSetup = () => {
 
   const [showCheckModal, setShowCheckModal] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Synchronize duration choices when interview archetype changes
+  useEffect(() => {
+    if (interviewType === 'Extempore Round') {
+      if (!['2 Minutes', '3 Minutes', '5 Minutes'].includes(duration)) {
+        setDuration('3 Minutes');
+      }
+    } else if (interviewType === 'Group Discussion') {
+      if (!['5 Minutes', '10 Minutes', '15 Minutes', '20 Minutes'].includes(duration)) {
+        setDuration('10 Minutes');
+      }
+    } else {
+      if (!['10 Minutes', '20 Minutes', '30 Minutes', '40 Minutes', '60 Minutes'].includes(duration)) {
+        setDuration('30 Minutes');
+      }
+    }
+  }, [interviewType]);
 
   // Synchronize topics when technicalTrack changes
   useEffect(() => {
@@ -294,6 +341,12 @@ const InterviewSetup = () => {
     if (interviewType === 'Group Discussion') {
       return [`Topic Category: ${gdCategory}`, '5 AI Candidates + Moderator'];
     }
+    if (interviewType === 'HR Interview' || interviewType === 'Behavioral Interview') {
+      return [
+        `Competencies: ${behavioralCompetencies.slice(0, 3).join(', ')}${behavioralCompetencies.length > 3 ? '...' : ''}`,
+        interviewType === 'Behavioral Interview' ? 'STAR Framework Scenarios' : 'Communication & Culture Fit'
+      ];
+    }
     return ['STAR framework scenarios', 'Situation Handling', 'Leadership & Decision Making'];
   };
 
@@ -360,6 +413,7 @@ const InterviewSetup = () => {
         projectDescription: activeProjectDesc,
         technicalTrack,
         selectedTopics,
+        behavioralCompetencies,
         codingTrack,
         selectedProject,
         systemDesignDomain
@@ -820,12 +874,70 @@ const InterviewSetup = () => {
                       ? 'Checks communication, career motivation, corporate ethics, salary expectations, and teamwork.'
                       : 'Evaluates Leadership, Ownership, Decision Making, Conflict Resolution, and Adaptability using the STAR framework.'}
                   </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-purple-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5" /> Target Behavioral Competencies ({behavioralCompetencies.length})
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {BEHAVIORAL_COMPETENCIES.map((comp) => {
+                        const isSelected = behavioralCompetencies.includes(comp);
+                        return (
+                          <button
+                            key={comp}
+                            type="button"
+                            onClick={() => toggleCompetency(comp)}
+                            className={`text-xs px-3 py-1.5 rounded-xl font-semibold border transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-purple-500/20 border-purple-500 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.3)]'
+                                : 'bg-white/[0.02] border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-200'
+                            }`}
+                          >
+                            {isSelected ? '✓ ' : '+ '}{comp}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               )}
 
               {/* ─── 6. PROJECT DISCUSSION SETUP ────────────────────────────────────── */}
               {interviewType === 'Project Discussion' && (
                 <div className="space-y-4 bg-slate-900/60 border border-teal-500/20 p-5 rounded-3xl backdrop-blur-md">
+                  {/* Quick-Pick From Verified Resume */}
+                  {resumeProjects && resumeProjects.length > 0 && (
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-teal-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5" /> Pick From Uploaded Resume ({resumeProjects.length})
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {resumeProjects.map((p, idx) => {
+                          const pTitle = typeof p === 'string' ? p : (p.name || p.title || `Project #${idx + 1}`);
+                          const pDesc = typeof p === 'object' ? (p.description || p.details || (Array.isArray(p.tech) ? `Stack: ${p.tech.join(', ')}` : '') || '') : '';
+                          const isChosen = selectedProject === pTitle;
+                          return (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => {
+                                setSelectedProject(pTitle);
+                                if (pDesc) setCustomProjectDesc(pDesc);
+                              }}
+                              className={`text-[11px] px-3 py-1.5 rounded-xl font-semibold border transition-all cursor-pointer ${
+                                isChosen
+                                  ? 'bg-teal-500/20 border-teal-500 text-teal-300 shadow-[0_0_12px_rgba(20,184,166,0.3)]'
+                                  : 'bg-white/[0.02] border-white/10 text-slate-300 hover:border-teal-500/40 hover:text-white'
+                              }`}
+                            >
+                              {isChosen ? '✓ ' : '+ '}{pTitle}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold text-teal-400 uppercase tracking-widest flex items-center gap-1.5">
                       <FaFolderOpen className="w-3.5 h-3.5" /> Project Title

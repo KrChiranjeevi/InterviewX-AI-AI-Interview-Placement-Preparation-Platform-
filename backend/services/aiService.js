@@ -422,65 +422,143 @@ RULES:
     console.error("❌ generateQuestion failed completely. Using static fallback questions:", error.message);
     const roleLower = role.toLowerCase();
     const typeLower = type.toLowerCase();
+    const diffNorm = (difficulty || '').toLowerCase();
+    const isEasy = diffNorm === 'easy' || diffNorm === 'beginner';
+    const isHard = diffNorm === 'hard' || diffNorm === 'advanced' || diffNorm === 'expert';
     
     // HR Interview static fallbacks
     if (typeLower.includes('hr') || typeLower.includes('behavioral')) {
-      const hrFallbacks = [
+      const hrEasy = [
+        "Tell me about yourself, your educational background, and what motivated you to pursue a career in technology.",
+        "What are your greatest professional strengths, and what kind of work environment brings out your best performance?",
+        "Describe a team project you enjoyed working on and what role you played in its success."
+      ];
+      const hrMedium = [
         "Tell me about a challenging situation you faced at work/university and how you resolved it.",
         "Why do you want to join our company, and what values do you think you can bring to the team?",
         "Describe a time when you had a conflict with a team member. How did you handle it and what was the outcome?",
         "Where do you see yourself in the next 5 years, and how does this role align with your career goals?",
         "Tell me about a time you failed or made a mistake. What did you learn from it?"
       ];
-      return hrFallbacks[Math.floor(Math.random() * hrFallbacks.length)];
+      const hrHard = [
+        "Describe a high-stakes disagreement with senior leadership over project direction where you stood your ground. How did you navigate the trade-offs and accountability?",
+        "Tell me about a catastrophic production incident or delivery failure you personally owned. How did you manage stakeholder communication, mitigation, and post-mortem accountability?",
+        "How do you evaluate and handle underperforming team members when delivering against aggressive quarterly deadlines?"
+      ];
+      const hrPool = isEasy ? hrEasy : isHard ? hrHard : hrMedium;
+      return hrPool[Math.floor(Math.random() * hrPool.length)];
     }
 
     // Coding Interview static fallbacks
     if (typeLower.includes('coding')) {
       if (domain === 'SQL' || codingTrack === 'SQL' || subLanguage === 'SQL') {
+        if (isEasy) {
+          return `### Employees With High Salaries (SQL)\n\nWrite a SQL query to find employees whose salary is strictly greater than 50,000 from the Employee table.\n\n**Schema:**\nEmployee (id INT, name VARCHAR, salary INT)\n\n**Example:**\nInput: Employee table with salaries [40000, 60000, 80000]\nOutput: Employees with 60000 and 80000`;
+        }
+        if (isHard) {
+          return `### Department Top Three Salaries (SQL)\n\nWrite a SQL query to find the employees who earn the top three unique salaries in each department using the DENSE_RANK() window function.\n\n**Schema:**\nEmployee (id INT, name VARCHAR, salary INT, departmentId INT)\nDepartment (id INT, name VARCHAR)`;
+        }
         return `### Second Highest Salary (SQL)\n\nWrite a SQL query to find the second highest salary from the Employee table. If there is no second highest salary, return null.\n\n**Schema:**\nEmployee (id INT, salary INT)\n\n**Example:**\nInput: Employee table with salaries [100, 200, 300]\nOutput: 200`;
+      }
+      if (isEasy) {
+        return `### Valid Anagram\n\nGiven two strings \`s\` and \`t\`, return \`true\` if \`t\` is an anagram of \`s\`, and \`false\` otherwise.\n\nAn Anagram is a word or phrase formed by rearranging the letters of a different word or phrase.\n\n**Examples:**\nInput: s = "anagram", t = "nagaram"\nOutput: true\n\nInput: s = "rat", t = "car"\nOutput: false\n\n**Constraints:**\n• 1 <= s.length, t.length <= 5 * 10^4\n• s and t consist of lowercase English letters.`;
+      }
+      if (isHard) {
+        return `### Trapping Rain Water\n\nGiven \`n\` non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining.\n\n**Examples:**\nInput: height = [0,1,0,2,1,0,1,3,2,1,2,1]\nOutput: 6\n\n**Constraints:**\n• n == height.length\n• 1 <= n <= 2 * 10^4\n• 0 <= height[i] <= 10^5\n• Aim for O(N) time and O(1) auxiliary space.`;
       }
       return `### Two Sum\n\nGiven an array of integers \`nums\` and an integer \`target\`, return indices of the two numbers such that they add up to \`target\`.\n\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.\n\n**Examples:**\nInput: nums = [2,7,11,15], target = 9\nOutput: [0,1]\nExplanation: Because nums[0] + nums[1] == 9, we return [0, 1].\n\n**Constraints:**\n• 2 <= nums.length <= 10^4\n• -10^9 <= nums[i] <= 10^9\n• -10^9 <= target <= 10^9`;
     }
 
     // Resume Interview static fallbacks
     if (typeLower.includes('resume')) {
+      if (isEasy) {
+        return `Welcome! I've reviewed your resume profile. Could you give me an overview of your primary technical skill set and background?`;
+      }
+      if (isHard) {
+        return `Welcome! Looking closely at your resume, what was the most complex architectural bottleneck or scaling trade-off you personally owned, and how did you measure and benchmark the impact?`;
+      }
       return `Welcome! I've reviewed your resume profile. Could you walk me through the architecture and technical implementation of your most significant project?`;
     }
 
     // Project Discussion static fallbacks
     if (typeLower.includes('project')) {
+      if (isEasy) {
+        return `Welcome! Could you walk me through what "${projectName || 'your project'}" does and what technologies you used to build it?`;
+      }
+      if (isHard) {
+        return `Welcome! In "${projectName || 'your project'}", how did you design for data consistency, fault tolerance, and high availability under 100x traffic surges? What specific trade-offs did you make?`;
+      }
       return `Welcome! Could you walk me through the high-level architecture of "${projectName || 'your project'}", and what specific problem it was built to solve?`;
     }
 
     // System Design static fallbacks
     if (typeLower.includes('system design')) {
+      if (isEasy) {
+        return `Welcome! Let's start with basic requirements and high-level client-server architecture for a URL Shortener service (like Bitly). How would you structure the endpoints?`;
+      }
+      if (isHard) {
+        return `Welcome! Let's design a globally distributed real-time collaborative document editor (like Google Docs) with operational transformation/CRDTs, partition tolerance, and strict multi-region consensus under high network latency.`;
+      }
       return `Welcome! Let's design a high-throughput, distributed URL Shortener service (like Bitly). How would you approach the functional requirements, API design, and database schema?`;
     }
 
     // Technical Interview static fallbacks based on selected topics
     if (selectedTopics && selectedTopics.length > 0) {
       const topic = selectedTopics[0];
+      if (isEasy) {
+        return `Welcome! Can you explain the fundamental definition, core building blocks, and syntax of ${topic}?`;
+      }
+      if (isHard) {
+        return `Welcome! In ${topic}, how do you diagnose and eliminate sub-millisecond latency spikes, race conditions, and memory fragmentation under massive concurrency? What are the architectural trade-offs?`;
+      }
       return `Welcome! Can you explain the core concepts of ${topic} and how you implement them in production applications?`;
     }
 
     // Role-specific static fallbacks
     if (roleLower.includes('java')) {
-      return "Welcome! Can you explain the differences between an interface and an abstract class in Java, and when you would use each?";
+      return isEasy
+        ? "Welcome! What are the four core principles of Object-Oriented Programming (OOP) in Java?"
+        : isHard
+        ? "Welcome! In the Java Virtual Machine, how do the G1 and ZGC garbage collectors handle concurrent marking and heap compaction under multi-terabyte heaps?"
+        : "Welcome! Can you explain the differences between an interface and an abstract class in Java, and when you would use each?";
     } else if (roleLower.includes('python')) {
-      return "Welcome! Can you explain what decorators are in Python and provide a common use case?";
+      return isEasy
+        ? "Welcome! What is the difference between a list and a tuple in Python?"
+        : isHard
+        ? "Welcome! How does the Global Interpreter Lock (GIL) affect CPU-bound multithreading in Python, and how do subinterpreters or multiprocessing circumvent it?"
+        : "Welcome! Can you explain what decorators are in Python and provide a common use case?";
     } else if (roleLower.includes('react') || roleLower.includes('frontend') || roleLower.includes('javascript')) {
-      return "Welcome! Can you explain what closures are in JavaScript and how they are useful?";
+      return isEasy
+        ? "Welcome! What is the difference between let, const, and var in JavaScript?"
+        : isHard
+        ? "Welcome! In React 18 Concurrent Mode, how does the Fiber reconciler schedule time-sliced work using lane priority models and cooperative multitasking?"
+        : "Welcome! Can you explain what closures are in JavaScript and how they are useful?";
     } else if (roleLower.includes('node') || roleLower.includes('backend')) {
-      return "Welcome! Can you explain the Node.js event loop and how it handles asynchronous operations?";
+      return isEasy
+        ? "Welcome! What is Node.js, and why is it asynchronous?"
+        : isHard
+        ? "Welcome! In Node.js, how do libuv thread pools interact with the event loop phases, and how do backpressure bottlenecks manifest in stream pipelines?"
+        : "Welcome! Can you explain the Node.js event loop and how it handles asynchronous operations?";
     } else if (roleLower.includes('data science') || roleLower.includes('machine learning')) {
-      return "Welcome! Can you explain the difference between supervised and unsupervised learning?";
+      return isEasy
+        ? "Welcome! What is the difference between supervised and unsupervised learning?"
+        : isHard
+        ? "Welcome! How do you handle vanishing and exploding gradients in deep residual networks, and how does layer normalization stabilize attention heads?"
+        : "Welcome! Can you explain precision vs recall and when you prioritize one over the other?";
     } else if (roleLower.includes('sql') || roleLower.includes('database')) {
-      return "Welcome! Can you explain the differences between inner join and left join with examples?";
+      return isEasy
+        ? "Welcome! What is the primary difference between a WHERE clause and a HAVING clause in SQL?"
+        : isHard
+        ? "Welcome! How does MVCC (Multi-Version Concurrency Control) implement snapshot isolation in PostgreSQL, and how do write skew anomalies occur?"
+        : "Welcome! Can you explain the differences between inner join and left join with examples?";
     }
 
     // General software engineer fallback
-    return "Welcome! Can you tell me about the difference between SQL and NoSQL databases, and how you decide which one to use for a project?";
+    return isEasy
+      ? "Welcome! Can you explain what a REST API is and what HTTP status codes like 200, 404, and 500 represent?"
+      : isHard
+      ? "Welcome! How would you design a distributed lock mechanism with Redis using the Redlock algorithm, and what are its safety trade-offs during clock drift?"
+      : "Welcome! Can you tell me about the difference between SQL and NoSQL databases, and how you decide which one to use for a project?";
   }
 };
 
@@ -998,26 +1076,54 @@ OUTPUT FORMAT (STRICT — return ONLY valid JSON, no markdown wrapper):
         ];
 
     const typeLower3 = type ? type.toLowerCase() : '';
+    const isEasy = (difficulty || '').toLowerCase().includes('easy') || (difficulty || '').toLowerCase().includes('beginner');
+    const isHard = (difficulty || '').toLowerCase().includes('hard') || (difficulty || '').toLowerCase().includes('advanced') || (difficulty || '').toLowerCase().includes('expert');
     let fallbackQuestion = '';
     
     if (typeLower3.includes('hr')) {
-      const hrFallbacks = [
-        "Can you tell me about a time when you had to meet a tight deadline? How did you prioritize tasks and manage your time?",
-        "What would you say is your greatest professional strength, and how has it helped you deliver impact in past experiences?",
-        "Describe a situation where you had to work closely with a colleague who had a very different working style or viewpoint. How did you handle it?",
-        "Where do you see yourself professionally in the next three years, and how does this role align with your personal growth goals?",
-        "Tell me about a time you received constructive criticism or feedback that was difficult to hear. How did you respond and improve?",
-        "What kind of team environment and culture brings out your best performance and motivation?"
-      ];
+      const hrFallbacks = isEasy
+        ? [
+            "Can you briefly introduce yourself and share what interests you most about this role?",
+            "What do you consider your greatest professional strength, and can you share a quick example of it in action?",
+            "How do you prefer to collaborate with team members on a day-to-day basis?",
+            "What kind of work environment helps you do your best work?"
+          ]
+        : isHard
+        ? [
+            "Describe a high-stakes ethical dilemma or integrity challenge you observed or faced at work. How did you navigate it?",
+            "Tell me about a situation where you had to manage a severe cross-functional conflict where key stakeholders had fundamentally opposing priorities.",
+            "Can you share an experience where you had to deliver critical results under extreme ambiguity and competing organizational pressures?",
+            "Tell me about a time you had to deliver difficult, unpopular feedback to a peer or senior leader. How was it received and resolved?"
+          ]
+        : [
+            "Can you tell me about a time when you had to meet a tight deadline? How did you prioritize tasks and manage your time?",
+            "What would you say is your greatest professional strength, and how has it helped you deliver impact in past experiences?",
+            "Describe a situation where you had to work closely with a colleague who had a very different working style or viewpoint. How did you handle it?",
+            "Where do you see yourself professionally in the next three years, and how does this role align with your personal growth goals?",
+            "Tell me about a time you received constructive criticism or feedback that was difficult to hear. How did you respond and improve?",
+            "What kind of team environment and culture brings out your best performance and motivation?"
+          ];
       fallbackQuestion = hrFallbacks.find(q => !updatedState.askedFollowupQuestions.includes(q)) || hrFallbacks[0];
     } else if (typeLower3.includes('behavioral')) {
-      const behavFallbacks = [
-        "Tell me about a situation where you took personal ownership of a challenging project without being asked. What was your specific action and the outcome?",
-        "Describe a time you had to adapt quickly to a major shift in requirements or priorities mid-sprint. What actions did you take?",
-        "Tell me about a professional setback or failure. What did you learn from it, and how have you applied that lesson since?",
-        "Give an example of a difficult technical or product decision you had to make with ambiguous or incomplete data. What was your process?",
-        "Describe a time you resolved a disagreement within your team regarding technical direction or project architecture."
-      ];
+      const behavFallbacks = isEasy
+        ? [
+            "Tell me about a time you worked on a team project. What was your specific role and how did the project turn out?",
+            "Describe a time you had to learn a new tool or technology quickly to complete a task. How did you approach it?",
+            "Tell me about a goal you set for yourself and the steps you took to achieve it."
+          ]
+        : isHard
+        ? [
+            "Tell me about a catastrophic production incident or major project failure you were directly accountable for. How did you manage recovery, post-mortem, and systemic prevention?",
+            "Describe a high-impact technical decision you made where senior engineers strongly disagreed with your direction. How did you build consensus and prove the outcome?",
+            "Give an example of a situation where you had to trade off short-term business deadlines against severe long-term technical debt. What framework did you use to decide?"
+          ]
+        : [
+            "Tell me about a situation where you took personal ownership of a challenging project without being asked. What was your specific action and the outcome?",
+            "Describe a time you had to adapt quickly to a major shift in requirements or priorities mid-sprint. What actions did you take?",
+            "Tell me about a professional setback or failure. What did you learn from it, and how have you applied that lesson since?",
+            "Give an example of a difficult technical or product decision you had to make with ambiguous or incomplete data. What was your process?",
+            "Describe a time you resolved a disagreement within your team regarding technical direction or project architecture."
+          ];
       fallbackQuestion = behavFallbacks.find(q => !updatedState.askedFollowupQuestions.includes(q)) || behavFallbacks[0];
     } else if (typeLower3.includes('resume')) {
       const unaskedProj = resumeProjects && resumeProjects.find(p => {
@@ -1027,53 +1133,113 @@ OUTPUT FORMAT (STRICT — return ONLY valid JSON, no markdown wrapper):
 
       if (unaskedProj) {
         const pName = typeof unaskedProj === 'string' ? unaskedProj : (unaskedProj.name || unaskedProj.title || 'your project');
-        fallbackQuestion = `Could you walk me through the architecture of "${pName}", your individual contribution, and the main technical trade-offs you made?`;
+        fallbackQuestion = isEasy
+          ? `Could you explain the purpose of "${pName}" and your main responsibilities while working on it?`
+          : isHard
+          ? `In "${pName}", what was the most difficult architectural trade-off or performance bottleneck you resolved, and how did you benchmark the improvement?`
+          : `Could you walk me through the architecture of "${pName}", your individual contribution, and the main technical trade-offs you made?`;
       } else if (resumeSkills && resumeSkills.length > 0) {
         const unaskedSkill = (Array.isArray(resumeSkills) ? resumeSkills : [resumeSkills]).find(s => 
           !updatedState.askedFollowupQuestions || !updatedState.askedFollowupQuestions.some(q => q.includes(s))
         ) || (Array.isArray(resumeSkills) ? resumeSkills[0] : resumeSkills);
-        fallbackQuestion = `Your resume highlights hands-on experience with ${unaskedSkill}. Could you describe a challenging technical problem you solved using ${unaskedSkill}?`;
+        fallbackQuestion = isEasy
+          ? `Your resume mentions ${unaskedSkill}. How did you first get started with it, and what basic features did you use?`
+          : isHard
+          ? `Your resume highlights deep experience with ${unaskedSkill}. What are its internal concurrency or memory constraints when running under heavy production load?`
+          : `Your resume highlights hands-on experience with ${unaskedSkill}. Could you describe a challenging technical problem you solved using ${unaskedSkill}?`;
       } else {
-        fallbackQuestion = "Could you walk me through the technical decisions you made in your most significant project from your resume?";
+        fallbackQuestion = isEasy
+          ? "Could you give a high-level overview of the most interesting project on your resume?"
+          : isHard
+          ? "Looking at your resume projects, what was the most complex scalability constraint you tackled and how did you measure success?"
+          : "Could you walk me through the technical decisions you made in your most significant project from your resume?";
       }
     } else if (typeLower3.includes('coding')) {
-      const codingFallbacks = [
-        "What is the worst-case time complexity and auxiliary space complexity of your implementation, and could we optimize it further?",
-        "How does your algorithm handle edge cases such as empty inputs, single-element collections, duplicate values, or maximum integer bounds?",
-        "If the input dataset were too massive to fit into system RAM, how would you adapt your algorithm using external memory or streaming?",
-        "Can you walk me through your code line by line for an example input and explain the invariant maintained by your data structure?"
-      ];
+      const codingFallbacks = isEasy
+        ? [
+            "Can you walk me through your solution step by step using a simple sample input?",
+            "What is the big-O time complexity of your code, and does it use any auxiliary memory?",
+            "How would your code behave if the input collection were empty or contained only a single element?"
+          ]
+        : isHard
+        ? [
+            "Analyze the strict mathematical upper bound for space and time complexity, including hidden runtime allocations and call stack depth.",
+            "If this algorithm were executed in a concurrent multi-threaded environment, how would you protect against race conditions and lock contention?",
+            "If the input stream contained billions of elements exceeding physical RAM, how would you redesign this using external sorting or chunked streaming?"
+          ]
+        : [
+            "What is the worst-case time complexity and auxiliary space complexity of your implementation, and could we optimize it further?",
+            "How does your algorithm handle edge cases such as empty inputs, single-element collections, duplicate values, or maximum integer bounds?",
+            "If the input dataset were too massive to fit into system RAM, how would you adapt your algorithm using external memory or streaming?",
+            "Can you walk me through your code line by line for an example input and explain the invariant maintained by your data structure?"
+          ];
       fallbackQuestion = codingFallbacks.find(q => !updatedState.askedFollowupQuestions.includes(q)) || codingFallbacks[0];
     } else if (typeLower3.includes('system design')) {
-      const sdFallbacks = [
-        "Let's start by clarifying the functional and non-functional requirements: what read/write throughput and latency targets are we designing for?",
-        "Could you outline the high-level architecture and the API interfaces between clients and our backend services?",
-        "What database technology would you select for this workload, and how would you design the data model and partitioning strategy?",
-        "Where would you introduce caching or asynchronous message queues to reduce database load and smooth out traffic spikes?",
-        "How would you ensure high availability, fault tolerance, and data durability in the event of a datacenter or node failure?",
-        "What are the key trade-offs in your design regarding the CAP theorem, consistency models, and operational complexity?"
-      ];
+      const sdFallbacks = isEasy
+        ? [
+            "Could you explain the difference between vertical scaling and horizontal scaling in the context of this system?",
+            "What are the key advantages of using a RESTful API versus WebSockets for this client-server interaction?",
+            "Between relational SQL and NoSQL databases, which category would you consider first for storing user accounts and why?"
+          ]
+        : isHard
+        ? [
+            "How does your design address distributed consensus, network partitions (split-brain scenarios), and the CAP theorem trade-offs?",
+            "How would you prevent hot-partition bottlenecks and database write replication lag across multiple geographical regions?",
+            "If a catastrophic datacenter outage occurs mid-transaction, how do your write-ahead logs and distributed commit protocols guarantee consistency and zero data loss?"
+          ]
+        : [
+            "Let's start by clarifying the functional and non-functional requirements: what read/write throughput and latency targets are we designing for?",
+            "Could you outline the high-level architecture and the API interfaces between clients and our backend services?",
+            "What database technology would you select for this workload, and how would you design the data model and partitioning strategy?",
+            "Where would you introduce caching or asynchronous message queues to reduce database load and smooth out traffic spikes?",
+            "How would you ensure high availability, fault tolerance, and data durability in the event of a datacenter or node failure?",
+            "What are the key trade-offs in your design regarding the CAP theorem, consistency models, and operational complexity?"
+          ];
       fallbackQuestion = sdFallbacks.find(q => !updatedState.askedFollowupQuestions.includes(q)) || sdFallbacks[0];
     } else if (typeLower3.includes('project')) {
       const pName = projectName || 'your project';
-      const projFallbacks = [
-        `What was the most challenging technical problem or architectural bottleneck you faced while building "${pName}", and how did you resolve it?`,
-        `How did you handle database schema design, indexing, and data consistency in "${pName}"?`,
-        `If you had to scale "${pName}" to support a 50x increase in concurrent active users, what architectural changes would you prioritize?`,
-        `How did you approach automated testing, continuous integration, and monitoring for "${pName}"?`
-      ];
+      const projFallbacks = isEasy
+        ? [
+            `What is the primary problem "${pName}" solves, and who are its target users?`,
+            `What programming languages, libraries, and frameworks did you select to build "${pName}"?`,
+            `What was your personal favorite feature to implement in "${pName}"?`
+          ]
+        : isHard
+        ? [
+            `What was the most severe system bottleneck or concurrency issue in "${pName}", and how did you resolve it under production benchmarks?`,
+            `If "${pName}" had to handle a 100x traffic spike with 50,000 concurrent requests per second, where would the system fail first and how would you re-architect it?`,
+            `How did you handle distributed transactions, idempotent API design, and data synchronization across microservices in "${pName}"?`
+          ]
+        : [
+            `What was the most challenging technical problem or architectural bottleneck you faced while building "${pName}", and how did you resolve it?`,
+            `How did you handle database schema design, indexing, and data consistency in "${pName}"?`,
+            `If you had to scale "${pName}" to support a 50x increase in concurrent active users, what architectural changes would you prioritize?`,
+            `How did you approach automated testing, continuous integration, and monitoring for "${pName}"?`
+          ];
       fallbackQuestion = projFallbacks.find(q => !updatedState.askedFollowupQuestions.includes(q)) || projFallbacks[0];
     } else {
       // Technical Interview fallbacks based on selected topics
       const topic = selectedTopics.length > 0
         ? (selectedTopics.find(t => !updatedState.askedFollowupQuestions.some(q => q.includes(t))) || selectedTopics[0])
         : (technicalTrack || domain || 'core engineering');
-      const techFallbacks = [
-        `Can you explain a fundamental concept in ${topic} and describe how you've implemented it in a production scenario?`,
-        `What are the most common performance bottlenecks or memory management pitfalls in ${topic}, and how do you avoid them?`,
-        `How does ${topic} handle concurrency, state synchronization, or asynchronous task execution?`,
-        `What trade-offs do you consider when choosing between alternative architectural patterns or design decisions in ${topic}?`
-      ];
+      const techFallbacks = isEasy
+        ? [
+            `Can you explain what ${topic} is and describe a simple practical example where you would use it?`,
+            `What are the most fundamental building blocks or core principles of ${topic}?`,
+            `What is the difference between standard approaches versus basic implementations in ${topic}?`
+          ]
+        : isHard
+        ? [
+            `What are the internal execution mechanisms, garbage collection implications, or low-level memory allocation behaviors in ${topic}?`,
+            `How do you solve race conditions, thread safety, and deadlock risks in high-concurrency environments using ${topic}?`,
+            `What subtle performance pitfalls or hidden runtime costs exist in ${topic}, and how do you profile and eliminate them?`
+          ]
+        : [
+            `Can you explain a fundamental concept in ${topic} and describe how you've implemented it in a production scenario?`,
+            `What are the most common performance bottlenecks or memory management pitfalls in ${topic}, and how do you avoid them?`,
+            `How does ${topic} handle concurrency, state synchronization, or asynchronous task execution?`,
+            `What trade-offs do you consider when choosing between alternative architectural patterns or design decisions in ${topic}?`
+          ];
       fallbackQuestion = techFallbacks.find(q => !updatedState.askedFollowupQuestions.includes(q)) || techFallbacks[0];
     }
 

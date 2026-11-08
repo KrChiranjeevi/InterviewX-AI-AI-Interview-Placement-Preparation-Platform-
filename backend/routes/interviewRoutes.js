@@ -5,30 +5,148 @@ const Interview = require('../models/Interview');
 const Report = require('../models/Report');
 const { generateQuestion, analyzeAnswer, generateAIReport, generateConversationalResponse, generateMockEvidenceReport, generateGDTopic, generateGDParticipants, generateGDTurn, generateGDEvaluationReport, generateExtemporeTopic, generateExtemporeCrossQuestions, generateExtemporeReport } = require('../services/aiService');
 
+const VALID_ARCHETYPES = [
+  'Technical Interview',
+  'Coding Interview',
+  'Resume Interview',
+  'HR Interview',
+  'Behavioral Interview',
+  'Project Discussion',
+  'System Design Interview',
+  'System Design',
+  'Extempore Round',
+  'Extempore',
+  'Group Discussion'
+];
+
+const VALID_DIFFICULTIES = ['Easy', 'Medium', 'Hard', 'Beginner', 'Intermediate', 'Advanced', 'Expert'];
+
+const validateInterviewConfig = (body) => {
+  const {
+    interviewType,
+    difficulty,
+    duration,
+    resumeText,
+    technicalTrack,
+    domain,
+    selectedTopics,
+    codingTrack,
+    subLanguage,
+    selectedProject,
+    projectName,
+    systemDesignDomain
+  } = body || {};
+
+  // 1. Archetype Validation
+  if (!interviewType || !VALID_ARCHETYPES.includes(interviewType)) {
+    return {
+      valid: false,
+      status: 400,
+      message: `Invalid interview archetype '${interviewType || ''}'. Must be one of: ${VALID_ARCHETYPES.join(', ')}`
+    };
+  }
+
+  // 2. Difficulty Validation
+  const chosenDifficulty = difficulty || 'Medium';
+  if (!VALID_DIFFICULTIES.includes(chosenDifficulty)) {
+    return {
+      valid: false,
+      status: 400,
+      message: `Invalid difficulty '${chosenDifficulty}'. Must be one of: Easy, Medium, Hard.`
+    };
+  }
+
+  // 3. Duration Validation
+  const durStr = String(duration || '').trim();
+  const durMatch = durStr.match(/(\d+)/);
+  const parsedMinutes = durMatch ? parseInt(durMatch[1], 10) : 0;
+  if (parsedMinutes <= 0) {
+    return {
+      valid: false,
+      status: 400,
+      message: 'Invalid interview duration. A duration in minutes is required.'
+    };
+  }
+
+  // 4. Archetype-Specific Prerequisite Validations
+  if (interviewType === 'Resume Interview') {
+    if (!resumeText || typeof resumeText !== 'string' || resumeText.trim().length < 50) {
+      return {
+        valid: false,
+        status: 400,
+        message: 'A validated resume with readable content (at least 50 characters) is required to start a Resume Interview. Please upload or select a valid PDF or DOCX resume.'
+      };
+    }
+  } else if (interviewType === 'Technical Interview') {
+    if (!technicalTrack && !domain) {
+      return {
+        valid: false,
+        status: 400,
+        message: 'Technical Interview requires a technical track.'
+      };
+    }
+    if (!selectedTopics || !Array.isArray(selectedTopics) || selectedTopics.length === 0) {
+      return {
+        valid: false,
+        status: 400,
+        message: 'Technical Interview requires at least one selected topic.'
+      };
+    }
+  } else if (interviewType === 'Coding Interview') {
+    if (!codingTrack && !domain && !subLanguage) {
+      return {
+        valid: false,
+        status: 400,
+        message: 'Coding Interview requires a coding track or programming language.'
+      };
+    }
+  } else if (interviewType === 'Project Discussion') {
+    if (!selectedProject && !projectName && !domain) {
+      return {
+        valid: false,
+        status: 400,
+        message: 'Project Discussion requires a project title.'
+      };
+    }
+  } else if (interviewType.includes('System Design')) {
+    if (!systemDesignDomain && !domain) {
+      return {
+        valid: false,
+        status: 400,
+        message: 'System Design Interview requires a target system design domain.'
+      };
+    }
+  }
+
+  return {
+    valid: true,
+    chosenDifficulty,
+    parsedMinutes
+  };
+};
+
 const createInterview = async (req, res) => {
   const {
     interviewType, role, difficulty, duration, resumeSkills, resumeText,
     company, companyContext, domain, subLanguage, projectName, projectDescription,
     technicalTrack, selectedTopics, codingTrack, selectedProject, systemDesignDomain,
-    resumeId, resumeFilename, resumeSnapshot, resumeProjects, resumeExperience, resumeEducation
+    resumeId, resumeFilename, resumeSnapshot, resumeProjects, resumeExperience, resumeEducation,
+    behavioralCompetencies
   } = req.body;
 
   try {
-    // Validate Resume Interview requirement
-    if (interviewType === 'Resume Interview') {
-      if (!resumeText || typeof resumeText !== 'string' || resumeText.trim().length < 50) {
-        return res.status(400).json({ 
-          message: 'A validated resume with readable content is required to start a Resume Interview. Please upload or select a valid PDF or DOCX resume.' 
-        });
-      }
+    const validation = validateInterviewConfig(req.body);
+    if (!validation.valid) {
+      return res.status(validation.status).json({ message: validation.message });
     }
+    const chosenDifficulty = validation.chosenDifficulty;
 
     const interview = await Interview.create({
       userId: req.user._id,
       type: interviewType,
       role: role || 'Software Engineer',
       company: company || companyContext || '',
-      difficulty: difficulty || 'Intermediate',
+      difficulty: chosenDifficulty,
       duration: duration || '30 Minutes',
       resumeSkills: resumeSkills || [],
       resumeText: resumeText || '',
@@ -44,6 +162,7 @@ const createInterview = async (req, res) => {
       projectDescription: projectDescription || '',
       technicalTrack: technicalTrack || '',
       selectedTopics: selectedTopics || [],
+      behavioralCompetencies: behavioralCompetencies || [],
       codingTrack: codingTrack || '',
       selectedProject: selectedProject || '',
       systemDesignDomain: systemDesignDomain || '',
@@ -848,6 +967,10 @@ router.post('/:id/extempore-report', protect, getExtemporeReport);
 router.put('/:id/finish', protect, finishInterview);
 router.post('/:id/finish', protect, finishInterview);
 router.put('/:id/bookmark', protect, bookmarkQuestion);
+
+router.validateInterviewConfig = validateInterviewConfig;
+router.VALID_ARCHETYPES = VALID_ARCHETYPES;
+router.VALID_DIFFICULTIES = VALID_DIFFICULTIES;
 
 module.exports = router;
 
