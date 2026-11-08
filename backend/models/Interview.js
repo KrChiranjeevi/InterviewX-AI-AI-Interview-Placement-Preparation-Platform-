@@ -51,6 +51,31 @@ const interviewSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  resumeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Resume',
+    default: null
+  },
+  resumeFilename: {
+    type: String,
+    default: ''
+  },
+  resumeSnapshot: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
+  },
+  resumeProjects: {
+    type: Array,
+    default: []
+  },
+  resumeExperience: {
+    type: Array,
+    default: []
+  },
+  resumeEducation: {
+    type: Array,
+    default: []
+  },
   technicalTrack: {
     type: String,
     default: '',

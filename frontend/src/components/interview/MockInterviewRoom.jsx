@@ -500,22 +500,70 @@ const MockInterviewRoom = ({
                 <div className="flex-1 grid grid-cols-1 xl:grid-cols-2 gap-4 min-h-0 overflow-hidden mb-6">
                   {/* Left: Resume Section highlights */}
                   <div className="bg-slate-900/40 border border-white/10 rounded-2xl p-5 flex flex-col overflow-y-auto no-scrollbar">
-                    <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest block mb-4">Resume Profiler</span>
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest block">Candidate Resume Profile</span>
+                      {interview?.resumeFilename && (
+                        <span className="text-[10px] text-slate-400 bg-white/5 px-2 py-0.5 rounded border border-white/5 truncate max-w-[180px]">
+                          {interview.resumeFilename}
+                        </span>
+                      )}
+                    </div>
                     
                     <div className="space-y-4 font-mono text-[10px] text-slate-400">
                       <div className={`p-4 rounded-xl border transition-all ${activeHighlightSection === 'projects' ? 'border-amber-500/60 bg-amber-500/5' : 'border-white/5 bg-transparent'}`}>
-                        <span className="font-black text-white block uppercase tracking-widest mb-1.5">🚀 Projects Highlighted</span>
-                        <p className="text-slate-300 leading-relaxed">System microservices controller utilizing Redis key-value stores. Mapped scalable REST controllers with automated caching layers.</p>
+                        <span className="font-black text-white block uppercase tracking-widest mb-1.5">🚀 Projects Documented</span>
+                        {interview?.resumeProjects && interview.resumeProjects.length > 0 ? (
+                          <div className="space-y-2">
+                            {interview.resumeProjects.map((p, idx) => {
+                              const pTitle = typeof p === 'string' ? p : (p.name || p.title || 'Project');
+                              const pDesc = typeof p === 'object' ? (p.description || p.details || (Array.isArray(p.tech) ? p.tech.join(', ') : '') || '') : '';
+                              return (
+                                <div key={idx} className="border-l-2 border-amber-500/40 pl-2">
+                                  <span className="font-bold text-slate-200 block">{pTitle}</span>
+                                  {pDesc && <p className="text-slate-400 text-[10px] mt-0.5">{pDesc}</p>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-slate-300 leading-relaxed">{interview?.resumeText ? interview.resumeText.substring(0, 180) + '...' : 'Projects listed in candidate resume.'}</p>
+                        )}
                       </div>
 
                       <div className={`p-4 rounded-xl border transition-all ${activeHighlightSection === 'skills' ? 'border-amber-500/60 bg-amber-500/5' : 'border-white/5 bg-transparent'}`}>
-                        <span className="font-black text-white block uppercase tracking-widest mb-1.5">🛠️ Technical Skillsets</span>
-                        <p className="text-slate-300 leading-relaxed">Node.js, Express, Java, Spring Framework, SQL indexing, Docker pipelines.</p>
+                        <span className="font-black text-white block uppercase tracking-widest mb-1.5">🛠️ Verified Skillsets</span>
+                        {interview?.resumeSkills && interview.resumeSkills.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5 mt-1">
+                            {interview.resumeSkills.map((sk, idx) => (
+                              <span key={idx} className="bg-amber-500/10 border border-amber-500/20 text-amber-300 px-2 py-0.5 rounded text-[10px]">
+                                {sk}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-slate-300 leading-relaxed">Technical skills extracted from verified resume profile.</p>
+                        )}
                       </div>
 
                       <div className={`p-4 rounded-xl border transition-all ${activeHighlightSection === 'experience' ? 'border-amber-500/60 bg-amber-500/5' : 'border-white/5 bg-transparent'}`}>
-                        <span className="font-black text-white block uppercase tracking-widest mb-1.5">💼 Target Experience</span>
-                        <p className="text-slate-300 leading-relaxed">Software Intern at Tech Labs. Directed API architecture integration workflows.</p>
+                        <span className="font-black text-white block uppercase tracking-widest mb-1.5">💼 Experience &amp; Internships</span>
+                        {interview?.resumeExperience && interview.resumeExperience.length > 0 ? (
+                          <div className="space-y-2">
+                            {interview.resumeExperience.map((e, idx) => {
+                              const role = typeof e === 'string' ? e : (e.role || e.title || 'Position');
+                              const org = typeof e === 'object' ? (e.company || e.organization || '') : '';
+                              const details = typeof e === 'object' ? (e.responsibilities || e.description || '') : '';
+                              return (
+                                <div key={idx} className="border-l-2 border-amber-500/40 pl-2">
+                                  <span className="font-bold text-slate-200 block">{role} {org ? `@ ${org}` : ''}</span>
+                                  {details && <p className="text-slate-400 text-[10px] mt-0.5">{details}</p>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-slate-300 leading-relaxed">Experience and academic background documented in resume.</p>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -171,7 +171,12 @@ const roleGuides = {
   'AI Engineer': `AI Engineer: Emphasize LLM fine-tuning parameters, Retrieval Augmented Generation (RAG) vector pipelines, context length challenges, and embedding model comparisons.`
 };
 
-const generateQuestion = async (role, type, difficulty, history, resumeSkills = [], resumeText = '', company = '', domain = '', subLanguage = '', projectName = '', projectDescription = '', selectedTopics = [], technicalTrack = '', codingTrack = '') => {
+const generateQuestion = async (
+  role, type, difficulty, history, resumeSkills = [], resumeText = '', company = '',
+  domain = '', subLanguage = '', projectName = '', projectDescription = '',
+  selectedTopics = [], technicalTrack = '', codingTrack = '', systemDesignDomain = '',
+  resumeProjects = [], resumeExperience = [], resumeEducation = []
+) => {
   try {
     const difficultyGuide = {
       'Beginner': `BEGINNER level: Ask basic definitions, fundamental syntax rules, and simple single-variable iterations. Keep it clear and introductory.`,
@@ -274,11 +279,30 @@ Do NOT ask general DSA questions, and do NOT ask language questions unless they 
 `;
         }
       } else if (typeLower.includes('resume')) {
+        let resumeDetails = '';
+        if (resumeProjects && resumeProjects.length > 0) {
+          resumeDetails += `\nDocumented Projects: ${resumeProjects.map(p => typeof p === 'string' ? p : `${p.name || p.title || 'Project'}: ${p.description || p.details || (Array.isArray(p.tech) ? p.tech.join(', ') : '') || ''}`).join('; ')}`;
+        }
+        if (resumeExperience && resumeExperience.length > 0) {
+          resumeDetails += `\nDocumented Experience: ${resumeExperience.map(e => typeof e === 'string' ? e : `${e.role || e.title || 'Role'} at ${e.company || e.organization || 'Company'}: ${e.responsibilities || e.description || ''}`).join('; ')}`;
+        }
+        if (resumeEducation && resumeEducation.length > 0) {
+          resumeDetails += `\nDocumented Education: ${resumeEducation.map(ed => typeof ed === 'string' ? ed : `${ed.degree || ''} ${ed.institution ? `@ ${ed.institution}` : ''}`).join('; ')}`;
+        }
         mockSpecificPrompt = `
 STRICT COMPLIANCE DIRECTIVE:
-You are conducting a Resume Interview based on the candidate's resume context: "${resumeText}".
-You MUST ONLY ask questions regarding the candidate's: Projects, Internships, Skills, Education, Achievements, Certifications, and Leadership listed in the resume.
-Do NOT ask coding questions, do NOT ask database/SQL questions, do NOT ask DSA questions, and do NOT ask general HR behavior questions. Focus strictly on their documented experience.
+You are conducting an authentic Resume Interview strictly grounded in the candidate's actual uploaded resume:
+Resume Context:
+"${(resumeText || '').substring(0, 3000)}"
+${resumeDetails}
+
+STRICT RESUME GROUNDING RULES:
+1. Every question MUST be grounded in the candidate's actual documented resume: specific projects, internships, roles, education, and listed technologies.
+2. DO NOT invent, hallucinate, or assume any company, project, technology, framework, metric, or role that is NOT listed in the resume.
+3. If asking about a project, reference the actual project name from the resume and ask about their specific role, architecture, database, API decisions, and challenges.
+4. If asking about a technology, ask how they used it within their listed projects or experience.
+5. If a resume detail is brief, ask the candidate to elaborate on that specific item.
+6. FORBIDDEN: Do NOT ask generic leetcode/DSA algorithm questions, unrelated framework trivia, or generic HR questions. Stay 100% grounded in their documented background.
 `;
       } else if (typeLower.includes('hr')) {
         mockSpecificPrompt = `
@@ -446,6 +470,10 @@ const generateConversationalResponse = async ({
   systemDesignDomain = '',
   resumeText = '',
   resumeSkills = [],
+  resumeProjects = [],
+  resumeExperience = [],
+  resumeEducation = [],
+  resumeSnapshot = null,
 }) => {
   try {
     const wordCount = userAnswer ? userAnswer.trim().split(/\s+/).length : 0;
@@ -474,12 +502,35 @@ You MUST ONLY ask behavioral questions using STAR method (Situation, Task, Actio
 Topics: Leadership, Ownership, Adaptability, Decision Making, Conflict Resolution, Communication, Failure, Teamwork.
 FORBIDDEN: No coding questions, no technical theory questions.`;
     } else if (typeLower2.includes('resume')) {
-      const skillsList = resumeSkills.length > 0 ? resumeSkills.join(', ') : 'listed skills';
+      const skillsList = resumeSkills && resumeSkills.length > 0 ? (Array.isArray(resumeSkills) ? resumeSkills.join(', ') : resumeSkills) : 'listed skills';
+      let projectsStr = '';
+      if (resumeProjects && resumeProjects.length > 0) {
+        projectsStr = `\nDocumented Projects: ${resumeProjects.map(p => typeof p === 'string' ? p : `${p.name || p.title || 'Project'}: ${p.description || p.details || (Array.isArray(p.tech) ? p.tech.join(', ') : '') || ''}`).join('; ')}`;
+      }
+      let expStr = '';
+      if (resumeExperience && resumeExperience.length > 0) {
+        expStr = `\nDocumented Experience: ${resumeExperience.map(e => typeof e === 'string' ? e : `${e.role || e.title || 'Role'} at ${e.company || e.organization || 'Company'}: ${e.responsibilities || e.description || ''}`).join('; ')}`;
+      }
+      let eduStr = '';
+      if (resumeEducation && resumeEducation.length > 0) {
+        eduStr = `\nDocumented Education: ${resumeEducation.map(ed => typeof ed === 'string' ? ed : `${ed.degree || ''} ${ed.institution ? `@ ${ed.institution}` : ''}`).join('; ')}`;
+      }
+
       domainContext = `STRICT RESUME INTERVIEW MODE:
-You MUST ONLY ask questions grounded in the candidate's resume.
-Resume Skills: ${skillsList}.
-Resume Content: ${resumeText ? resumeText.substring(0, 1000) : 'Resume uploaded — ask about their projects, experience, education, and skills.'}
-FORBIDDEN: Do NOT ask generic coding challenges. Ask ONLY about their documented experience, specific projects, internships, technologies they listed.`;
+You are conducting an authentic Resume Interview strictly grounded in the candidate's actual uploaded resume.
+Resume Skills: ${skillsList}
+${projectsStr}
+${expStr}
+${eduStr}
+Resume Text Content:
+${(resumeText || '').substring(0, 3000)}
+
+STRICT RESUME GROUNDING RULES:
+1. Every question and follow-up MUST be traceable to the uploaded resume or a direct follow-up to the candidate's previous response.
+2. DO NOT invent, hallucinate, or assume any companies, projects, job titles, achievements, technologies, or metrics not in the resume.
+3. If asking about a project, reference the actual project name from the resume and probe their architectural choices, database design, API design, tech stack decisions, challenges, trade-offs, and personal contribution.
+4. When a project topic has been thoroughly explored, transition naturally to another documented project, internship, or technical skill.
+5. FORBIDDEN: Do not ask leetcode coding challenges, generic DSA, or unrelated framework trivia. Keep all questions tied to their actual documented background.`;
     } else if (typeLower2.includes('technical')) {
       const topicsStr = selectedTopics.length > 0 ? selectedTopics.join(', ') : (technicalTrack || domain);
       domainContext = `STRICT TECHNICAL INTERVIEW MODE:

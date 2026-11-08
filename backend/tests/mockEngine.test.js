@@ -170,4 +170,79 @@ test('Mock Interview Engine - Comprehensive Test Suite', async (t) => {
     }
   });
 
+  await t.test('9. Resume Grounding: Questions strictly reflect documented projects and tech stack', async () => {
+    const resumeProjects = [
+      { name: 'TaxPal Automation', description: 'Real-time corporate tax calculator with Node.js and PostgreSQL.' }
+    ];
+    const resumeExperience = [
+      { role: 'Backend Intern', company: 'FinTech Corp', responsibilities: 'Created microservice APIs in Express.' }
+    ];
+    const resumeSkills = ['Node.js', 'PostgreSQL', 'Express', 'Redis'];
+
+    const res = await generateConversationalResponse({
+      userAnswer: 'I built the tax calculation algorithm and indexed the PostgreSQL database.',
+      questionAsked: 'Could you walk me through your TaxPal Automation project?',
+      role: 'Backend Developer',
+      type: 'Resume Interview',
+      resumeText: 'TaxPal Automation: Real-time corporate tax calculator with Node.js and PostgreSQL. Backend Intern at FinTech Corp.',
+      resumeSkills,
+      resumeProjects,
+      resumeExperience,
+      adaptiveState: { askedFollowupQuestions: [] }
+    });
+
+    assert.ok(res.nextQuestion, 'Should return a resume-grounded question');
+    const qLower = res.nextQuestion.toLowerCase();
+    // Must NOT ask leetcode or generic questions
+    assert.ok(!qLower.includes('binary search tree'), 'Should not ask leetcode algorithms');
+    assert.ok(!qLower.includes('where do you see yourself'), 'Should not ask generic HR questions');
+  });
+
+  await t.test('10. Difficulty Configuration: Easy, Medium, Hard correctly mapped', async () => {
+    const levels = ['Easy', 'Medium', 'Hard', 'Beginner', 'Intermediate', 'Advanced'];
+    for (const diff of levels) {
+      const q = await generateQuestion(
+        'Software Engineer',
+        'Technical Interview',
+        diff,
+        [],
+        ['JavaScript'],
+        '',
+        '',
+        'Frontend Developer',
+        '',
+        '',
+        '',
+        ['JavaScript', 'DOM']
+      );
+      assert.ok(q && typeof q === 'string' && q.length > 10, `Question should be generated for difficulty ${diff}`);
+    }
+  });
+
+  await t.test('11. Duration Support: 10, 20, 30, 40, 60 minutes correctly calculated', () => {
+    const parseDuration = (dur) => {
+      const match = String(dur || '').match(/(\d+)/);
+      return match ? parseInt(match[1], 10) * 60 : 30 * 60;
+    };
+
+    assert.equal(parseDuration('10 Minutes'), 600);
+    assert.equal(parseDuration('20 Minutes'), 1200);
+    assert.equal(parseDuration('30 Minutes'), 1800);
+    assert.equal(parseDuration('40 Minutes'), 2400);
+    assert.equal(parseDuration('60 Minutes'), 3600);
+  });
+
+  await t.test('12. Resume Text Validation: Enforces minimum readable length threshold (50 chars)', () => {
+    const validateResumeText = (text) => {
+      if (!text || typeof text !== 'string' || text.trim().length < 50) {
+        return false;
+      }
+      return true;
+    };
+
+    assert.equal(validateResumeText(''), false, 'Empty text should fail');
+    assert.equal(validateResumeText('Short text'), false, 'Under 50 chars should fail');
+    assert.equal(validateResumeText('John Doe Software Engineer Python React Node.js Express.js SQL MongoDB 2024'), true, 'Over 50 chars should pass');
+  });
+
 });

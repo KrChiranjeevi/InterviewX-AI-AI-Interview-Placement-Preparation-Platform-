@@ -7,7 +7,11 @@ import {
   FaLaptopCode, FaUserTie, FaCode, FaFileAlt, FaCheck, FaVideo, FaMicrophone,
   FaArrowRight, FaClock, FaBriefcase, FaGlobe, FaVolumeUp, FaTasks, FaUpload, FaDatabase, FaFolderOpen
 } from 'react-icons/fa';
-import { Sparkles, Brain, Shield, CheckCircle2, AlertTriangle, Monitor, Wifi, Volume2, Users, MessageSquare, Code2, Server, Terminal, Layers } from 'lucide-react';
+import {
+  Sparkles, Brain, Shield, CheckCircle2, AlertTriangle, Monitor, Wifi, Volume2,
+  Users, MessageSquare, Code2, Server, Terminal, Layers, Trash2, FileText, CheckCircle,
+  UploadCloud, ChevronDown, RefreshCw, AlertCircle
+} from 'lucide-react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -78,6 +82,17 @@ const InterviewSetup = () => {
   const [uploadedResumeName, setUploadedResumeName] = useState(resumeSkills.length > 0 ? 'uploaded_resume.pdf' : '');
   const [uploadedResumeText, setUploadedResumeText] = useState(resumeText);
   const [parsedSkills, setParsedSkills] = useState(resumeSkills);
+  const [resumeId, setResumeId] = useState(null);
+  const [resumeCandidateName, setResumeCandidateName] = useState('');
+  const [resumeProjects, setResumeProjects] = useState([]);
+  const [resumeExperience, setResumeExperience] = useState([]);
+  const [resumeEducation, setResumeEducation] = useState([]);
+  const [resumeSnapshot, setResumeSnapshot] = useState(null);
+  const [resumeWordCount, setResumeWordCount] = useState(0);
+  const [resumeParseError, setResumeParseError] = useState('');
+  const [existingResumes, setExistingResumes] = useState([]);
+  const [isLoadingExistingResumes, setIsLoadingExistingResumes] = useState(false);
+  const [showExistingSelector, setShowExistingSelector] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
   // Project Discussion state
@@ -94,8 +109,8 @@ const InterviewSetup = () => {
 
   // Shared Configs
   const [role, setRole] = useState('Software Engineer');
-  const [difficulty, setDifficulty] = useState('Intermediate');
-  const [duration, setDuration] = useState('10 Minutes');
+  const [difficulty, setDifficulty] = useState('Medium');
+  const [duration, setDuration] = useState('30 Minutes');
 
   const [showCheckModal, setShowCheckModal] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -106,6 +121,27 @@ const InterviewSetup = () => {
       setSelectedTopics(TECHNICAL_TRACKS[technicalTrack]);
     }
   }, [technicalTrack]);
+
+  // Load existing resumes from user account when Resume Interview is chosen
+  useEffect(() => {
+    if (interviewType === 'Resume Interview') {
+      loadMyResumes();
+    }
+  }, [interviewType]);
+
+  const loadMyResumes = async () => {
+    setIsLoadingExistingResumes(true);
+    try {
+      const { data } = await api.get('/resume/my-resumes');
+      if (Array.isArray(data)) {
+        setExistingResumes(data);
+      }
+    } catch (err) {
+      console.warn('Unable to fetch account resumes:', err);
+    } finally {
+      setIsLoadingExistingResumes(false);
+    }
+  };
 
   const interviewTypes = [
     { id: 'Technical Interview', icon: <FaLaptopCode className="text-xl text-blue-400" />, title: 'Technical Interview', desc: 'Track-focused technical theory & dynamic topics drilldown.', time: '30m', diff: 'Med-Hard', preview: 'Track + Topic Selection' },
@@ -124,35 +160,103 @@ const InterviewSetup = () => {
     'SDE Intern', 'Data Analyst', 'AI Engineer', 'ML Engineer', 'Cloud Engineer', 'DevOps Engineer'
   ];
 
-  const difficulties = ['Beginner', 'Intermediate', 'Advanced'];
+  const difficulties = ['Easy', 'Medium', 'Hard'];
   const durations = interviewType === 'Extempore Round'
     ? ['2 Minutes', '3 Minutes', '5 Minutes']
     : interviewType === 'Group Discussion' 
     ? ['5 Minutes', '10 Minutes', '15 Minutes', '20 Minutes']
-    : ['15 Minutes', '30 Minutes', '45 Minutes', '60 Minutes'];
+    : ['10 Minutes', '20 Minutes', '30 Minutes', '40 Minutes', '60 Minutes'];
 
-  // Handle Resume Upload
+  // Handle Resume Upload & Server-side extraction
   const handleResumeFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setIsUploading(true);
+    setResumeParseError('');
     try {
       const formData = new FormData();
       formData.append('resume', file);
+      formData.append('targetRole', role || 'Software Engineer');
       const { data } = await api.post('/resume/parse', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setUploadedResumeName(file.name);
-      setUploadedResumeText(data.resumeText || '');
-      setParsedSkills(data.skills || []);
-      toast.success('Resume uploaded & parsed successfully!');
+      if (data.success) {
+        setResumeId(data.resumeId);
+        setUploadedResumeName(data.filename || file.name);
+        setUploadedResumeText(data.resumeText || '');
+        setParsedSkills(data.skills || []);
+        setResumeCandidateName(data.candidateName || '');
+        setResumeProjects(data.projects || []);
+        setResumeExperience(data.experience || []);
+        setResumeEducation(data.education || []);
+        setResumeSnapshot(data.snapshot || null);
+        setResumeWordCount(data.wordCount || 0);
+        setShowExistingSelector(false);
+        toast.success('Resume parsed and verified successfully!');
+      } else {
+        throw new Error(data.message || 'Parsing failed');
+      }
     } catch (err) {
-      console.warn('Resume upload fallback parsing:', err);
-      setUploadedResumeName(file.name);
-      toast.success('Resume attached successfully!');
+      console.error('Resume upload error:', err);
+      const msg = err.response?.data?.message || err.message || 'Unable to extract readable text. The file may be empty, image-only (scanned), or unsupported.';
+      setResumeParseError(msg);
+      toast.error(msg);
+      setResumeId(null);
+      setUploadedResumeName('');
+      setUploadedResumeText('');
+      setParsedSkills([]);
+      setResumeProjects([]);
+      setResumeExperience([]);
+      setResumeEducation([]);
+      setResumeSnapshot(null);
+    } finally {
+      setIsUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  // Select an existing resume already saved in the account
+  const handleSelectExistingResume = async (existingId) => {
+    if (!existingId) return;
+    setIsUploading(true);
+    setResumeParseError('');
+    try {
+      const { data } = await api.post('/resume/select-existing', { resumeId: existingId });
+      if (data.success) {
+        setResumeId(data.resumeId);
+        setUploadedResumeName(data.filename);
+        setUploadedResumeText(data.resumeText || '');
+        setParsedSkills(data.skills || []);
+        setResumeCandidateName(data.candidateName || '');
+        setResumeProjects(data.projects || []);
+        setResumeExperience(data.experience || []);
+        setResumeEducation(data.education || []);
+        setResumeSnapshot(data.snapshot || null);
+        setResumeWordCount(data.wordCount || 0);
+        setShowExistingSelector(false);
+        toast.success(`Selected "${data.filename}" successfully!`);
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Failed to select resume profile.';
+      setResumeParseError(msg);
+      toast.error(msg);
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleClearResume = () => {
+    setResumeId(null);
+    setUploadedResumeName('');
+    setUploadedResumeText('');
+    setParsedSkills([]);
+    setResumeCandidateName('');
+    setResumeProjects([]);
+    setResumeExperience([]);
+    setResumeEducation([]);
+    setResumeSnapshot(null);
+    setResumeWordCount(0);
+    setResumeParseError('');
   };
 
   const toggleTopic = (topic) => {
@@ -193,11 +297,21 @@ const InterviewSetup = () => {
     return ['STAR framework scenarios', 'Situation Handling', 'Leadership & Decision Making'];
   };
 
+  const isResumeValid = Boolean(uploadedResumeText && uploadedResumeText.trim().length >= 50);
+
   const handleLaunchRequest = () => {
+    if (interviewType === 'Resume Interview' && !isResumeValid) {
+      toast.error('A verified resume is required for Resume Interview. Please upload or select a PDF or DOCX resume.');
+      return;
+    }
     setShowCheckModal(true);
   };
 
   const handleStartInterview = async () => {
+    if (interviewType === 'Resume Interview' && !isResumeValid) {
+      toast.error('Cannot start Resume Interview without a valid resume.');
+      return;
+    }
     setLoading(true);
     try {
       let activeDomain = '';
@@ -234,6 +348,12 @@ const InterviewSetup = () => {
         duration,
         resumeSkills: parsedSkills,
         resumeText: uploadedResumeText,
+        resumeId: resumeId || null,
+        resumeFilename: uploadedResumeName,
+        resumeSnapshot,
+        resumeProjects,
+        resumeExperience,
+        resumeEducation,
         domain: activeDomain,
         subLanguage: activeSubLanguage,
         projectName: activeProjectName,
@@ -248,7 +368,7 @@ const InterviewSetup = () => {
       navigate(`/interview/live/${res.data._id}`);
     } catch (err) {
       console.error(err);
-      toast.error('Failed to initialize mock interview chamber');
+      toast.error(err.response?.data?.message || 'Failed to initialize mock interview chamber');
     } finally {
       setLoading(false);
     }
@@ -446,36 +566,246 @@ const InterviewSetup = () => {
 
               {/* ─── 3. RESUME INTERVIEW SETUP ──────────────────────────────────────── */}
               {interviewType === 'Resume Interview' && (
-                <div className="space-y-5 bg-slate-900/60 border border-amber-500/20 p-5 rounded-3xl backdrop-blur-md">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-amber-400 uppercase tracking-widest flex items-center gap-1.5">
-                      <FaFileAlt className="w-3.5 h-3.5" /> Resume Profile
-                    </label>
-                    
-                    <div className="flex flex-col sm:flex-row items-center gap-4 bg-slate-950/80 border border-slate-800 p-4 rounded-2xl">
-                      <div className="flex-1">
-                        <h4 className="text-xs font-bold text-white">{uploadedResumeName || 'No Resume Uploaded'}</h4>
-                        <p className="text-[10px] text-slate-400 mt-0.5">
-                          {parsedSkills.length > 0 ? `${parsedSkills.length} Skills Extracted` : 'Upload your resume to tailor questions.'}
-                        </p>
-                      </div>
-                      <label className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer transition-all">
-                        <FaUpload className="w-3.5 h-3.5" />
-                        {isUploading ? 'Parsing...' : 'Upload PDF Resume'}
-                        <input type="file" accept=".pdf,.doc,.docx" onChange={handleResumeFileUpload} className="hidden" />
-                      </label>
+                <div className="space-y-5 bg-slate-900/80 border border-amber-500/30 p-6 rounded-3xl backdrop-blur-xl shadow-xl">
+                  {/* Header / Intro */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-4">
+                    <div>
+                      <h3 className="text-sm font-black text-amber-400 uppercase tracking-widest flex items-center gap-2">
+                        <FaFileAlt className="w-4 h-4" /> Dedicated Resume Chamber Setup
+                      </h3>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Upload or select a verified resume. Sarah will strictly question you on your documented projects, experience, and skills.
+                      </p>
                     </div>
+
+                    {isResumeValid && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Grounded Profile Active
+                      </span>
+                    )}
                   </div>
 
-                  {parsedSkills.length > 0 && (
-                    <div className="space-y-1.5">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Extracted Profile Skills:</span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {parsedSkills.map((sk, idx) => (
-                          <span key={idx} className="bg-amber-500/10 border border-amber-500/20 text-amber-300 px-2.5 py-1 rounded-lg text-[10px] font-semibold">
-                            {sk}
+                  {/* Parse Error Notification */}
+                  {resumeParseError && (
+                    <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs flex items-start gap-3">
+                      <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <span className="font-bold text-rose-300 block">Resume Extraction Failed:</span>
+                        <p className="text-rose-200/90 leading-relaxed">{resumeParseError}</p>
+                        <p className="text-[11px] text-rose-300/80 mt-1">
+                          Tip: If you uploaded a scanned image or screenshot, export it as a text-based PDF or Word document (.docx) so the AI can read your text.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Uploading State Spinner */}
+                  {isUploading && (
+                    <div className="p-8 rounded-2xl bg-amber-500/5 border border-amber-500/20 text-center space-y-3">
+                      <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                      <div className="text-xs font-bold text-amber-300">Parsing and Analyzing Resume Content...</div>
+                      <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
+                        Extracting candidate details, technical skillsets, projects, and work experience on the server...
+                      </p>
+                    </div>
+                  )}
+
+                  {/* View 1: When a Valid Resume is Verified and Loaded */}
+                  {!isUploading && isResumeValid && (
+                    <div className="space-y-4">
+                      {/* File Card & Replacement Actions */}
+                      <div className="bg-slate-950 p-4 rounded-2xl border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                            <FileText className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-xs font-bold text-white">{uploadedResumeName || 'candidate_resume.pdf'}</h4>
+                              <span className="text-[9px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">
+                                Verified
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-slate-400 mt-0.5">
+                              {resumeCandidateName ? `${resumeCandidateName} • ` : ''}
+                              {resumeWordCount ? `${resumeWordCount} words extracted` : `${parsedSkills.length} skills indexed`}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <label className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 hover:text-white cursor-pointer transition-all flex items-center gap-1.5">
+                            <RefreshCw className="w-3.5 h-3.5" /> Replace Resume
+                            <input type="file" accept=".pdf,.docx,.txt" onChange={handleResumeFileUpload} className="hidden" />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={handleClearResume}
+                            className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-300 transition-all cursor-pointer"
+                            title="Remove Resume"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Extracted Snapshot Preview Card */}
+                      <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-4">
+                        {/* Skills Section */}
+                        {parsedSkills.length > 0 && (
+                          <div className="space-y-1.5">
+                            <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest block">
+                              Verified Technical Skills ({parsedSkills.length})
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {parsedSkills.map((sk, idx) => (
+                                <span key={idx} className="bg-amber-500/10 border border-amber-500/20 text-amber-300 px-2.5 py-1 rounded-lg text-[10px] font-semibold">
+                                  {sk}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Projects Section */}
+                        {resumeProjects && resumeProjects.length > 0 && (
+                          <div className="space-y-2 border-t border-white/5 pt-3">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+                              Documented Projects ({resumeProjects.length})
+                            </span>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                              {resumeProjects.map((p, idx) => {
+                                const pTitle = typeof p === 'string' ? p : (p.name || p.title || `Project #${idx + 1}`);
+                                const pDesc = typeof p === 'object' ? (p.description || p.details || (Array.isArray(p.tech) ? p.tech.join(', ') : '') || '') : '';
+                                return (
+                                  <div key={idx} className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 text-[11px]">
+                                    <span className="font-bold text-slate-200 block truncate">{pTitle}</span>
+                                    {pDesc && <p className="text-slate-400 text-[10px] mt-0.5 line-clamp-2">{pDesc}</p>}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Experience / Internships Section */}
+                        {resumeExperience && resumeExperience.length > 0 && (
+                          <div className="space-y-2 border-t border-white/5 pt-3">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+                              Work Experience &amp; Internships ({resumeExperience.length})
+                            </span>
+                            <div className="space-y-1.5">
+                              {resumeExperience.map((e, idx) => {
+                                const roleName = typeof e === 'string' ? e : (e.role || e.title || 'Role');
+                                const companyName = typeof e === 'object' ? (e.company || e.organization || '') : '';
+                                const desc = typeof e === 'object' ? (e.responsibilities || e.description || '') : '';
+                                return (
+                                  <div key={idx} className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 text-[11px]">
+                                    <span className="font-bold text-slate-200 block">{roleName} {companyName ? `@ ${companyName}` : ''}</span>
+                                    {desc && <p className="text-slate-400 text-[10px] mt-0.5 line-clamp-1">{desc}</p>}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Education Section */}
+                        {resumeEducation && resumeEducation.length > 0 && (
+                          <div className="border-t border-white/5 pt-3">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">
+                              Education Background
+                            </span>
+                            <div className="text-[11px] text-slate-300">
+                              {resumeEducation.map((edu, idx) => {
+                                const deg = typeof edu === 'string' ? edu : (edu.degree || edu.institution || 'Degree');
+                                const inst = typeof edu === 'object' && edu.institution && edu.degree ? ` - ${edu.institution}` : '';
+                                return <div key={idx}>• {deg}{inst}</div>;
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Grounding Directive Assurance */}
+                        <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-200 flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                          <span>
+                            <strong>AI Interviewer Grounding:</strong> Questions will focus exclusively on your real projects, role contributions, and listed tech stack. No generic trivia.
                           </span>
-                        ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* View 2: When No Resume is Uploaded / Need Upload */}
+                  {!isUploading && !isResumeValid && (
+                    <div className="space-y-4">
+                      {/* Dropzone Card */}
+                      <label className="border-2 border-dashed border-amber-500/30 hover:border-amber-500/60 bg-slate-950/60 hover:bg-amber-500/5 p-8 rounded-3xl flex flex-col items-center justify-center text-center cursor-pointer transition-all group">
+                        <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform mb-3">
+                          <UploadCloud className="w-7 h-7" />
+                        </div>
+                        <h4 className="text-sm font-bold text-white">Upload Your PDF or DOCX Resume</h4>
+                        <p className="text-xs text-slate-400 mt-1 max-w-sm">
+                          Click to select a document (.pdf, .docx). The server will extract and verify your skills, projects, and background.
+                        </p>
+                        <span className="mt-3 px-4 py-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold inline-flex items-center gap-1.5">
+                          <FaUpload className="w-3 h-3" /> Browse Files
+                        </span>
+                        <input type="file" accept=".pdf,.docx,.txt" onChange={handleResumeFileUpload} className="hidden" />
+                      </label>
+
+                      {/* Select from Existing Account Resumes */}
+                      {existingResumes.length > 0 && (
+                        <div className="bg-slate-950/80 border border-slate-800 p-4 rounded-2xl space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                              <FileText className="w-3.5 h-3.5 text-amber-400" /> Or Select Stored Resume Profile ({existingResumes.length})
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setShowExistingSelector(!showExistingSelector)}
+                              className="text-xs text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 cursor-pointer"
+                            >
+                              {showExistingSelector ? 'Hide Resumes' : 'Choose Existing'} <ChevronDown className={`w-3.5 h-3.5 transform transition-transform ${showExistingSelector ? 'rotate-180' : ''}`} />
+                            </button>
+                          </div>
+
+                          {showExistingSelector && (
+                            <div className="space-y-2 max-h-48 overflow-y-auto no-scrollbar pt-1">
+                              {existingResumes.map((resItem) => (
+                                <div
+                                  key={resItem._id}
+                                  onClick={() => handleSelectExistingResume(resItem._id)}
+                                  className="p-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.06] border border-white/5 hover:border-amber-500/40 flex items-center justify-between cursor-pointer transition-all"
+                                >
+                                  <div>
+                                    <h5 className="text-xs font-bold text-white">{resItem.fileUrl || resItem.targetRole || 'Saved Resume'}</h5>
+                                    <p className="text-[10px] text-slate-400">
+                                      {resItem.targetRole ? `${resItem.targetRole} • ` : ''}
+                                      {resItem.skillsFound ? `${resItem.skillsFound.length} skills • ` : ''}
+                                      {new Date(resItem.createdAt).toLocaleDateString()}
+                                    </p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    className="px-3 py-1 rounded-lg bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30"
+                                  >
+                                    Use This
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Requirement Warning */}
+                      <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200/90 leading-relaxed flex items-center gap-2.5">
+                        <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                        <span>
+                          <strong>Requirement:</strong> A validated resume must be uploaded or selected to unlock the mock chamber.
+                        </span>
                       </div>
                     </div>
                   )}
@@ -679,11 +1009,22 @@ const InterviewSetup = () => {
 
             {/* Launch Button */}
             <div className="mt-8">
+              {interviewType === 'Resume Interview' && !isResumeValid && (
+                <div className="mb-2.5 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                  <span>Upload or select a valid resume to unlock this interview.</span>
+                </div>
+              )}
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: (interviewType !== 'Resume Interview' || isResumeValid) ? 1.02 : 1 }}
+                whileTap={{ scale: (interviewType !== 'Resume Interview' || isResumeValid) ? 0.98 : 1 }}
                 onClick={handleLaunchRequest}
-                className="w-full bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 py-3.5 rounded-2xl text-xs font-black text-white shadow-lg tracking-wider flex items-center justify-center gap-2 group transition-all cursor-pointer"
+                disabled={interviewType === 'Resume Interview' && !isResumeValid}
+                className={`w-full py-3.5 rounded-2xl text-xs font-black shadow-lg tracking-wider flex items-center justify-center gap-2 group transition-all ${
+                  interviewType === 'Resume Interview' && !isResumeValid
+                    ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-70'
+                    : 'bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 text-white cursor-pointer'
+                }`}
               >
                 <span>{interviewType === 'Coding Interview' ? 'Start Coding Interview' : 'Launch Mock Chamber'}</span>
                 <FaArrowRight className="text-[10px] group-hover:translate-x-1 transition-transform" />

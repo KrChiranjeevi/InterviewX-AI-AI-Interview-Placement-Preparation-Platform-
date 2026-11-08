@@ -697,10 +697,17 @@ const LiveInterview = () => {
   useEffect(() => {
     if (!interview) return;
     const parseDuration = (dur) => {
-      const match = dur.match(/(\d+)/);
-      return match ? parseInt(match[1], 10) * 60 : 15 * 60;
+      const match = String(dur || '').match(/(\d+)/);
+      return match ? parseInt(match[1], 10) * 60 : 30 * 60;
     };
-    let secs = parseDuration(interview.duration);
+    const totalSecs = parseDuration(interview.duration);
+    let elapsedSecs = 0;
+    if (interview.createdAt) {
+      const startMs = new Date(interview.createdAt).getTime();
+      const nowMs = Date.now();
+      elapsedSecs = Math.max(0, Math.floor((nowMs - startMs) / 1000));
+    }
+    let secs = Math.max(0, totalSecs - elapsedSecs);
     setSessionTimeLeft(secs);
     sessionTimerRef.current = setInterval(() => {
       if (isPausedRef.current) return;
@@ -1094,8 +1101,22 @@ const LiveInterview = () => {
       openingQuestion = `To begin, could you introduce yourself and share a real scenario where you took personal ownership of a challenging situation?`;
       spokenIntro = `Good morning. Welcome to your Behavioral interview. I'm Sarah, and today we'll explore real-world scenarios using the STAR method. Let's begin with your background and a time you took ownership.`;
     } else if (typeLowerG.includes('resume')) {
-      openingQuestion = `I've reviewed your resume and credentials. Could you walk me through your technical background and the project you're most proud of?`;
-      spokenIntro = `Good morning. Welcome to your Resume interview. I'm Sarah. I've examined your resume profile. Let's walk through your journey and notable projects.`;
+      const candidateName = interviewData?.resumeSnapshot?.candidateName || '';
+      const firstProject = interviewData?.resumeProjects?.[0];
+      const projName = typeof firstProject === 'string' ? firstProject : (firstProject?.name || firstProject?.title || '');
+      const skillsArr = interviewData?.resumeSkills || [];
+      const topSkills = skillsArr.slice(0, 3).join(', ');
+
+      if (projName) {
+        openingQuestion = `Welcome${candidateName ? ` ${candidateName}` : ''}! I've thoroughly reviewed your resume and noticed your work on "${projName}". Could you walk me through the architecture of "${projName}", your specific personal contribution, and the key technical trade-offs you made?`;
+        spokenIntro = `Good morning${candidateName ? ` ${candidateName}` : ''}. Welcome to your Resume interview. I'm Sarah. I've examined your resume profile and noticed your project, "${projName}". Let's start with a walkthrough of that project and your contribution.`;
+      } else if (topSkills) {
+        openingQuestion = `Welcome${candidateName ? ` ${candidateName}` : ''}! I've reviewed your resume background highlighting ${topSkills}. Could you describe a challenging technical problem you solved using these technologies in your recent experience?`;
+        spokenIntro = `Good morning${candidateName ? ` ${candidateName}` : ''}. Welcome to your Resume interview. I'm Sarah. I've examined your resume profile. Let's start with how you've applied ${topSkills} in your work.`;
+      } else {
+        openingQuestion = `Welcome${candidateName ? ` ${candidateName}` : ''}! I've reviewed your resume profile. Could you walk me through your technical background, your documented projects, and your key responsibilities?`;
+        spokenIntro = `Good morning${candidateName ? ` ${candidateName}` : ''}. Welcome to your Resume interview. I'm Sarah. Let's walk through your journey and documented projects.`;
+      }
     } else if (isCoding) {
       const isSql = interviewData?.codingTrack?.toLowerCase() === 'sql' || interviewData?.domain?.toLowerCase() === 'sql';
       const probKey = isSql ? 'sql_highest_salary' : 'twoSum';
@@ -1226,31 +1247,29 @@ const LiveInterview = () => {
         const currentStage = interviewStageRef.current;
         const currentQNum  = questionNumberRef.current;
 
-        // Step 1: Analyzing state (1.5s) — avatar tilts head, thinks
         setInterviewerStatus('analyzing');
-        await new Promise(res => setTimeout(res, 1500));
 
-        // Step 2: Typing Notes state (0.7s) — avatar looks down
+        // Fire conversational response request immediately in parallel (eliminates 2.8s artificial blocking)
+        const convPromise = api.post(`/interviews/${id}/conversational-response`, {
+          userAnswer: userAnswerDisplay,
+          questionAsked: currentQuestionRef.current,
+          conversationHistory: conversationHistory.slice(-6),
+          questionNumber: currentQNum,
+          interviewStage: currentStage
+        }).catch(err => {
+          console.warn('Conversational response API failed, using fallback', err);
+          return null;
+        });
+
+        // Natural responsive avatar transitions while request is in-flight
+        await new Promise(res => setTimeout(res, 400));
         setInterviewerStatus('typing');
-        await new Promise(res => setTimeout(res, 700));
-
-        // Step 3: Preparing follow-up state (0.6s) — avatar looks up
+        await new Promise(res => setTimeout(res, 350));
         setInterviewerStatus('preparing');
-        await new Promise(res => setTimeout(res, 600));
 
-        let convResponse = null;
-        try {
-          const convRes = await api.post(`/interviews/${id}/conversational-response`, {
-            userAnswer: userAnswerDisplay,
-            questionAsked: currentQuestionRef.current,
-            conversationHistory: conversationHistory.slice(-6),
-            questionNumber: currentQNum,
-            interviewStage: currentStage
-          });
-          convResponse = convRes.data;
-        } catch (err) {
-          console.warn('Conversational response API failed, using fallback');
-        }
+        // Await the API response
+        const convRes = await convPromise;
+        const convResponse = convRes ? convRes.data : null;
 
         // Advance question counter and determine next stage
         const nextQNum = currentQNum + 1;
@@ -1356,6 +1375,48 @@ const LiveInterview = () => {
       });
     } catch {}
 
+    if (isMock) {
+      const currentStage = interviewStageRef.current;
+      const currentQNum  = questionNumberRef.current;
+      const nextQNum = currentQNum + 1;
+      questionNumberRef.current = nextQNum;
+      setQuestionNumber(nextQNum);
+
+      let nextStage = currentStage;
+      if (currentStage === 'greeting') nextStage = 'warmup';
+      else if (currentStage === 'warmup' && nextQNum >= 2) nextStage = 'core';
+      else if (currentStage === 'core' && nextQNum >= 5) nextStage = 'deepdive';
+      else if (nextQNum >= 9) nextStage = 'closing';
+      setInterviewStage(nextStage);
+      interviewStageRef.current = nextStage;
+
+      setInterviewerStatus('analyzing');
+      try {
+        const convRes = await api.post(`/interviews/${id}/conversational-response`, {
+          userAnswer: 'I would like to skip this question and move on to the next topic.',
+          questionAsked: currentQuestionRef.current,
+          conversationHistory: conversationHistory.slice(-6),
+          questionNumber: currentQNum,
+          interviewStage: currentStage
+        });
+        if (convRes?.data) {
+          const { acknowledgement, transition, nextQuestion } = convRes.data;
+          const spokenAck = acknowledgement || "No problem at all, let's move forward.";
+          setCurrentQuestion(nextQuestion);
+          currentQuestionRef.current = nextQuestion;
+          setIsAIThinking(false);
+          await speakTextConversational(spokenAck, transition, nextQuestion);
+          return;
+        }
+      } catch (err) {
+        console.warn('Skip response failed:', err);
+      }
+      setIsAIThinking(false);
+      setInterviewerStatus('listening');
+      startListening();
+      return;
+    }
+
     const nextQ = questionNumber + 1;
     if (nextQ <= companyConfig.rounds.length) {
       setQuestionNumber(nextQ);
@@ -1371,12 +1432,19 @@ const LiveInterview = () => {
     recognitionRef.current?.stop();
     setIsRecording(false);
     clearAutoSubmitTimers();
-    setTypedAnswer(finalTranscript.trim());
+    const currentVoice = (finalTranscript + ' ' + interimTranscript).trim();
+    if (currentVoice) {
+      setTypedAnswer(currentVoice);
+    }
     setIsTypingMode(true);
   };
 
   const switchToSpeaking = () => {
     setIsTypingMode(false);
+    if (typedAnswer.trim()) {
+      setFinalTranscript(typedAnswer.trim() + ' ');
+      finalTranscriptRef.current = typedAnswer.trim() + ' ';
+    }
     startListening();
   };
 
@@ -1549,6 +1617,18 @@ const LiveInterview = () => {
     // Dynamic AI Scoring engine based on candidate interactions
     const totalConfidenceCount = confidenceData.current.count || 1;
     const calculatedConf = Math.round(confidenceData.current.total / totalConfidenceCount);
+
+    if (isMock) {
+      try {
+        await api.post(`/interviews/${id}/finish`, { confidenceScore: calculatedConf });
+      } catch (err) {
+        console.warn('Finish interview call failed:', err);
+      }
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      setIsEnding(false);
+      navigate(`/mock-report/${id}`);
+      return;
+    }
 
     // Real scoring evaluation based on actual answers
     const roundsCount = companyConfig.rounds.length;

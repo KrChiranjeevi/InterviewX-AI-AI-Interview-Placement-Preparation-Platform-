@@ -9,19 +9,35 @@ const createInterview = async (req, res) => {
   const {
     interviewType, role, difficulty, duration, resumeSkills, resumeText,
     company, companyContext, domain, subLanguage, projectName, projectDescription,
-    technicalTrack, selectedTopics, codingTrack, selectedProject, systemDesignDomain
+    technicalTrack, selectedTopics, codingTrack, selectedProject, systemDesignDomain,
+    resumeId, resumeFilename, resumeSnapshot, resumeProjects, resumeExperience, resumeEducation
   } = req.body;
 
   try {
+    // Validate Resume Interview requirement
+    if (interviewType === 'Resume Interview') {
+      if (!resumeText || typeof resumeText !== 'string' || resumeText.trim().length < 50) {
+        return res.status(400).json({ 
+          message: 'A validated resume with readable content is required to start a Resume Interview. Please upload or select a valid PDF or DOCX resume.' 
+        });
+      }
+    }
+
     const interview = await Interview.create({
       userId: req.user._id,
       type: interviewType,
       role: role || 'Software Engineer',
       company: company || companyContext || '',
-      difficulty,
-      duration,
+      difficulty: difficulty || 'Intermediate',
+      duration: duration || '30 Minutes',
       resumeSkills: resumeSkills || [],
       resumeText: resumeText || '',
+      resumeId: resumeId || null,
+      resumeFilename: resumeFilename || '',
+      resumeSnapshot: resumeSnapshot || null,
+      resumeProjects: resumeProjects || [],
+      resumeExperience: resumeExperience || [],
+      resumeEducation: resumeEducation || [],
       domain: domain || '',
       subLanguage: subLanguage || '',
       projectName: projectName || '',
@@ -83,7 +99,11 @@ const getNextQuestion = async (req, res) => {
       interview.projectDescription,
       interview.selectedTopics || [],
       interview.technicalTrack || '',
-      interview.codingTrack || ''
+      interview.codingTrack || '',
+      interview.systemDesignDomain || '',
+      interview.resumeProjects || [],
+      interview.resumeExperience || [],
+      interview.resumeEducation || []
     );
     
     res.json({ question: questionText });
@@ -236,7 +256,11 @@ const submitAnswer = async (req, res) => {
       interview.projectDescription,
       interview.selectedTopics || [],
       interview.technicalTrack || '',
-      interview.codingTrack || ''
+      interview.codingTrack || '',
+      interview.systemDesignDomain || '',
+      interview.resumeProjects || [],
+      interview.resumeExperience || [],
+      interview.resumeEducation || []
     );
     
     res.json({ 
@@ -394,6 +418,10 @@ const getConversationalResponse = async (req, res) => {
       systemDesignDomain: interview.systemDesignDomain || '',
       resumeText: interview.resumeText || '',
       resumeSkills: interview.resumeSkills || [],
+      resumeProjects: interview.resumeProjects || [],
+      resumeExperience: interview.resumeExperience || [],
+      resumeEducation: interview.resumeEducation || [],
+      resumeSnapshot: interview.resumeSnapshot || null,
     });
 
     // Save updated adaptive state back to the interview document
