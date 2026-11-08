@@ -24,6 +24,9 @@ const MockInterviewRoom = ({
   setIsAIThinking,
   aiSpeaking,
   setAiSpeaking,
+  interviewState = 'IDLE',
+  isSubmitting = false,
+  clearTranscript = () => {},
   isMuted,
   toggleMute,
   isCameraOn,
@@ -409,7 +412,18 @@ const MockInterviewRoom = ({
               <div className="flex-shrink-0 bg-slate-900/50 border border-white/10 rounded-2xl px-4 py-3 flex items-center gap-4">
                 {/* Voice status indicator */}
                 <div className="flex items-center gap-2 min-w-0">
-                  {isRecording && !isMuted ? (
+                  {aiSpeaking || interviewerStatus === 'speaking' || interviewState === 'AI_SPEAKING' ? (
+                    <>
+                      <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500" />
+                      </span>
+                      <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex-shrink-0">Interviewer Speaking</span>
+                      <span className="text-[11px] text-amber-300/80 truncate max-w-[300px]">
+                        Mic transcription paused to prevent echo
+                      </span>
+                    </>
+                  ) : isRecording && !isMuted ? (
                     <>
                       <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
@@ -433,17 +447,26 @@ const MockInterviewRoom = ({
                   {(finalTranscript || interimTranscript) && (
                     <>
                       <button
-                        onClick={() => { if (setFinalTranscript) setFinalTranscript(''); if (setInterimTranscript) setInterimTranscript(''); }}
+                        onClick={clearTranscript}
                         className="px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg text-[10px] font-bold text-slate-400 hover:text-red-400 transition-all flex items-center gap-1"
+                        title="Clear speech transcript"
                       >
                         <Trash2 className="w-3 h-3" /> Clear
                       </button>
                       <button
                         onClick={() => submitAnswer()}
-                        disabled={isAIThinking}
+                        disabled={isSubmitting || isAIThinking || aiSpeaking || !finalTranscript.trim()}
                         className="px-3.5 py-1 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-[11px] font-bold text-white transition-all flex items-center gap-1.5 disabled:opacity-50"
                       >
-                        <Send className="w-3 h-3" /> Submit Voice
+                        {isSubmitting ? (
+                          <>
+                            <Activity className="w-3 h-3 animate-spin" /> Submitting...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-3 h-3" /> Submit Voice
+                          </>
+                        )}
                       </button>
                     </>
                   )}
@@ -652,21 +675,50 @@ const MockInterviewRoom = ({
             {/* TRANSCRIPT & RESPONSE AREA */}
             <div className="space-y-4">
               
-              {/* Dynamic Subtitles / Transcription Feed */}
-              {isRecording && !isMuted && (
+              {/* Headphones Advisory Banner */}
+              <div className="bg-indigo-950/40 border border-indigo-500/20 rounded-2xl px-4 py-2.5 flex items-center gap-3 text-xs">
+                <span className="text-base flex-shrink-0">🎧</span>
+                <p className="text-indigo-200/90 text-[11px] leading-relaxed">
+                  <span className="font-semibold text-indigo-100">Headphones Recommended:</span> Using earphones or a headset prevents the interviewer's voice from echoing into your microphone.
+                </p>
+              </div>
+
+              {/* Dynamic State Machine Subtitles / Transcription Feed */}
+              {aiSpeaking || interviewerStatus === 'speaking' || interviewState === 'AI_SPEAKING' ? (
+                <div className="bg-amber-950/30 border border-amber-500/30 p-3 rounded-2xl flex gap-3 items-center">
+                  <div className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                  <div className="flex-1 text-[11px] text-amber-300 leading-relaxed">
+                    <span className="font-bold">Interviewer is speaking...</span> Microphone transcription is paused to prevent voice echo.
+                  </div>
+                </div>
+              ) : interviewState === 'WAITING_FOR_CANDIDATE' ? (
                 <div className="bg-slate-900/60 border border-white/10 p-3 rounded-2xl flex gap-3 items-center">
-                  <Mic className="w-4 h-4 text-rose-500 animate-pulse shrink-0" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-indigo-400 animate-pulse shrink-0" />
+                  <div className="flex-1 text-[11px] text-slate-400 leading-relaxed">
+                    Ready for your answer. Microphone activating shortly...
+                  </div>
+                </div>
+              ) : interviewState === 'PROCESSING_ANSWER' || interviewState === 'GENERATING_NEXT_QUESTION' ? (
+                <div className="bg-indigo-950/30 border border-indigo-500/30 p-3 rounded-2xl flex gap-3 items-center">
+                  <Activity className="w-4 h-4 text-indigo-400 animate-spin shrink-0" />
+                  <div className="flex-1 text-[11px] text-indigo-300 leading-relaxed">
+                    Evaluating your response and formulating next question...
+                  </div>
+                </div>
+              ) : isRecording && !isMuted ? (
+                <div className="bg-emerald-950/30 border border-emerald-500/30 p-3 rounded-2xl flex gap-3 items-center">
+                  <Mic className="w-4 h-4 text-emerald-400 animate-pulse shrink-0" />
                   <div className="flex-1 text-[11px] text-slate-300 italic leading-relaxed truncate">
-                    Voice response stream: {(interimTranscript || finalTranscript) ? (
+                    {(interimTranscript || finalTranscript) ? (
                       <span className="text-emerald-400 font-medium font-mono not-italic">
                         "{interimTranscript || finalTranscript}"
                       </span>
                     ) : (
-                      <span className="text-slate-400">Listening... Speak clearly into your microphone</span>
+                      <span className="text-emerald-300">Listening to your response... Speak clearly into your microphone</span>
                     )}
                   </div>
                 </div>
-              )}
+              ) : null}
 
               {/* Response Panel Container */}
               <div className="bg-slate-900/40 border border-white/10 rounded-3xl p-4">
@@ -688,21 +740,33 @@ const MockInterviewRoom = ({
                         onChange={(e) => setTypedAnswer(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleTypeAnswerSubmit(); } }}
                         placeholder="Type your answer here... (Press Enter to submit, Shift+Enter for new line)"
-                        disabled={isAIThinking}
+                        disabled={isSubmitting || isAIThinking}
                         rows={1}
                         className="flex-1 bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition-all resize-none leading-relaxed no-scrollbar"
                       />
                       <button
                         onClick={handleTypeAnswerSubmit}
-                        disabled={isAIThinking || !typedAnswer.trim()}
+                        disabled={isSubmitting || isAIThinking || !typedAnswer.trim()}
                         className="px-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white font-bold flex items-center justify-center transition-all disabled:opacity-50"
                       >
-                        <Send className="w-4 h-4" />
+                        {isSubmitting ? <Activity className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                       </button>
                     </div>
                   ) : (
                     <div className="border border-white/[0.08] bg-slate-950/80 rounded-2xl p-4 transition-all">
-                      {(finalTranscript || interimTranscript) ? (
+                      {aiSpeaking || interviewerStatus === 'speaking' || interviewState === 'AI_SPEAKING' ? (
+                        <div className="flex items-center justify-between py-3 px-4 border border-amber-500/20 bg-amber-950/20 rounded-xl text-left">
+                          <div className="flex items-center gap-3">
+                            <div className="w-7 h-7 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                            </div>
+                            <div>
+                              <span className="text-[11px] text-amber-200 font-bold block">Interviewer is speaking</span>
+                              <p className="text-[10px] text-amber-300/70">Listening is temporarily paused so AI audio is not transcribed as your response.</p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (finalTranscript || interimTranscript) ? (
                         <div className="space-y-3">
                           <div className="flex items-center justify-between border-b border-white/5 pb-2 flex-wrap gap-2">
                             <div className="flex items-center gap-2">
@@ -714,10 +778,7 @@ const MockInterviewRoom = ({
                             </div>
                             <div className="flex items-center gap-2">
                               <button
-                                onClick={() => {
-                                  if (setFinalTranscript) setFinalTranscript('');
-                                  if (setInterimTranscript) setInterimTranscript('');
-                                }}
+                                onClick={clearTranscript}
                                 className="px-2.5 py-1 bg-white/5 hover:bg-white/10 rounded-lg text-[10px] font-bold text-slate-400 hover:text-red-400 transition-all border border-white/5 flex items-center gap-1"
                                 title="Clear speech transcript"
                               >
@@ -725,10 +786,18 @@ const MockInterviewRoom = ({
                               </button>
                               <button
                                 onClick={() => submitAnswer()}
-                                disabled={isAIThinking || !finalTranscript.trim()}
+                                disabled={isSubmitting || isAIThinking || !finalTranscript.trim() || aiSpeaking}
                                 className="px-3.5 py-1 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-[11px] font-bold text-white transition-all flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 disabled:opacity-50"
                               >
-                                <Send className="w-3 h-3" /> Submit Answer
+                                {isSubmitting ? (
+                                  <>
+                                    <Activity className="w-3 h-3 animate-spin" /> Submitting...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Send className="w-3 h-3" /> Submit Answer
+                                  </>
+                                )}
                               </button>
                             </div>
                           </div>

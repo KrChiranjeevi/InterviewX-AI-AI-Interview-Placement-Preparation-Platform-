@@ -443,6 +443,7 @@ const LiveInterview = () => {
   const [pendingSpeech,        setPendingSpeech]        = useState(null); // { ack, transition, question }
   const [greetingDone,         setGreetingDone]         = useState(false); // track greeting completion
   const [isSubmitting,         setIsSubmitting]         = useState(false); // duplicate submission guard
+  const [interviewState,       setInterviewState]       = useState('IDLE'); // Explicit state machine: 'IDLE' | 'AI_SPEAKING' | 'WAITING_FOR_CANDIDATE' | 'LISTENING' | 'TYPING_MODE' | 'PROCESSING_ANSWER' | 'GENERATING_NEXT_QUESTION' | 'PAUSED' | 'COMPLETED'
 
   // Dynamic Workspaces States
   const [selectedLanguage, setSelectedLanguage] = useState('python');
@@ -490,6 +491,11 @@ const LiveInterview = () => {
   const interviewStageRef  = useRef('greeting'); // track stage in callbacks
   const questionNumberRef  = useRef(1);          // track question number in callbacks
   const isSubmittingRef    = useRef(false);
+  const isAiSpeakingRef    = useRef(false);
+  const interviewStateRef  = useRef('IDLE');
+  const isListeningRef     = useRef(false);
+  const submitAnswerRef    = useRef(null);
+  const settlingTimerRef   = useRef(null);
 
   // Sync ref hooks
   useEffect(() => { currentQuestionRef.current = currentQuestion;  }, [currentQuestion]);
@@ -499,6 +505,8 @@ const LiveInterview = () => {
   useEffect(() => { isPausedRef.current        = isPaused;        }, [isPaused]);
   useEffect(() => { isMutedRef.current         = isMuted;         }, [isMuted]);
   useEffect(() => { isSubmittingRef.current    = isSubmitting;    }, [isSubmitting]);
+  useEffect(() => { isAiSpeakingRef.current    = aiSpeaking;      }, [aiSpeaking]);
+  useEffect(() => { interviewStateRef.current  = interviewState;  }, [interviewState]);
 
   // Determine current company configuration
   const companyKey = useMemo(() => {
@@ -767,12 +775,316 @@ const LiveInterview = () => {
     return () => { if (faceInterval.current) clearInterval(faceInterval.current); };
   }, [modelsLoaded, isCameraOn]);
 
-  /* ─── Camera + Recognition init ───────────────────────────────────────── */
+  /* ─── Auto-submit timer helpers ───────────────────────────────────────── */
+  const clearAutoSubmitTimers = useCallback(() => {
+    if (autoSubmitTimer.current)   clearTimeout(autoSubmitTimer.current);
+    if (countdownInterval.current) clearInterval(countdownInterval.current);
+    if (silenceTimer.current)      clearTimeout(silenceTimer.current);
+    autoSubmitTimer.current   = null;
+    countdownInterval.current = null;
+    silenceTimer.current      = null;
+    setAutoSubmitCountdown(null);
+  }, []);
+
+  const startSilenceCountdown = useCallback(() => {
+    if (isTypingModeRef.current || isAIThinkingRef.current || isAiSpeakingRef.current) return;
+    if (autoSubmitTimer.current)   clearTimeout(autoSubmitTimer.current);
+    if (countdownInterval.current) clearInterval(countdownInterval.current);
+    autoSubmitTimer.current = setTimeout(() => {
+      setAutoSubmitCountdown(null);
+      // Only auto-submit if candidate has spoken a meaningful response
+      if (finalTranscriptRef.current && finalTranscriptRef.current.trim().length > 10) {
+        if (submitAnswerRef.current) {
+          submitAnswerRef.current();
+        }
+      }
+    }, AUTO_SUBMIT_DELAY);
+    setAutoSubmitCountdown(60);
+    countdownInterval.current = setInterval(() => {
+      setAutoSubmitCountdown(prev => {
+        if (prev === null || prev <= 1) {
+          clearInterval(countdownInterval.current);
+          countdownInterval.current = null;
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, []);
+
+  const handleUserSpeaking = useCallback(() => {
+    clearAutoSubmitTimers();
+    silenceTimer.current = setTimeout(() => { startSilenceCountdown(); }, 2500);
+  }, [clearAutoSubmitTimers, startSilenceCountdown]);
+
+  /* ─── Clear Transcript Helper ─────────────────────────────────────────── */
+  const clearTranscript = useCallback(() => {
+    setFinalTranscript('');
+    setInterimTranscript('');
+    finalTranscriptRef.current = '';
+  }, []);
+
+  /* ─── Speech Recognition Control with Acoustic Settling Buffer ───────── */
+  const stopListening = useCallback(() => {
+    if (settlingTimerRef.current) {
+      clearTimeout(settlingTimerRef.current);
+      settlingTimerRef.current = null;
+    }
+    isListeningRef.current = false;
+    setIsRecording(false);
+    clearAutoSubmitTimers();
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch {
+        try { recognitionRef.current.stop(); } catch {}
+      }
+    }
+  }, [clearAutoSubmitTimers]);
+
+  const startListening = useCallback(() => {
+    if (settlingTimerRef.current) {
+      clearTimeout(settlingTimerRef.current);
+      settlingTimerRef.current = null;
+    }
+
+    // Strict echo prevention guards: Do not start listening if AI is speaking, thinking, or candidate muted/typing/submitting
+    if (
+      isAiSpeakingRef.current ||
+      isAIThinkingRef.current ||
+      isTypingModeRef.current ||
+      isPausedRef.current ||
+      isMutedRef.current ||
+      isSubmittingRef.current
+    ) {
+      return;
+    }
+
+    // Enter WAITING_FOR_CANDIDATE state while acoustic settling delay elapses
+    setInterviewState('WAITING_FOR_CANDIDATE');
+    interviewStateRef.current = 'WAITING_FOR_CANDIDATE';
+
+    // 400ms acoustic settling buffer: Wait for physical speaker audio reverberation to decay before mic opens
+    settlingTimerRef.current = setTimeout(() => {
+      if (
+        isAiSpeakingRef.current ||
+        isAIThinkingRef.current ||
+        isTypingModeRef.current ||
+        isPausedRef.current ||
+        isMutedRef.current ||
+        isSubmittingRef.current
+      ) {
+        return;
+      }
+
+      setInterviewState('LISTENING');
+      interviewStateRef.current = 'LISTENING';
+      isListeningRef.current = true;
+      setIsRecording(true);
+      setInterviewerStatus('listening');
+
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.start();
+          startSilenceCountdown();
+        } catch {
+          // already active or starting
+        }
+      }
+    }, 400);
+  }, [startSilenceCountdown]);
+
+  /* ─── TTS Speech Synthesis ────────────────────────────────────────────── */
+  const speakChunk = useCallback((text, opts = {}) => new Promise((resolve) => {
+    if (!text) { resolve(); return; }
+    // Critical: Abort speech recognition immediately so outgoing audio is never captured
+    stopListening();
+    synthRef.current.cancel();
+    if (window.speechSynthesis && window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+    }
+    const utt = new SpeechSynthesisUtterance(text);
+    if (voiceRef.current) utt.voice = voiceRef.current;
+    utt.lang   = 'en-US';
+    utt.rate   = opts.rate   ?? 0.90;
+    utt.pitch  = opts.pitch  ?? 1.08;
+    utt.volume = opts.volume ?? 1.0;
+    utt.onend   = () => resolve();
+    utt.onerror = () => resolve();
+    synthRef.current.speak(utt);
+  }), [stopListening]);
+
+  const delay = useCallback((ms) => new Promise(res => setTimeout(res, ms)), []);
+
+  const speakTextConversational = useCallback(async (ackText, transitionText, questionText) => {
+    stopListening();
+    setInterviewState('AI_SPEAKING');
+    interviewStateRef.current = 'AI_SPEAKING';
+    isAiSpeakingRef.current = true;
+    setAiSpeaking(true);
+    setInterviewerStatus('speaking');
+
+    // Part 1: Acknowledgement — warm, slightly slower
+    if (ackText) {
+      await speakChunk(ackText, { rate: 0.88, pitch: 1.10 });
+      await delay(420); // micro-pause after acknowledgement
+    }
+
+    // Part 2: Transition (optional)
+    if (transitionText) {
+      await speakChunk(transitionText, { rate: 0.91, pitch: 1.07 });
+      await delay(280);
+    }
+
+    // Part 3: The actual question — clear, professional
+    if (questionText) {
+      await speakChunk(questionText, { rate: 0.93, pitch: 1.05 });
+    }
+
+    setAiSpeaking(false);
+    isAiSpeakingRef.current = false;
+    startListening();
+  }, [stopListening, speakChunk, delay, startListening]);
+
+  const speakText = useCallback((text) => {
+    stopListening();
+    setInterviewState('AI_SPEAKING');
+    interviewStateRef.current = 'AI_SPEAKING';
+    isAiSpeakingRef.current = true;
+    setAiSpeaking(true);
+    setInterviewerStatus('speaking');
+
+    synthRef.current.cancel();
+    if (window.speechSynthesis && window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+    }
+    const utterance = new SpeechSynthesisUtterance(text);
+    if (voiceRef.current) utterance.voice = voiceRef.current;
+    utterance.lang   = 'en-US';
+    utterance.rate   = 0.92;
+    utterance.pitch  = 1.08;
+    utterance.volume = 1.0;
+    utterance.onstart = () => {
+      stopListening();
+      setAiSpeaking(true);
+      isAiSpeakingRef.current = true;
+      setInterviewerStatus('speaking');
+    };
+    utterance.onend   = () => {
+      setAiSpeaking(false);
+      isAiSpeakingRef.current = false;
+      startListening();
+    };
+    utterance.onerror = () => {
+      setAiSpeaking(false);
+      isAiSpeakingRef.current = false;
+      startListening();
+    };
+    synthRef.current.speak(utterance);
+  }, [stopListening, startListening]);
+
+  /* ─── Mock Interview Greeting Flow ───────────────────────────────────── */
+  const triggerMockGreeting = useCallback(async (interviewData) => {
+    const typeLabel = interviewData?.type || 'Technical';
+    const roleLabel = interviewData?.role || 'Software Engineer';
+    const typeLowerG = typeLabel.toLowerCase();
+    
+    let openingQuestion = '';
+    let spokenIntro = '';
+    const isCoding = typeLowerG.includes('coding');
+
+    if (typeLowerG.includes('hr')) {
+      openingQuestion = `To start us off, could you give me a brief introduction — tell me about yourself, your background, and what brings you here today?`;
+      spokenIntro = `Good morning. Welcome to today's mock HR interview. My name is Sarah, and I'll be your interviewer today. Let's start with a brief introduction. Could you tell me about yourself?`;
+    } else if (typeLowerG.includes('behavioral')) {
+      openingQuestion = `To begin, could you introduce yourself and share a real scenario where you took personal ownership of a challenging situation?`;
+      spokenIntro = `Good morning. Welcome to your Behavioral interview. I'm Sarah, and today we'll explore real-world scenarios using the STAR method. Let's begin with your background and a time you took ownership.`;
+    } else if (typeLowerG.includes('resume')) {
+      const candidateName = interviewData?.resumeSnapshot?.candidateName || '';
+      const firstProject = interviewData?.resumeProjects?.[0];
+      const projName = typeof firstProject === 'string' ? firstProject : (firstProject?.name || firstProject?.title || '');
+      const skillsArr = interviewData?.resumeSkills || [];
+      const topSkills = skillsArr.slice(0, 3).join(', ');
+
+      if (projName) {
+        openingQuestion = `Welcome${candidateName ? ` ${candidateName}` : ''}! I've thoroughly reviewed your resume and noticed your work on "${projName}". Could you walk me through the architecture of "${projName}", your specific personal contribution, and the key technical trade-offs you made?`;
+        spokenIntro = `Good morning${candidateName ? ` ${candidateName}` : ''}. Welcome to your Resume interview. I'm Sarah. I've examined your resume profile and noticed your project, "${projName}". Let's start with a walkthrough of that project and your contribution.`;
+      } else if (topSkills) {
+        openingQuestion = `Welcome${candidateName ? ` ${candidateName}` : ''}! I've reviewed your resume background highlighting ${topSkills}. Could you describe a challenging technical problem you solved using these technologies in your recent experience?`;
+        spokenIntro = `Good morning${candidateName ? ` ${candidateName}` : ''}. Welcome to your Resume interview. I'm Sarah. I've examined your resume profile. Let's start with how you've applied ${topSkills} in your work.`;
+      } else {
+        openingQuestion = `Welcome${candidateName ? ` ${candidateName}` : ''}! I've reviewed your resume profile. Could you walk me through your technical background, your documented projects, and your key responsibilities?`;
+        spokenIntro = `Good morning${candidateName ? ` ${candidateName}` : ''}. Welcome to your Resume interview. I'm Sarah. Let's walk through your journey and documented projects.`;
+      }
+    } else if (isCoding) {
+      const isSql = interviewData?.codingTrack?.toLowerCase() === 'sql' || interviewData?.domain?.toLowerCase() === 'sql';
+      const probKey = isSql ? 'sql_highest_salary' : 'twoSum';
+      const prob = CODING_PROBLEMS[probKey] || CODING_PROBLEMS.twoSum;
+
+      // Provide full structured coding problem
+      const fullProblemFormatted = `### ${prob.title} (${prob.difficulty})\n\n${prob.description}\n\n**Examples:**\n${prob.examples.map(ex => `Input: ${ex.input}\nOutput: ${ex.output}${ex.explanation ? `\nExplanation: ${ex.explanation}` : ''}`).join('\n\n')}\n\n**Constraints:**\n${prob.constraints.map(c => `• ${c}`).join('\n')}`;
+      openingQuestion = fullProblemFormatted;
+      spokenIntro = `Welcome to your Coding Interview. I've placed your first coding problem on the left: "${prob.title}". Please examine the problem description, example cases, and constraints. When you're ready, write your solution in the code editor and submit so we can review your logic and time complexity.`;
+
+      // Preload starter code
+      if (isSql) {
+        setSqlQuery(prob.starterCode?.sql || '-- Write your SQL query here\n');
+      } else {
+        setCodeContent(prob.starterCode?.[selectedLanguage] || prob.starterCode?.python || '');
+      }
+    } else if (typeLowerG.includes('project')) {
+      const proj = interviewData?.projectName || 'your project';
+      openingQuestion = `I'd love to start with a technical walkthrough — could you describe "${proj}" at an architectural level and explain what problem it was designed to solve?`;
+      spokenIntro = `Good morning. Welcome to your Project Discussion round. I'm Sarah. Let's dive into the architecture and technical implementation of "${proj}".`;
+    } else if (typeLowerG.includes('system design')) {
+      openingQuestion = `Before we jump into our architecture challenge, could you share your experience with distributed systems, high availability, and database scaling?`;
+      spokenIntro = `Good morning. Welcome to your System Design interview. I'm Sarah. Today we'll tackle scalable architecture and design trade-offs.`;
+    } else {
+      // Technical Interview
+      const track = interviewData?.technicalTrack || interviewData?.domain || roleLabel;
+      const topics = interviewData?.selectedTopics?.length > 0 ? interviewData.selectedTopics.join(', ') : track;
+      openingQuestion = `Welcome! Today's session will focus on ${track} (${topics}). Could you start by introducing yourself and sharing your hands-on experience with these technologies?`;
+      spokenIntro = `Good morning. Welcome to your Technical Interview. I'm Sarah. Today we'll cover key concepts in ${track}. Let's begin with your hands-on experience.`;
+    }
+    
+    stopListening();
+    setIsAIThinking(false);
+    setInterviewState('AI_SPEAKING');
+    interviewStateRef.current = 'AI_SPEAKING';
+    isAiSpeakingRef.current = true;
+    setAiSpeaking(true);
+    setInterviewerStatus('speaking');
+
+    // Set full formatted question display in UI immediately
+    setCurrentQuestion(openingQuestion);
+    currentQuestionRef.current = openingQuestion;
+
+    // Speak natural audio greeting
+    await speakChunk(spokenIntro, { rate: 0.88, pitch: 1.08 });
+
+    // Log greeting in conversation history
+    const aiLogEntry = { sender: 'ai', text: isCoding ? `[Presented Coding Challenge]: ${openingQuestion}` : openingQuestion, timestamp: Date.now() };
+    setConversationHistory([aiLogEntry]);
+    setDialogLogs([aiLogEntry]);
+
+    setAiSpeaking(false);
+    isAiSpeakingRef.current = false;
+    setInterviewStage('warmup');
+    interviewStageRef.current = 'warmup';
+    setGreetingDone(true);
+    startListening();
+  }, [stopListening, speakChunk, startListening, selectedLanguage]);
+
+  /* ─── Camera + Microphone init with Echo Cancellation ─────────────────── */
   const initCamera = useCallback(async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: true
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
       });
       setStream(mediaStream);
       if (videoRef.current) videoRef.current.srcObject = mediaStream;
@@ -780,10 +1092,27 @@ const LiveInterview = () => {
       setIsMuted(!(mediaStream.getAudioTracks()[0]?.enabled ?? true));
       return mediaStream;
     } catch (err) {
-      console.error('Camera access denied', err);
-      setFaceStatus('Camera access denied');
-      setIsCameraOn(false);
-      return null;
+      console.warn('Video + Audio access failed, attempting audio-only with echo cancellation...', err);
+      try {
+        const audioStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
+        setStream(audioStream);
+        setFaceStatus('Camera access denied (Audio active)');
+        setIsCameraOn(false);
+        setIsMuted(!(audioStream.getAudioTracks()[0]?.enabled ?? true));
+        return audioStream;
+      } catch (audioErr) {
+        console.error('Microphone access denied', audioErr);
+        setFaceStatus('Microphone & Camera access denied');
+        setIsCameraOn(false);
+        setIsMuted(true);
+        return null;
+      }
     }
   }, []);
 
@@ -794,7 +1123,7 @@ const LiveInterview = () => {
     setCurrentQuestion(round.q);
     speakText(round.q);
     setIsAIThinking(false);
-  }, []);
+  }, [speakText]);
 
   useEffect(() => {
     const fetchInterviewAndStart = async () => {
@@ -883,14 +1212,38 @@ const LiveInterview = () => {
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
+      // Abort and discard any existing recognition instance to prevent duplicates
+      if (recognitionRef.current) {
+        try { recognitionRef.current.abort(); } catch {}
+        recognitionRef.current = null;
+      }
+
       const recognition = new SpeechRecognition();
       recognition.continuous      = true;
       recognition.interimResults  = true;
       recognition.lang            = window.navigator?.language || 'en-IN';
       recognition.maxAlternatives = 1;
 
+      recognition.onstart = () => {
+        isListeningRef.current = true;
+        setIsRecording(true);
+      };
+
       recognition.onresult = (event) => {
-        if (isAIThinkingRef.current || isTypingModeRef.current) return;
+        // STRICT ECHO PREVENTION & STATE GUARDS
+        // Do not process incoming audio if AI is speaking, interviewer is not listening, or user is typing/muted/submitting
+        if (
+          interviewStateRef.current !== 'LISTENING' ||
+          isAiSpeakingRef.current ||
+          isAIThinkingRef.current ||
+          isTypingModeRef.current ||
+          isPausedRef.current ||
+          isMutedRef.current ||
+          isSubmittingRef.current
+        ) {
+          return;
+        }
+
         handleUserSpeaking();
         let newFinal = '';
         let interim  = '';
@@ -899,6 +1252,16 @@ const LiveInterview = () => {
           if (event.results[i].isFinal) { newFinal += transcript + ' '; }
           else                           { interim  += transcript; }
         }
+
+        // Secondary state guard check before committing transcript to candidate response
+        if (
+          interviewStateRef.current !== 'LISTENING' ||
+          isAiSpeakingRef.current ||
+          isAIThinkingRef.current
+        ) {
+          return;
+        }
+
         if (newFinal) {
           setFinalTranscript(prev => {
             const updated = prev + newFinal;
@@ -912,33 +1275,88 @@ const LiveInterview = () => {
       };
 
       recognition.onsoundstart = () => {
-        if (!isAIThinkingRef.current && !isTypingModeRef.current && !isPausedRef.current) handleUserSpeaking();
+        if (interviewStateRef.current === 'LISTENING' && !isAiSpeakingRef.current && !isAIThinkingRef.current && !isTypingModeRef.current && !isPausedRef.current && !isMutedRef.current) {
+          handleUserSpeaking();
+        }
       };
+
       recognition.onspeechstart = () => {
-        if (!isAIThinkingRef.current && !isTypingModeRef.current && !isPausedRef.current) handleUserSpeaking();
+        if (interviewStateRef.current === 'LISTENING' && !isAiSpeakingRef.current && !isAIThinkingRef.current && !isTypingModeRef.current && !isPausedRef.current && !isMutedRef.current) {
+          handleUserSpeaking();
+        }
       };
+
       recognition.onerror = (e) => {
-        if (e.error !== 'no-speech' && e.error !== 'aborted') console.error('Speech error:', e.error);
+        if (e.error !== 'no-speech' && e.error !== 'aborted') {
+          console.warn('Speech recognition warning:', e.error);
+        }
+        if (e.error === 'not-allowed') {
+          switchToTyping();
+          return;
+        }
         if (e.error === 'no-speech' || e.error === 'aborted') {
+          if (
+            interviewStateRef.current === 'LISTENING' &&
+            !isAiSpeakingRef.current &&
+            !isAIThinkingRef.current &&
+            !isTypingModeRef.current &&
+            !isPausedRef.current &&
+            !isMutedRef.current &&
+            !isSubmittingRef.current
+          ) {
+            setTimeout(() => {
+              if (
+                interviewStateRef.current === 'LISTENING' &&
+                !isAiSpeakingRef.current &&
+                !isAIThinkingRef.current &&
+                !isTypingModeRef.current &&
+                !isPausedRef.current &&
+                !isMutedRef.current &&
+                !isSubmittingRef.current
+              ) {
+                try { recognition.start(); } catch {}
+              }
+            }, 300);
+          }
+        }
+      };
+
+      recognition.onend = () => {
+        if (
+          interviewStateRef.current === 'LISTENING' &&
+          !isAiSpeakingRef.current &&
+          !isAIThinkingRef.current &&
+          !isTypingModeRef.current &&
+          !isPausedRef.current &&
+          !isMutedRef.current &&
+          !isSubmittingRef.current
+        ) {
           setTimeout(() => {
-            if (!isAIThinkingRef.current && !isTypingModeRef.current && !isPausedRef.current) {
+            if (
+              interviewStateRef.current === 'LISTENING' &&
+              !isAiSpeakingRef.current &&
+              !isAIThinkingRef.current &&
+              !isTypingModeRef.current &&
+              !isPausedRef.current &&
+              !isMutedRef.current &&
+              !isSubmittingRef.current
+            ) {
               try { recognition.start(); } catch {}
             }
           }, 300);
         }
       };
-      recognition.onend = () => {
-        if (!isAIThinkingRef.current && !isTypingModeRef.current && !isPausedRef.current && !isMutedRef.current) {
-          setTimeout(() => { try { recognition.start(); } catch {} }, 300);
-        }
-      };
+
       recognitionRef.current = recognition;
     }
 
     return () => {
       stream?.getTracks().forEach(t => t.stop());
       synthRef.current.cancel();
-      recognitionRef.current?.stop();
+      if (settlingTimerRef.current) clearTimeout(settlingTimerRef.current);
+      if (recognitionRef.current) {
+        try { recognitionRef.current.abort(); } catch {}
+      }
       clearAutoSubmitTimers();
       toastTimers.current.forEach(clearTimeout);
     };
@@ -969,219 +1387,9 @@ const LiveInterview = () => {
     return () => document.removeEventListener('keydown', handleKeyboard);
   }, [stream, isMuted, isCameraOn, isEnding]);
 
-  /* ─── Auto-submit timer helpers ───────────────────────────────────────── */
-  const clearAutoSubmitTimers = () => {
-    if (autoSubmitTimer.current)   clearTimeout(autoSubmitTimer.current);
-    if (countdownInterval.current) clearInterval(countdownInterval.current);
-    if (silenceTimer.current)      clearTimeout(silenceTimer.current);
-    autoSubmitTimer.current   = null;
-    countdownInterval.current = null;
-    silenceTimer.current      = null;
-    setAutoSubmitCountdown(null);
-  };
-
-  const handleUserSpeaking = () => {
-    clearAutoSubmitTimers();
-    silenceTimer.current = setTimeout(() => { startSilenceCountdown(); }, 2500);
-  };
-
-  const startSilenceCountdown = () => {
-    if (isTypingModeRef.current || isAIThinkingRef.current) return;
-    if (autoSubmitTimer.current)   clearTimeout(autoSubmitTimer.current);
-    if (countdownInterval.current) clearInterval(countdownInterval.current);
-    autoSubmitTimer.current = setTimeout(() => {
-      setAutoSubmitCountdown(null);
-      // Only auto-submit if candidate has spoken a meaningful response
-      if (finalTranscriptRef.current && finalTranscriptRef.current.trim().length > 10) {
-        submitAnswer();
-      }
-    }, AUTO_SUBMIT_DELAY);
-    setAutoSubmitCountdown(60);
-    countdownInterval.current = setInterval(() => {
-      setAutoSubmitCountdown(prev => {
-        if (prev === null || prev <= 1) {
-          clearInterval(countdownInterval.current);
-          countdownInterval.current = null;
-          return null;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
-  /* ─── TTS Speech Synthesis ────────────────────────────────────────────── */
-  const speakText = (text) => {
-    synthRef.current.cancel();
-    if (window.speechSynthesis && window.speechSynthesis.paused) {
-      window.speechSynthesis.resume();
-    }
-    const utterance = new SpeechSynthesisUtterance(text);
-    if (voiceRef.current) utterance.voice = voiceRef.current;
-    utterance.lang   = 'en-US';
-    utterance.rate   = 0.92;
-    utterance.pitch  = 1.08;
-    utterance.volume = 1.0;
-    utterance.onstart = () => { setAiSpeaking(true); setInterviewerStatus('speaking'); recognitionRef.current?.stop(); setIsRecording(false); };
-    utterance.onend   = () => { setAiSpeaking(false); setInterviewerStatus('listening'); startListening(); };
-    utterance.onerror = () => { setAiSpeaking(false); setInterviewerStatus('listening'); startListening(); };
-    synthRef.current.speak(utterance);
-  };
-
-  // ── Helper: speak a single chunk and return a promise ──
-  const speakChunk = (text, opts = {}) => new Promise((resolve) => {
-    if (!text) { resolve(); return; }
-    synthRef.current.cancel();
-    if (window.speechSynthesis && window.speechSynthesis.paused) {
-      window.speechSynthesis.resume();
-    }
-    const utt = new SpeechSynthesisUtterance(text);
-    if (voiceRef.current) utt.voice = voiceRef.current;
-    utt.lang   = 'en-US';
-    utt.rate   = opts.rate   ?? 0.90;
-    utt.pitch  = opts.pitch  ?? 1.08;
-    utt.volume = opts.volume ?? 1.0;
-    utt.onend   = resolve;
-    utt.onerror = resolve;
-    synthRef.current.speak(utt);
-  });
-
-  // ── Helper: async delay ──
-  const delay = (ms) => new Promise(res => setTimeout(res, ms));
-
-  /* ─── TWO-PART Conversational TTS (MOCK MODE ONLY) ─────────────────────
-     Speaks acknowledgement first (warm, slightly slower), then a natural
-     pause, then speaks the next question (clear, professional tone).
-  ─────────────────────────────────────────────────────────────────────── */
-  const speakTextConversational = async (ackText, transitionText, questionText) => {
-    synthRef.current.cancel();
-    recognitionRef.current?.stop();
-    setIsRecording(false);
-    setAiSpeaking(true);
-    setInterviewerStatus('speaking');
-
-    // Part 1: Acknowledgement — warm, slightly slower
-    if (ackText) {
-      await speakChunk(ackText, { rate: 0.88, pitch: 1.10 });
-      await delay(420); // micro-pause after acknowledgement
-    }
-
-    // Part 2: Transition (optional)
-    if (transitionText) {
-      await speakChunk(transitionText, { rate: 0.91, pitch: 1.07 });
-      await delay(280);
-    }
-
-    // Part 3: The actual question — clear, professional
-    if (questionText) {
-      await speakChunk(questionText, { rate: 0.93, pitch: 1.05 });
-    }
-
-    setAiSpeaking(false);
-    setInterviewerStatus('listening');
-    startListening();
-  };
-
-  /* ─── Mock Interview Greeting Flow ─────────────────────────────────────
-     Fires once when the mock interview starts. Creates a warm, natural
-     human opening before the first question.
-  ─────────────────────────────────────────────────────────────────────── */
-  const triggerMockGreeting = async (interviewData) => {
-    const typeLabel = interviewData?.type || 'Technical';
-    const roleLabel = interviewData?.role || 'Software Engineer';
-    const typeLowerG = typeLabel.toLowerCase();
-    
-    let openingQuestion = '';
-    let spokenIntro = '';
-    const isCoding = typeLowerG.includes('coding');
-
-    if (typeLowerG.includes('hr')) {
-      openingQuestion = `To start us off, could you give me a brief introduction — tell me about yourself, your background, and what brings you here today?`;
-      spokenIntro = `Good morning. Welcome to today's mock HR interview. My name is Sarah, and I'll be your interviewer today. Let's start with a brief introduction. Could you tell me about yourself?`;
-    } else if (typeLowerG.includes('behavioral')) {
-      openingQuestion = `To begin, could you introduce yourself and share a real scenario where you took personal ownership of a challenging situation?`;
-      spokenIntro = `Good morning. Welcome to your Behavioral interview. I'm Sarah, and today we'll explore real-world scenarios using the STAR method. Let's begin with your background and a time you took ownership.`;
-    } else if (typeLowerG.includes('resume')) {
-      const candidateName = interviewData?.resumeSnapshot?.candidateName || '';
-      const firstProject = interviewData?.resumeProjects?.[0];
-      const projName = typeof firstProject === 'string' ? firstProject : (firstProject?.name || firstProject?.title || '');
-      const skillsArr = interviewData?.resumeSkills || [];
-      const topSkills = skillsArr.slice(0, 3).join(', ');
-
-      if (projName) {
-        openingQuestion = `Welcome${candidateName ? ` ${candidateName}` : ''}! I've thoroughly reviewed your resume and noticed your work on "${projName}". Could you walk me through the architecture of "${projName}", your specific personal contribution, and the key technical trade-offs you made?`;
-        spokenIntro = `Good morning${candidateName ? ` ${candidateName}` : ''}. Welcome to your Resume interview. I'm Sarah. I've examined your resume profile and noticed your project, "${projName}". Let's start with a walkthrough of that project and your contribution.`;
-      } else if (topSkills) {
-        openingQuestion = `Welcome${candidateName ? ` ${candidateName}` : ''}! I've reviewed your resume background highlighting ${topSkills}. Could you describe a challenging technical problem you solved using these technologies in your recent experience?`;
-        spokenIntro = `Good morning${candidateName ? ` ${candidateName}` : ''}. Welcome to your Resume interview. I'm Sarah. I've examined your resume profile. Let's start with how you've applied ${topSkills} in your work.`;
-      } else {
-        openingQuestion = `Welcome${candidateName ? ` ${candidateName}` : ''}! I've reviewed your resume profile. Could you walk me through your technical background, your documented projects, and your key responsibilities?`;
-        spokenIntro = `Good morning${candidateName ? ` ${candidateName}` : ''}. Welcome to your Resume interview. I'm Sarah. Let's walk through your journey and documented projects.`;
-      }
-    } else if (isCoding) {
-      const isSql = interviewData?.codingTrack?.toLowerCase() === 'sql' || interviewData?.domain?.toLowerCase() === 'sql';
-      const probKey = isSql ? 'sql_highest_salary' : 'twoSum';
-      const prob = CODING_PROBLEMS[probKey] || CODING_PROBLEMS.twoSum;
-
-      // Provide full structured coding problem
-      const fullProblemFormatted = `### ${prob.title} (${prob.difficulty})\n\n${prob.description}\n\n**Examples:**\n${prob.examples.map(ex => `Input: ${ex.input}\nOutput: ${ex.output}${ex.explanation ? `\nExplanation: ${ex.explanation}` : ''}`).join('\n\n')}\n\n**Constraints:**\n${prob.constraints.map(c => `• ${c}`).join('\n')}`;
-      openingQuestion = fullProblemFormatted;
-      spokenIntro = `Welcome to your Coding Interview. I've placed your first coding problem on the left: "${prob.title}". Please examine the problem description, example cases, and constraints. When you're ready, write your solution in the code editor and submit so we can review your logic and time complexity.`;
-
-      // Preload starter code
-      if (isSql) {
-        setSqlQuery(prob.starterCode?.sql || '-- Write your SQL query here\n');
-      } else {
-        setCodeContent(prob.starterCode?.[selectedLanguage] || prob.starterCode?.python || '');
-      }
-    } else if (typeLowerG.includes('project')) {
-      const proj = interviewData?.projectName || 'your project';
-      openingQuestion = `I'd love to start with a technical walkthrough — could you describe "${proj}" at an architectural level and explain what problem it was designed to solve?`;
-      spokenIntro = `Good morning. Welcome to your Project Discussion round. I'm Sarah. Let's dive into the architecture and technical implementation of "${proj}".`;
-    } else if (typeLowerG.includes('system design')) {
-      openingQuestion = `Before we jump into our architecture challenge, could you share your experience with distributed systems, high availability, and database scaling?`;
-      spokenIntro = `Good morning. Welcome to your System Design interview. I'm Sarah. Today we'll tackle scalable architecture and design trade-offs.`;
-    } else {
-      // Technical Interview
-      const track = interviewData?.technicalTrack || interviewData?.domain || roleLabel;
-      const topics = interviewData?.selectedTopics?.length > 0 ? interviewData.selectedTopics.join(', ') : track;
-      openingQuestion = `Welcome! Today's session will focus on ${track} (${topics}). Could you start by introducing yourself and sharing your hands-on experience with these technologies?`;
-      spokenIntro = `Good morning. Welcome to your Technical Interview. I'm Sarah. Today we'll cover key concepts in ${track}. Let's begin with your hands-on experience.`;
-    }
-    
-    setIsAIThinking(false);
-    setInterviewerStatus('speaking');
-    setAiSpeaking(true);
-
-    // Set full formatted question display in UI immediately
-    setCurrentQuestion(openingQuestion);
-    currentQuestionRef.current = openingQuestion;
-
-    // Speak natural audio greeting
-    await speakChunk(spokenIntro, { rate: 0.88, pitch: 1.08 });
-
-    // Log greeting in conversation history
-    const aiLogEntry = { sender: 'ai', text: isCoding ? `[Presented Coding Challenge]: ${openingQuestion}` : openingQuestion, timestamp: Date.now() };
-    setConversationHistory([aiLogEntry]);
-    setDialogLogs([aiLogEntry]);
-
-    setAiSpeaking(false);
-    setInterviewerStatus('listening');
-    setInterviewStage('warmup');
-    interviewStageRef.current = 'warmup';
-    setGreetingDone(true);
-    startListening();
-  };
-
-  const startListening = () => {
-    if (recognitionRef.current && !isMuted && !isTypingMode) {
-      try { recognitionRef.current.start(); setIsRecording(true); startSilenceCountdown(); }
-      catch { /* already running */ }
-    }
-  };
-
   /* ─── Submit answer ───────────────────────────────────────────────────── */
   const submitAnswer = async () => {
-    if (isSubmittingRef.current || isAIThinkingRef.current) return;
+    if (isSubmittingRef.current || isAiSpeakingRef.current || isAIThinkingRef.current) return;
 
     let answer = isTypingModeRef.current ? typedAnswer.trim() : finalTranscriptRef.current.trim();
     if (currentRound.type === 'coding') {
@@ -1193,9 +1401,12 @@ const LiveInterview = () => {
     }
 
     if (!answer && currentRound.type === 'text') return;
+    if (currentRound.type === 'text' && answer.length < 3) return; // Prevent accidental short noise submissions
 
     setIsSubmitting(true);
     isSubmittingRef.current = true;
+    setInterviewState('PROCESSING_ANSWER');
+    interviewStateRef.current = 'PROCESSING_ANSWER';
 
     try {
       setSubmittedAnswers(prev => [...prev, {
@@ -1205,10 +1416,9 @@ const LiveInterview = () => {
         skipped: false
       }]);
 
-      recognitionRef.current?.stop();
-      setIsRecording(false);
-      clearAutoSubmitTimers();
+      stopListening();
       setIsAIThinking(true);
+      isAIThinkingRef.current = true;
 
       // Save logs for bubble display
       const userAnswerDisplay = currentRound.type === 'coding' ? 'Shared source implementation in SDE editor.'
@@ -1220,10 +1430,9 @@ const LiveInterview = () => {
       const aiMsg   = { sender: 'ai',   text: currentQuestion,   timestamp: Date.now() - 1 };
       setDialogLogs(prev => [...prev, aiMsg, userMsg]);
 
-      setFinalTranscript('');
-      setInterimTranscript('');
+      // Wipe stale transcripts cleanly upon submission
+      clearTranscript();
       setTypedAnswer('');
-      finalTranscriptRef.current = '';
 
       const wasBookmarked = isBookmarked;
       setIsBookmarked(false);
@@ -1236,7 +1445,7 @@ const LiveInterview = () => {
           isMock: isMock,
           skipNextQuestionGeneration: isMock
         });
-      } catch (e) {
+      } catch {
         console.warn('Backend logging failed, fallback client evaluation active');
       }
 
@@ -1248,8 +1457,10 @@ const LiveInterview = () => {
         const currentQNum  = questionNumberRef.current;
 
         setInterviewerStatus('analyzing');
+        setInterviewState('GENERATING_NEXT_QUESTION');
+        interviewStateRef.current = 'GENERATING_NEXT_QUESTION';
 
-        // Fire conversational response request immediately in parallel (eliminates 2.8s artificial blocking)
+        // Fire conversational response request immediately in parallel
         const convPromise = api.post(`/interviews/${id}/conversational-response`, {
           userAnswer: userAnswerDisplay,
           questionAsked: currentQuestionRef.current,
@@ -1306,6 +1517,7 @@ const LiveInterview = () => {
             setCurrentQuestion(aiResponseText);
             currentQuestionRef.current = aiResponseText;
             setIsAIThinking(false);
+            isAIThinkingRef.current = false;
             await speakTextConversational(acknowledgement, transition, nextQuestion);
             setTimeout(() => endInterview(), 2000);
             return;
@@ -1314,12 +1526,14 @@ const LiveInterview = () => {
           setCurrentQuestion(nextQuestion);
           currentQuestionRef.current = nextQuestion;
           setIsAIThinking(false);
+          isAIThinkingRef.current = false;
 
           // Speak conversationally: acknowledgement → pause → question
           await speakTextConversational(acknowledgement, transition, nextQuestion);
         } else {
           // Fallback for API failure
           setIsAIThinking(false);
+          isAIThinkingRef.current = false;
           setInterviewerStatus('listening');
           startListening();
         }
@@ -1343,109 +1557,121 @@ const LiveInterview = () => {
     }
   };
 
+  useEffect(() => {
+    submitAnswerRef.current = submitAnswer;
+  });
+
   /* ─── Skip question ───────────────────────────────────────────────────── */
   const skipQuestion = async () => {
-    if (isAIThinkingRef.current) return;
+    if (isSubmittingRef.current || isAiSpeakingRef.current || isAIThinkingRef.current) return;
 
-    setSubmittedAnswers(prev => [...prev, {
-      roundIndex: questionNumber - 1,
-      type: currentRound.type,
-      answer: 'Skipped',
-      skipped: true
-    }]);
-
-    recognitionRef.current?.stop();
-    setIsRecording(false);
-    clearAutoSubmitTimers();
-    setIsAIThinking(true);
-
-    const userMsg = { sender: 'user', text: 'Skipped question' };
-    const aiMsg = { sender: 'ai', text: currentQuestion };
-    setDialogLogs(prev => [...prev, aiMsg, userMsg]);
-
-    setFinalTranscript('');
-    setInterimTranscript('');
-    setTypedAnswer('');
-    finalTranscriptRef.current = '';
+    setIsSubmitting(true);
+    isSubmittingRef.current = true;
+    setInterviewState('PROCESSING_ANSWER');
+    interviewStateRef.current = 'PROCESSING_ANSWER';
 
     try {
-      await api.post(`/interviews/${id}/answer`, {
-        question: currentQuestionRef.current,
-        answer:   'Skipped',
-      });
-    } catch {}
+      setSubmittedAnswers(prev => [...prev, {
+        roundIndex: questionNumber - 1,
+        type: currentRound.type,
+        answer: 'Skipped',
+        skipped: true
+      }]);
 
-    if (isMock) {
-      const currentStage = interviewStageRef.current;
-      const currentQNum  = questionNumberRef.current;
-      const nextQNum = currentQNum + 1;
-      questionNumberRef.current = nextQNum;
-      setQuestionNumber(nextQNum);
+      stopListening();
+      setIsAIThinking(true);
+      isAIThinkingRef.current = true;
 
-      let nextStage = currentStage;
-      if (currentStage === 'greeting') nextStage = 'warmup';
-      else if (currentStage === 'warmup' && nextQNum >= 2) nextStage = 'core';
-      else if (currentStage === 'core' && nextQNum >= 5) nextStage = 'deepdive';
-      else if (nextQNum >= 9) nextStage = 'closing';
-      setInterviewStage(nextStage);
-      interviewStageRef.current = nextStage;
+      const userMsg = { sender: 'user', text: 'Skipped question' };
+      const aiMsg = { sender: 'ai', text: currentQuestion };
+      setDialogLogs(prev => [...prev, aiMsg, userMsg]);
 
-      setInterviewerStatus('analyzing');
+      clearTranscript();
+      setTypedAnswer('');
+
       try {
-        const convRes = await api.post(`/interviews/${id}/conversational-response`, {
-          userAnswer: 'I would like to skip this question and move on to the next topic.',
-          questionAsked: currentQuestionRef.current,
-          conversationHistory: conversationHistory.slice(-6),
-          questionNumber: currentQNum,
-          interviewStage: currentStage
+        await api.post(`/interviews/${id}/answer`, {
+          question: currentQuestionRef.current,
+          answer:   'Skipped',
         });
-        if (convRes?.data) {
-          const { acknowledgement, transition, nextQuestion } = convRes.data;
-          const spokenAck = acknowledgement || "No problem at all, let's move forward.";
-          setCurrentQuestion(nextQuestion);
-          currentQuestionRef.current = nextQuestion;
-          setIsAIThinking(false);
-          await speakTextConversational(spokenAck, transition, nextQuestion);
-          return;
-        }
-      } catch (err) {
-        console.warn('Skip response failed:', err);
-      }
-      setIsAIThinking(false);
-      setInterviewerStatus('listening');
-      startListening();
-      return;
-    }
+      } catch {}
 
-    const nextQ = questionNumber + 1;
-    if (nextQ <= companyConfig.rounds.length) {
-      setQuestionNumber(nextQ);
-      const nextRound = companyConfig.rounds[nextQ - 1];
-      triggerRoundQuestion(nextRound);
-    } else {
-      endInterview();
+      if (isMock) {
+        const currentStage = interviewStageRef.current;
+        const currentQNum  = questionNumberRef.current;
+        const nextQNum = currentQNum + 1;
+        questionNumberRef.current = nextQNum;
+        setQuestionNumber(nextQNum);
+
+        let nextStage = currentStage;
+        if (currentStage === 'greeting') nextStage = 'warmup';
+        else if (currentStage === 'warmup' && nextQNum >= 2) nextStage = 'core';
+        else if (currentStage === 'core' && nextQNum >= 5) nextStage = 'deepdive';
+        else if (nextQNum >= 9) nextStage = 'closing';
+        setInterviewStage(nextStage);
+        interviewStageRef.current = nextStage;
+
+        setInterviewerStatus('analyzing');
+        setInterviewState('GENERATING_NEXT_QUESTION');
+        interviewStateRef.current = 'GENERATING_NEXT_QUESTION';
+
+        try {
+          const convRes = await api.post(`/interviews/${id}/conversational-response`, {
+            userAnswer: 'I would like to skip this question and move on to the next topic.',
+            questionAsked: currentQuestionRef.current,
+            conversationHistory: conversationHistory.slice(-6),
+            questionNumber: currentQNum,
+            interviewStage: currentStage
+          });
+          if (convRes?.data) {
+            const { acknowledgement, transition, nextQuestion } = convRes.data;
+            const spokenAck = acknowledgement || "No problem at all, let's move forward.";
+            setCurrentQuestion(nextQuestion);
+            currentQuestionRef.current = nextQuestion;
+            setIsAIThinking(false);
+            isAIThinkingRef.current = false;
+            await speakTextConversational(spokenAck, transition, nextQuestion);
+            return;
+          }
+        } catch (err) {
+          console.warn('Skip response failed:', err);
+        }
+        setIsAIThinking(false);
+        isAIThinkingRef.current = false;
+        setInterviewerStatus('listening');
+        startListening();
+        return;
+      }
+
+      const nextQ = questionNumber + 1;
+      if (nextQ <= companyConfig.rounds.length) {
+        setQuestionNumber(nextQ);
+        const nextRound = companyConfig.rounds[nextQ - 1];
+        triggerRoundQuestion(nextRound);
+      } else {
+        endInterview();
+      }
+    } finally {
+      setIsSubmitting(false);
+      isSubmittingRef.current = false;
     }
   };
 
-  /* ─── Typing mode toggling (PRESERVED) ────────────────────────────────── */
+  /* ─── Typing mode toggling (Isolated modes) ─────────────────────────── */
   const switchToTyping = () => {
-    recognitionRef.current?.stop();
-    setIsRecording(false);
-    clearAutoSubmitTimers();
-    const currentVoice = (finalTranscript + ' ' + interimTranscript).trim();
-    if (currentVoice) {
-      setTypedAnswer(currentVoice);
-    }
+    stopListening();
     setIsTypingMode(true);
+    isTypingModeRef.current = true;
+    setInterviewState('TYPING_MODE');
+    interviewStateRef.current = 'TYPING_MODE';
   };
 
   const switchToSpeaking = () => {
     setIsTypingMode(false);
-    if (typedAnswer.trim()) {
-      setFinalTranscript(typedAnswer.trim() + ' ');
-      finalTranscriptRef.current = typedAnswer.trim() + ' ';
+    isTypingModeRef.current = false;
+    if (!isAiSpeakingRef.current && !isAIThinkingRef.current) {
+      startListening();
     }
-    startListening();
   };
 
   const handleTypedChange = (e) => {
@@ -1470,10 +1696,9 @@ const LiveInterview = () => {
       if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled;
         setIsMuted(!audioTrack.enabled);
+        isMutedRef.current = !audioTrack.enabled;
         if (!audioTrack.enabled) {
-          recognitionRef.current?.stop();
-          setIsRecording(false);
-          clearAutoSubmitTimers();
+          stopListening();
         } else {
           startListening();
         }
@@ -1510,12 +1735,14 @@ const LiveInterview = () => {
   const togglePause = () => {
     setIsPaused(prev => {
       const next = !prev;
+      isPausedRef.current = next;
       if (next) {
-        recognitionRef.current?.stop();
+        stopListening();
         synthRef.current.cancel();
-        setIsRecording(false);
         setAiSpeaking(false);
-        clearAutoSubmitTimers();
+        isAiSpeakingRef.current = false;
+        setInterviewState('PAUSED');
+        interviewStateRef.current = 'PAUSED';
       } else {
         startListening();
       }
@@ -2100,6 +2327,9 @@ const LiveInterview = () => {
           setIsAIThinking={setIsAIThinking}
           aiSpeaking={aiSpeaking}
           setAiSpeaking={setAiSpeaking}
+          interviewState={interviewState}
+          isSubmitting={isSubmitting}
+          clearTranscript={clearTranscript}
           isMuted={isMuted}
           toggleMute={toggleMute}
           isCameraOn={isCameraOn}
