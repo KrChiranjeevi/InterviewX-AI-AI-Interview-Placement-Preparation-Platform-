@@ -36,6 +36,56 @@ const ENDING_STEPS = [
   { label: 'Preparing personalized recommendations…', icon: Zap,  color: 'text-pink-400',     bg: 'bg-pink-500/15 border-pink-500/30'       },
 ];
 
+// ─── Phase 5: Voice Engine Sanitization & Transcript Deduplication ────────────
+export const sanitizeTextForSpeech = (text) => {
+  if (!text || typeof text !== 'string') return '';
+  return text
+    // Remove markdown code blocks ``` ... ```
+    .replace(/```[\s\S]*?```/g, '')
+    // Remove markdown inline code `...`
+    .replace(/`([^`]+)`/g, '$1')
+    // Remove markdown headers #, ##, ###
+    .replace(/^#{1,6}\s+/gm, '')
+    // Remove markdown bold/italic **text**, *text*, __text__, _text_
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/_([^_]+)_/g, '$1')
+    // Remove prompt directives [Presented Coding Challenge]:, [Candidate Verbal Explanation]: etc
+    .replace(/\[(?:Presented|Submitted|Candidate)[^\]]*\]:?/gi, '')
+    // Remove markdown bullets •, -, *
+    .replace(/^[\s]*[•\-\*]\s+/gm, '')
+    // Remove JSON-like wrappers or curly braces
+    .replace(/\{[\s\S]*?\}/g, '')
+    // Remove emojis and non-standard symbols
+    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
+    // Replace multiple spaces and newlines with a single space
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+export const mergeTranscriptSegments = (existing, incoming) => {
+  const cleanExisting = (existing || '').trim();
+  const cleanIncoming = (incoming || '').trim();
+  if (!cleanIncoming) return cleanExisting;
+  if (!cleanExisting) return cleanIncoming;
+
+  const existingWords = cleanExisting.split(/\s+/);
+  const incomingWords = cleanIncoming.split(/\s+/);
+
+  const maxOverlap = Math.min(6, existingWords.length, incomingWords.length);
+  for (let len = maxOverlap; len > 0; len--) {
+    const endSlice = existingWords.slice(-len).join(' ').toLowerCase();
+    const startSlice = incomingWords.slice(0, len).join(' ').toLowerCase();
+    if (endSlice === startSlice) {
+      const nonOverlapping = incomingWords.slice(len).join(' ');
+      return nonOverlapping ? `${cleanExisting} ${nonOverlapping}` : cleanExisting;
+    }
+  }
+
+  return `${cleanExisting} ${cleanIncoming}`;
+};
+
 // ─── Company Configurations ──────────────────────────────────────────────────
 const COMPANY_INTERVIEWS = {
   amazon: {
@@ -449,6 +499,9 @@ const LiveInterview = () => {
   const [activeMicDeviceName,        setActiveMicDeviceName]        = useState('Microphone');
   const [currentQuestionId,          setCurrentQuestionId]          = useState('q-1');
   const [networkError,               setNetworkError]               = useState(null);
+  const [isAiVoiceMuted,             setIsAiVoiceMuted]             = useState(false);
+  const [speechSpeed,                setSpeechSpeed]                = useState(0.95);
+  const [lastTurnLatencyMs,          setLastTurnLatencyMs]          = useState(null);
 
   // Dynamic Workspaces States
   const [selectedLanguage, setSelectedLanguage] = useState('python');
@@ -514,6 +567,8 @@ const LiveInterview = () => {
   const turnAbortControllerRef   = useRef(null);
   const confirmEndInterviewRef   = useRef(null);
   const typedAnswerRef           = useRef('');
+  const isAiVoiceMutedRef        = useRef(false);
+  const speechSpeedRef           = useRef(0.95);
 
   // Sync ref hooks
   useEffect(() => { currentQuestionRef.current = currentQuestion;  }, [currentQuestion]);
@@ -527,6 +582,8 @@ const LiveInterview = () => {
   useEffect(() => { isAiSpeakingRef.current    = aiSpeaking;      }, [aiSpeaking]);
   useEffect(() => { interviewStateRef.current  = interviewState;  }, [interviewState]);
   useEffect(() => { currentQuestionIdRef.current = currentQuestionId; }, [currentQuestionId]);
+  useEffect(() => { isAiVoiceMutedRef.current  = isAiVoiceMuted;  }, [isAiVoiceMuted]);
+  useEffect(() => { speechSpeedRef.current     = speechSpeed;     }, [speechSpeed]);
 
   // Determine current company configuration
   const companyKey = useMemo(() => {
@@ -983,6 +1040,29 @@ const LiveInterview = () => {
     }, 400);
   }, [startSilenceCountdown]);
 
+  /* ─── AI Voice Mute Toggle ─────────────────────────────────────────────── */
+  const toggleAiVoiceMute = useCallback(() => {
+    setIsAiVoiceMuted(prev => {
+      const next = !prev;
+      isAiVoiceMutedRef.current = next;
+      if (next) {
+        try { synthRef.current.cancel(); } catch {}
+        if (ttsWatchdogRef.current) {
+          clearTimeout(ttsWatchdogRef.current);
+          ttsWatchdogRef.current = null;
+        }
+        activeUtteranceRef.current = null;
+        setAiSpeaking(false);
+        isAiSpeakingRef.current = false;
+        startListening();
+        addToast('Interviewer audio muted. Questions remain visible on screen.', 'info');
+      } else {
+        addToast('Interviewer voice audio unmuted.', 'info');
+      }
+      return next;
+    });
+  }, [startListening]);
+
   /* ─── TTS Speech Synthesis with Watchdog Timer Fallback ────────────────── */
   const speakChunk = useCallback((text, opts = {}) => new Promise((resolve) => {
     if (!text) { resolve(); return; }
@@ -995,16 +1075,29 @@ const LiveInterview = () => {
       ttsWatchdogRef.current = null;
     }
 
+    // Clean text: strip markdown symbols, code blocks, JSON tags, and emojis
+    const cleanText = sanitizeTextForSpeech(text);
+    if (!cleanText) { resolve(); return; }
+
+    // If AI voice is muted by candidate, give a brief pause for on-screen reading then resolve without audio
+    if (isAiVoiceMutedRef.current) {
+      const readingDelay = Math.min(2200, Math.max(500, cleanText.split(/\s+/).length * 60));
+      setTimeout(() => {
+        resolve();
+      }, readingDelay);
+      return;
+    }
+
     if (window.speechSynthesis && window.speechSynthesis.paused) {
       window.speechSynthesis.resume();
     }
 
-    const utt = new SpeechSynthesisUtterance(text);
+    const utt = new SpeechSynthesisUtterance(cleanText);
     activeUtteranceRef.current = utt; // Retain reference in ref to prevent Chromium GC cancellation bug
 
     if (voiceRef.current) utt.voice = voiceRef.current;
     utt.lang   = 'en-US';
-    utt.rate   = opts.rate   ?? 0.90;
+    utt.rate   = (opts.rate ?? 0.90) * (speechSpeedRef.current || 1.0);
     utt.pitch  = opts.pitch  ?? 1.08;
     utt.volume = opts.volume ?? 1.0;
 
@@ -1027,7 +1120,7 @@ const LiveInterview = () => {
     };
 
     // Dynamic timeout fallback based on word count (prevents indefinite hanging if onend drops)
-    const wordCount = text.trim().split(/\s+/).length;
+    const wordCount = cleanText.trim().split(/\s+/).length;
     const safeTimeoutMs = Math.max(3000, Math.min(25000, wordCount * 600 + 3500));
     ttsWatchdogRef.current = setTimeout(() => {
       console.warn(`TTS utterance timeout (${safeTimeoutMs}ms); proceeding to listening.`);
@@ -1071,14 +1164,32 @@ const LiveInterview = () => {
     setInterviewerStatus('speaking');
 
     synthRef.current.cancel();
+
+    const cleanText = sanitizeTextForSpeech(text);
+    if (!cleanText) {
+      setAiSpeaking(false);
+      isAiSpeakingRef.current = false;
+      startListening();
+      return;
+    }
+
+    if (isAiVoiceMutedRef.current) {
+      setTimeout(() => {
+        setAiSpeaking(false);
+        isAiSpeakingRef.current = false;
+        startListening();
+      }, 700);
+      return;
+    }
+
     if (window.speechSynthesis && window.speechSynthesis.paused) {
       window.speechSynthesis.resume();
     }
-    const utterance = new SpeechSynthesisUtterance(text);
+    const utterance = new SpeechSynthesisUtterance(cleanText);
     activeUtteranceRef.current = utterance;
     if (voiceRef.current) utterance.voice = voiceRef.current;
     utterance.lang   = 'en-US';
-    utterance.rate   = 0.92;
+    utterance.rate   = 0.92 * (speechSpeedRef.current || 1.0);
     utterance.pitch  = 1.08;
     utterance.volume = 1.0;
 
@@ -1105,7 +1216,7 @@ const LiveInterview = () => {
     utterance.onend = finish;
     utterance.onerror = finish;
 
-    const wordCount = (text || '').trim().split(/\s+/).length;
+    const wordCount = cleanText.trim().split(/\s+/).length;
     const safeTimeoutMs = Math.max(3000, Math.min(25000, wordCount * 600 + 3500));
     ttsWatchdogRef.current = setTimeout(() => {
       console.warn(`speakText watchdog timeout (${safeTimeoutMs}ms); returning to listening.`);
@@ -1484,7 +1595,7 @@ const LiveInterview = () => {
 
         if (newFinal) {
           setFinalTranscript(prev => {
-            const updated = prev + newFinal;
+            const updated = mergeTranscriptSegments(prev, newFinal);
             finalTranscriptRef.current = updated;
             return updated;
           });
@@ -1648,9 +1759,11 @@ const LiveInterview = () => {
 
     let answer = isTypingModeRef.current ? typedAnswer.trim() : finalTranscriptRef.current.trim();
     if (currentRound.type === 'coding') {
-      answer = `[Submitted Solution Code in ${selectedLanguage}]:\n\n` + codeContent;
+      const verbalExplanation = finalTranscriptRef.current ? finalTranscriptRef.current.trim() : '';
+      answer = `[Submitted Solution Code in ${selectedLanguage}]:\n\n` + codeContent + (verbalExplanation ? `\n\n[Candidate Verbal Explanation]:\n${verbalExplanation}` : '');
     } else if (currentRound.type === 'sql') {
-      answer = `[Submitted SQL Query]:\n\n` + sqlQuery;
+      const verbalExplanation = finalTranscriptRef.current ? finalTranscriptRef.current.trim() : '';
+      answer = `[Submitted SQL Query]:\n\n` + sqlQuery + (verbalExplanation ? `\n\n[Candidate Verbal Explanation]:\n${verbalExplanation}` : '');
     } else if (currentRound.type === 'whiteboard') {
       answer = `[Submitted Architecture Layout Blocks]:\n` + JSON.stringify(blocks);
     }
@@ -1740,6 +1853,7 @@ const LiveInterview = () => {
         }, 150);
 
         // Fire conversational response request immediately in a single pass with saveAnswer: true
+        const turnStartTime = performance.now();
         let convResponse = null;
         try {
           const convRes = await api.post(`/interviews/${id}/conversational-response`, {
@@ -1755,12 +1869,17 @@ const LiveInterview = () => {
             signal: abortController.signal
           });
           convResponse = convRes ? convRes.data : null;
+          if (convResponse) {
+            setLastTurnLatencyMs(Math.round(performance.now() - turnStartTime));
+          }
         } catch (err) {
           if (err.name === 'CanceledError' || err.name === 'AbortError') {
             console.log('Turn request canceled.');
             return;
           }
           console.warn('Conversational response API failed, using fallback', err);
+          setInterviewState('ERROR');
+          interviewStateRef.current = 'ERROR';
         }
 
         if (convResponse) {
@@ -1874,6 +1993,7 @@ const LiveInterview = () => {
     const abortController = new AbortController();
     turnAbortControllerRef.current = abortController;
 
+    const turnStartTime = performance.now();
     try {
       const convRes = await api.post(`/interviews/${id}/conversational-response`, {
         userAnswer: userAnswerDisplay,
@@ -1889,6 +2009,7 @@ const LiveInterview = () => {
       });
 
       if (convRes?.data) {
+        setLastTurnLatencyMs(Math.round(performance.now() - turnStartTime));
         setNetworkError(null);
         const { acknowledgement, transition, nextQuestion, isClosing } = convRes.data;
         const nextQNum = currentQNum + 1;
@@ -2250,6 +2371,16 @@ const LiveInterview = () => {
       try { recognitionRef.current.abort(); } catch {}
     }
     stopListening();
+    if (stream) {
+      try {
+        stream.getTracks().forEach(t => {
+          t.stop();
+          t.enabled = false;
+        });
+      } catch (err) {
+        console.warn('Error releasing media tracks on interview end:', err);
+      }
+    }
     setAiSpeaking(false);
     isAiSpeakingRef.current = false;
     setIsAIThinking(false);
@@ -2807,6 +2938,11 @@ const LiveInterview = () => {
           retryMicrophone={retryMicrophone}
           networkError={networkError}
           retryLastSubmission={retryLastSubmission}
+          isAiVoiceMuted={isAiVoiceMuted}
+          toggleAiVoiceMute={toggleAiVoiceMute}
+          speechSpeed={speechSpeed}
+          setSpeechSpeed={setSpeechSpeed}
+          lastTurnLatencyMs={lastTurnLatencyMs}
         />
       ) : (
         <div className="flex-1 flex gap-3 p-3 overflow-hidden min-h-0 relative">

@@ -5,7 +5,7 @@ import {
   AlertCircle, Zap, Brain, Play, Pause, Plus, Database, User,
   Check, AlertTriangle, Trash2, Mic, Code2, Layout, FileText, ArrowRight,
   MessageSquare, ChevronRight, X, Maximize2, Minimize2, LogOut,
-  HelpCircle, RefreshCw, Edit, Terminal, ListCollapse
+  HelpCircle, RefreshCw, Edit, Edit2, Terminal, ListCollapse, Volume2, VolumeX
 } from 'lucide-react';
 import {
   FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash,
@@ -86,6 +86,11 @@ const MockInterviewRoom = ({
   retryMicrophone = () => {},
   networkError = null,
   retryLastSubmission = () => {},
+  isAiVoiceMuted = false,
+  toggleAiVoiceMute = () => {},
+  speechSpeed = 0.95,
+  setSpeechSpeed = () => {},
+  lastTurnLatencyMs = null,
 }) => {
 
   const [activeHighlightSection, setActiveHighlightSection] = useState('projects');
@@ -94,6 +99,7 @@ const MockInterviewRoom = ({
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [candidateNotes, setCandidateNotes] = useState('');
+  const [isEditingTranscript, setIsEditingTranscript] = useState(false);
 
   // Auto-scrolling transcript ref
   const chatEndRef = useRef(null);
@@ -103,6 +109,10 @@ const MockInterviewRoom = ({
       chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [dialogLogs, isAIThinking]);
+
+  useEffect(() => {
+    setIsEditingTranscript(false);
+  }, [currentQuestion]);
 
   // Fullscreen support
   const toggleFullscreen = () => {
@@ -237,7 +247,31 @@ const MockInterviewRoom = ({
             </div>
           )}
 
+          {lastTurnLatencyMs != null && (
+            <div className="flex items-center gap-1 text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg font-mono" title="Last AI turn round-trip latency">
+              <Zap className="w-2.5 h-2.5" /> {lastTurnLatencyMs}ms
+            </div>
+          )}
+
           <div className="flex items-center gap-3 border-l border-white/10 pl-6">
+            <button
+              onClick={toggleAiVoiceMute}
+              className={`p-2 rounded-xl transition-all ${isAiVoiceMuted ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30' : 'bg-white/5 hover:bg-white/10 text-slate-300'}`}
+              title={isAiVoiceMuted ? 'Unmute Interviewer Voice' : 'Mute Interviewer Voice (Read questions on screen)'}
+            >
+              {isAiVoiceMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+            </button>
+            <button
+              onClick={() => {
+                const speeds = [0.85, 0.95, 1.1];
+                const nextIdx = (speeds.indexOf(speechSpeed) + 1) % speeds.length;
+                setSpeechSpeed(speeds[nextIdx]);
+              }}
+              className="px-2 py-1 bg-white/5 hover:bg-white/10 text-slate-300 border border-white/5 rounded-xl text-[10px] font-mono transition-all"
+              title="Interviewer Spoken Speed"
+            >
+              {speechSpeed}x
+            </button>
             <button
               onClick={toggleMute}
               className={`p-2 rounded-xl transition-all ${isMuted ? 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30' : 'bg-white/5 hover:bg-white/10 text-slate-300'}`}
@@ -899,8 +933,19 @@ const MockInterviewRoom = ({
                             </div>
                             <div className="flex items-center gap-2">
                               <button
+                                onClick={() => setIsEditingTranscript(prev => !prev)}
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all border flex items-center gap-1 cursor-pointer ${
+                                  isEditingTranscript
+                                    ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300'
+                                    : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5'
+                                }`}
+                                title="Edit transcript text manually before submitting"
+                              >
+                                <Edit2 className="w-3 h-3" /> {isEditingTranscript ? 'Done Editing' : 'Edit Text'}
+                              </button>
+                              <button
                                 onClick={clearTranscript}
-                                className="px-2.5 py-1 bg-white/5 hover:bg-white/10 rounded-lg text-[10px] font-bold text-slate-400 hover:text-red-400 transition-all border border-white/5 flex items-center gap-1"
+                                className="px-2.5 py-1 bg-white/5 hover:bg-white/10 rounded-lg text-[10px] font-bold text-slate-400 hover:text-red-400 transition-all border border-white/5 flex items-center gap-1 cursor-pointer"
                                 title="Clear speech transcript"
                               >
                                 <Trash2 className="w-3 h-3" /> Clear
@@ -908,7 +953,7 @@ const MockInterviewRoom = ({
                               <button
                                 onClick={() => submitAnswer()}
                                 disabled={isSubmitting || isAIThinking || !finalTranscript.trim() || aiSpeaking}
-                                className="px-3.5 py-1 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-[11px] font-bold text-white transition-all flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 disabled:opacity-50"
+                                className="px-3.5 py-1 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-[11px] font-bold text-white transition-all flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 disabled:opacity-50 cursor-pointer"
                               >
                                 {isSubmitting ? (
                                   <>
@@ -923,10 +968,20 @@ const MockInterviewRoom = ({
                             </div>
                           </div>
 
-                          <div className="min-h-[70px] text-xs md:text-sm text-slate-100 font-normal leading-relaxed bg-slate-900/60 p-3 rounded-xl border border-white/5 break-words">
-                            <span>{finalTranscript}</span>
-                            <span className="text-indigo-400 font-semibold animate-pulse">{interimTranscript ? ` ${interimTranscript}` : ''}</span>
-                          </div>
+                          {isEditingTranscript ? (
+                            <textarea
+                              value={finalTranscript}
+                              onChange={(e) => setFinalTranscript(e.target.value)}
+                              placeholder="Edit your transcribed response here before submitting..."
+                              rows={3}
+                              className="w-full bg-slate-950 border border-indigo-500/40 rounded-xl p-3 text-xs md:text-sm text-white focus:outline-none focus:border-indigo-500 leading-relaxed resize-none font-normal"
+                            />
+                          ) : (
+                            <div className="min-h-[70px] text-xs md:text-sm text-slate-100 font-normal leading-relaxed bg-slate-900/60 p-3 rounded-xl border border-white/5 break-words">
+                              <span>{finalTranscript}</span>
+                              <span className="text-indigo-400 font-semibold animate-pulse">{interimTranscript ? ` ${interimTranscript}` : ''}</span>
+                            </div>
+                          )}
                           <p className="text-[10px] text-slate-500 italic">
                             💡 The AI is capturing your voice live. Speak your full answer and stop speaking or click 'Submit Answer'.
                           </p>
