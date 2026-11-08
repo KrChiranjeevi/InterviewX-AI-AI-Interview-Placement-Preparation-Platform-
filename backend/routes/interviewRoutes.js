@@ -288,9 +288,40 @@ const finishInterview = async (req, res) => {
       interview.confidenceScore = confidenceScore;
     }
 
-    // Generate comprehensive final report from the full transcript
-    const summaryFeedback = await generateAIReport(interview);
-    interview.feedback = summaryFeedback;
+    // For mock interviews, generate evidence-based report and pre-cache it
+    if (!interview.company) {
+      try {
+        const reportData = await generateMockEvidenceReport(interview);
+        const technical = reportData.scoringBreakdown?.find(c => /tech|algo|code|system/i.test(c.category))?.score;
+        const communication = reportData.scoringBreakdown?.find(c => /comm|clarity|star/i.test(c.category))?.score;
+        const confidence = reportData.scoringBreakdown?.find(c => /conf|owner|auth/i.test(c.category))?.score;
+        const problemSolving = reportData.scoringBreakdown?.find(c => /problem|trade|scal|conflict/i.test(c.category))?.score;
+
+        await Report.findOneAndUpdate(
+          { interviewId: interview._id, userId: req.user._id },
+          {
+            $set: {
+              overallScore: typeof reportData.overallScore === 'number' ? reportData.overallScore : 0,
+              technicalScore: typeof technical === 'number' ? technical : (reportData.overallScore || 0),
+              communicationScore: typeof communication === 'number' ? communication : (reportData.overallScore || 0),
+              confidenceScore: typeof confidence === 'number' ? confidence : (reportData.overallScore || 0),
+              problemSolvingScore: typeof problemSolving === 'number' ? problemSolving : (reportData.overallScore || 0),
+              hiringDecision: reportData.finalDecision || 'Needs Improvement',
+              mockReport: { ...reportData, adaptiveState: interview.adaptiveState }
+            }
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+        interview.feedback = `${reportData.finalDecision}: Overall score ${reportData.overallScore}%. ${reportData.strengths?.[0] || ''}`;
+      } catch (repErr) {
+        console.warn('Pre-generating mock report in finishInterview failed:', repErr.message);
+        interview.feedback = 'Interview completed. Evidence report generated.';
+      }
+    } else {
+      // Company mode: generate final AI report
+      const summaryFeedback = await generateAIReport(interview);
+      interview.feedback = summaryFeedback;
+    }
 
     await interview.save();
 
@@ -426,18 +457,25 @@ const getConversationalResponse = async (req, res) => {
 
     // Unified turn saving: If saveAnswer is requested or userAnswer provided, persist immediately
     if (req.body.saveAnswer !== false && userAnswer && questionAsked) {
-      const evalObj = result.evaluation || {
-        score: Math.min(10, Math.max(1, Math.round((result.adaptiveState?.overallScore || 70) / 10))),
-        feedback: result.acknowledgement || 'Response evaluated.',
-        metrics: {
-          technicalKnowledge: Math.round((result.adaptiveState?.technicalScore || 70) / 10),
-          problemSolving: Math.round((result.adaptiveState?.overallScore || 70) / 10),
-          communication: Math.round((result.adaptiveState?.communicationScore || 75) / 10),
-          confidence: Math.round((result.adaptiveState?.confidenceScore || 75) / 10),
-          accuracy: Math.round((result.adaptiveState?.knowledgeScore || 70) / 10),
-          logicalThinking: Math.round((result.adaptiveState?.technicalScore || 70) / 10)
-        }
-      };
+      const isSkippedAnswer = req.body.rawAnswer === 'Skipped' || /^(skipped|skip|i would like to skip)/i.test((userAnswer || '').trim());
+      const evalObj = isSkippedAnswer
+        ? {
+            score: 0,
+            feedback: 'Question was skipped by candidate.',
+            metrics: { technicalKnowledge: 0, problemSolving: 0, communication: 0, confidence: 0, accuracy: 0, logicalThinking: 0 }
+          }
+        : (result.evaluation || {
+            score: Math.min(10, Math.max(0, Math.round((result.adaptiveState?.overallScore || 70) / 10))),
+            feedback: result.acknowledgement || 'Response evaluated.',
+            metrics: {
+              technicalKnowledge: Math.round((result.adaptiveState?.technicalScore || 70) / 10),
+              problemSolving: Math.round((result.adaptiveState?.overallScore || 70) / 10),
+              communication: Math.round((result.adaptiveState?.communicationScore || 75) / 10),
+              confidence: Math.round((result.adaptiveState?.confidenceScore || 75) / 10),
+              accuracy: Math.round((result.adaptiveState?.knowledgeScore || 70) / 10),
+              logicalThinking: Math.round((result.adaptiveState?.technicalScore || 70) / 10)
+            }
+          });
 
       interview.questions.push({
         question: questionAsked,
@@ -446,11 +484,11 @@ const getConversationalResponse = async (req, res) => {
         score: evalObj.score,
         metrics: evalObj.metrics,
         speechStats: {
-          speakingSpeed: 120,
+          speakingSpeed: isSkippedAnswer ? 0 : 120,
           fillerWordsCount: 0,
-          eyeContactScore: 85,
-          voiceClarity: 90,
-          grammarScore: 90
+          eyeContactScore: isSkippedAnswer ? 0 : 85,
+          voiceClarity: isSkippedAnswer ? 0 : 90,
+          grammarScore: isSkippedAnswer ? 0 : 90
         },
         bookmarked: req.body.bookmarked || false
       });
@@ -615,40 +653,33 @@ const getMockReport = async (req, res) => {
     let reportDoc = await Report.findOne({ interviewId: interview._id, userId: req.user._id });
     if (reportDoc && reportDoc.mockReport) {
       const mockData = reportDoc.mockReport.toObject ? reportDoc.mockReport.toObject() : reportDoc.mockReport;
-      return res.json({ ...mockData, _id: reportDoc._id });
+      return res.json({ ...mockData, _id: reportDoc._id, adaptiveState: interview.adaptiveState });
     }
 
     // If not, generate new report using AI
     const reportData = await generateMockEvidenceReport(interview);
 
-    // Save report document to DB so that it shows up in dashboard and is stored persistently
-    const technical = reportData.scoringBreakdown?.find(c => c.category?.toLowerCase() === 'technical')?.score;
-    const communication = reportData.scoringBreakdown?.find(c => c.category?.toLowerCase() === 'communication')?.score;
-    const confidence = reportData.scoringBreakdown?.find(c => c.category?.toLowerCase() === 'confidence')?.score;
-    const problemSolving = reportData.scoringBreakdown?.find(c => c.category?.toLowerCase() === 'problem solving')?.score;
+    // Save report document to DB with upsert to prevent duplicate entries on retry
+    const technical = reportData.scoringBreakdown?.find(c => /tech|algo|code|system/i.test(c.category))?.score;
+    const communication = reportData.scoringBreakdown?.find(c => /comm|clarity|star/i.test(c.category))?.score;
+    const confidence = reportData.scoringBreakdown?.find(c => /conf|owner|auth/i.test(c.category))?.score;
+    const problemSolving = reportData.scoringBreakdown?.find(c => /problem|trade|scal|conflict/i.test(c.category))?.score;
 
-    if (reportDoc) {
-      reportDoc.overallScore = reportData.overallScore || 0;
-      reportDoc.technicalScore = typeof technical === 'number' ? technical : 0;
-      reportDoc.communicationScore = typeof communication === 'number' ? communication : 0;
-      reportDoc.confidenceScore = typeof confidence === 'number' ? confidence : 0;
-      reportDoc.problemSolvingScore = typeof problemSolving === 'number' ? problemSolving : 0;
-      reportDoc.hiringDecision = reportData.finalDecision || 'Needs Improvement';
-      reportDoc.mockReport = { ...reportData, adaptiveState: interview.adaptiveState };
-      await reportDoc.save();
-    } else {
-      reportDoc = await Report.create({
-        userId: req.user._id,
-        interviewId: interview._id,
-        overallScore: reportData.overallScore || 0,
-        technicalScore: typeof technical === 'number' ? technical : 0,
-        communicationScore: typeof communication === 'number' ? communication : 0,
-        confidenceScore: typeof confidence === 'number' ? confidence : 0,
-        problemSolvingScore: typeof problemSolving === 'number' ? problemSolving : 0,
-        hiringDecision: reportData.finalDecision || 'Needs Improvement',
-        mockReport: { ...reportData, adaptiveState: interview.adaptiveState }
-      });
-    }
+    const updateFields = {
+      overallScore: typeof reportData.overallScore === 'number' ? reportData.overallScore : 0,
+      technicalScore: typeof technical === 'number' ? technical : (reportData.overallScore || 0),
+      communicationScore: typeof communication === 'number' ? communication : (reportData.overallScore || 0),
+      confidenceScore: typeof confidence === 'number' ? confidence : (reportData.overallScore || 0),
+      problemSolvingScore: typeof problemSolving === 'number' ? problemSolving : (reportData.overallScore || 0),
+      hiringDecision: reportData.finalDecision || 'Needs Improvement',
+      mockReport: { ...reportData, adaptiveState: interview.adaptiveState }
+    };
+
+    reportDoc = await Report.findOneAndUpdate(
+      { interviewId: interview._id, userId: req.user._id },
+      { $set: updateFields },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
 
     res.json({ ...reportData, _id: reportDoc._id, adaptiveState: interview.adaptiveState });
   } catch (error) {

@@ -196,6 +196,20 @@ const MockInterviewReport = () => {
               </div>
             </motion.div>
 
+            {/* Evidence & Estimate Disclaimers */}
+            <div className="flex flex-col gap-2">
+              <div className="bg-indigo-950/30 border border-indigo-500/20 px-4 py-2.5 rounded-2xl text-xs text-indigo-300 flex items-center gap-2.5">
+                <FaBrain className="shrink-0 text-indigo-400" />
+                <span>{report.disclaimer || "AI-generated estimate based on mock interview session performance. Not an official hiring determination."}</span>
+              </div>
+              {report.codeAnalysis?.disclaimer && (
+                <div className="bg-slate-900/60 border border-slate-800 px-4 py-2.5 rounded-2xl text-xs text-slate-400 flex items-center gap-2.5">
+                  <FaCode className="shrink-0 text-amber-400" />
+                  <span>{report.codeAnalysis.disclaimer}</span>
+                </div>
+              )}
+            </div>
+
             {/* Score Breakdown Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {report.scoringBreakdown?.map((item, idx) => (
@@ -459,14 +473,20 @@ const MockInterviewReport = () => {
                             {q.difficulty}
                           </span>
                         )}
-                        <span className={`text-xs font-mono font-bold px-2.5 py-1 rounded-lg ${
-                          typeof q.score === 'number' && q.score >= 80 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                          typeof q.score === 'number' && q.score >= 60 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
-                          typeof q.score === 'number' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
-                          'bg-slate-800 text-slate-400'
-                        }`}>
-                          {typeof q.score === 'number' ? `${q.score}% Score` : 'N/A'}
-                        </span>
+                        {q.status === 'unanswered' || q.score === 0 ? (
+                          <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20">
+                            Unanswered (0%)
+                          </span>
+                        ) : (
+                          <span className={`text-xs font-mono font-bold px-2.5 py-1 rounded-lg ${
+                            typeof q.score === 'number' && q.score >= 80 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                            typeof q.score === 'number' && q.score >= 60 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                            typeof q.score === 'number' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
+                            'bg-slate-800 text-slate-400'
+                          }`}>
+                            {typeof q.score === 'number' ? `${q.score}% Score` : 'N/A'}
+                          </span>
+                        )}
                       </div>
                     </div>
 

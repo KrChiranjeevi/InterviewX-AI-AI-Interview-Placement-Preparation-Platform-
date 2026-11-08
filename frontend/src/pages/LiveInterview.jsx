@@ -1710,9 +1710,16 @@ const LiveInterview = () => {
         const abortController = new AbortController();
         turnAbortControllerRef.current = abortController;
 
-        setInterviewerStatus('analyzing');
-        setInterviewState('GENERATING_NEXT_QUESTION');
-        interviewStateRef.current = 'GENERATING_NEXT_QUESTION';
+        setInterviewerStatus('answer_received');
+        setInterviewState('PROCESSING_ANSWER');
+        interviewStateRef.current = 'PROCESSING_ANSWER';
+
+        // Brief visual status transition to processing
+        setTimeout(() => {
+          setInterviewerStatus('processing');
+          setInterviewState('GENERATING_NEXT_QUESTION');
+          interviewStateRef.current = 'GENERATING_NEXT_QUESTION';
+        }, 150);
 
         // Fire conversational response request immediately in a single pass with saveAnswer: true
         let convResponse = null;
@@ -1748,6 +1755,13 @@ const LiveInterview = () => {
           const nextQId = `q-${nextQNum}-${Date.now()}`;
           setCurrentQuestionId(nextQId);
           currentQuestionIdRef.current = nextQId;
+
+          // Indicate follow-up vs next question state
+          if (convResponse.isFollowUp) {
+            setInterviewerStatus('preparing_followup');
+          } else {
+            setInterviewerStatus('moving_to_next');
+          }
 
           let nextStage = currentStage;
           if (currentStage === 'greeting') nextStage = 'warmup';
@@ -1965,7 +1979,7 @@ const LiveInterview = () => {
         setInterviewStage(nextStage);
         interviewStageRef.current = nextStage;
 
-        setInterviewerStatus('analyzing');
+        setInterviewerStatus('processing');
         setInterviewState('GENERATING_NEXT_QUESTION');
         interviewStateRef.current = 'GENERATING_NEXT_QUESTION';
 

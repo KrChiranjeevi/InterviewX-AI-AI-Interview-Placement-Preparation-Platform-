@@ -45,18 +45,22 @@ const InterviewerAvatar = ({
 
   /* ── State-driven head + iris behavior ── */
   useEffect(() => {
-    if (interviewerStatus === 'analyzing' || isAIThinking) {
+    if (interviewerStatus === 'analyzing' || interviewerStatus === 'processing' || isAIThinking) {
       setHeadTilt(-3);
       setIrisOffsetX(-3);
       setIrisOffsetY(3);
-    } else if (interviewerStatus === 'typing') {
+    } else if (interviewerStatus === 'typing' || interviewerStatus === 'answer_received') {
       setHeadTilt(-2);
       setIrisOffsetX(0);
       setIrisOffsetY(4);
-    } else if (interviewerStatus === 'preparing') {
+    } else if (interviewerStatus === 'preparing' || interviewerStatus === 'preparing_followup') {
       setHeadTilt(1.5);
       setIrisOffsetX(2);
       setIrisOffsetY(2);
+    } else if (interviewerStatus === 'moving_to_next') {
+      setHeadTilt(2);
+      setIrisOffsetX(2);
+      setIrisOffsetY(1);
     } else if (interviewerStatus === 'speaking' || aiSpeaking) {
       setHeadTilt(0);
       setIrisOffsetX(0);
@@ -75,7 +79,7 @@ const InterviewerAvatar = ({
 
   /* ── Nod when user finishes (listening→analyzing transition) ── */
   useEffect(() => {
-    if (interviewerStatus === 'analyzing') {
+    if (interviewerStatus === 'analyzing' || interviewerStatus === 'answer_received') {
       setNodding(true);
       nodTimerRef.current = setTimeout(() => setNodding(false), 900);
     }
@@ -92,12 +96,16 @@ const InterviewerAvatar = ({
 
   /* ── Status config ── */
   const statusConfig = {
-    listening:  { label: 'Listening...',        dot: 'bg-emerald-400', text: 'text-emerald-400',  ring: 'rgba(52,211,153,0.15)' },
-    analyzing:  { label: 'Analyzing...',         dot: 'bg-amber-400',   text: 'text-amber-400',    ring: 'rgba(251,191,36,0.15)' },
-    typing:     { label: 'Taking notes...',      dot: 'bg-blue-400',    text: 'text-blue-400',     ring: 'rgba(96,165,250,0.15)' },
-    preparing:  { label: 'Preparing follow-up...', dot: 'bg-violet-400', text: 'text-violet-400', ring: 'rgba(167,139,250,0.2)' },
-    speaking:   { label: 'Speaking',             dot: 'bg-indigo-400',  text: 'text-indigo-400',   ring: 'rgba(99,102,241,0.2)' },
-    evaluating: { label: 'Evaluating...',        dot: 'bg-orange-400',  text: 'text-orange-400',   ring: 'rgba(251,146,60,0.15)' },
+    listening:          { label: 'Listening',                 dot: 'bg-emerald-400', text: 'text-emerald-400', ring: 'rgba(52,211,153,0.15)' },
+    answer_received:    { label: 'Answer received',           dot: 'bg-sky-400',     text: 'text-sky-400',     ring: 'rgba(56,189,248,0.15)' },
+    processing:         { label: 'Processing answer...',      dot: 'bg-amber-400',   text: 'text-amber-400',   ring: 'rgba(251,191,36,0.15)' },
+    analyzing:          { label: 'Processing answer...',      dot: 'bg-amber-400',   text: 'text-amber-400',   ring: 'rgba(251,191,36,0.15)' },
+    typing:             { label: 'Taking notes...',           dot: 'bg-blue-400',    text: 'text-blue-400',    ring: 'rgba(96,165,250,0.15)' },
+    preparing_followup: { label: 'Preparing follow-up...',    dot: 'bg-violet-400',  text: 'text-violet-400',  ring: 'rgba(167,139,250,0.2)' },
+    preparing:          { label: 'Preparing follow-up...',    dot: 'bg-violet-400',  text: 'text-violet-400',  ring: 'rgba(167,139,250,0.2)' },
+    moving_to_next:     { label: 'Moving to next question...', dot: 'bg-blue-400',    text: 'text-blue-400',    ring: 'rgba(96,165,250,0.2)' },
+    speaking:           { label: 'Interviewer speaking',      dot: 'bg-indigo-400',  text: 'text-indigo-400',  ring: 'rgba(99,102,241,0.2)' },
+    evaluating:         { label: 'Processing answer...',      dot: 'bg-orange-400',  text: 'text-orange-400',  ring: 'rgba(251,146,60,0.15)' },
   };
 
   const activeStatus = statusConfig[interviewerStatus] || statusConfig.listening;

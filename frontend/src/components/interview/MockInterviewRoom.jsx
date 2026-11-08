@@ -296,10 +296,21 @@ const MockInterviewRoom = ({
             <div className="space-y-1.5">
               <span className="text-[10px] font-bold text-slate-500 uppercase block">AI Recruiter State</span>
               <div className="bg-slate-950 border border-white/5 p-3 rounded-xl flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-300 capitalize">{interviewerStatus}</span>
+                <span className="text-xs font-bold text-slate-300">
+                  {interviewerStatus === 'answer_received' ? 'Answer received' :
+                   interviewerStatus === 'processing' || interviewerStatus === 'analyzing' || interviewerStatus === 'evaluating' ? 'Processing answer...' :
+                   interviewerStatus === 'preparing_followup' ? 'Preparing follow-up...' :
+                   interviewerStatus === 'moving_to_next' ? 'Moving to next question...' :
+                   interviewerStatus === 'speaking' ? 'Interviewer speaking' :
+                   interviewerStatus === 'listening' ? 'Listening' :
+                   interviewerStatus}
+                </span>
                 <span className={`h-2 w-2 rounded-full ${
                   interviewerStatus === 'listening' ? 'bg-emerald-400' :
-                  interviewerStatus === 'analyzing' || interviewerStatus === 'typing' ? 'bg-amber-400 animate-pulse' :
+                  interviewerStatus === 'answer_received' ? 'bg-sky-400' :
+                  interviewerStatus === 'processing' || interviewerStatus === 'analyzing' || interviewerStatus === 'typing' ? 'bg-amber-400 animate-pulse' :
+                  interviewerStatus === 'preparing_followup' ? 'bg-violet-400 animate-pulse' :
+                  interviewerStatus === 'moving_to_next' ? 'bg-blue-400 animate-pulse' :
                   'bg-indigo-500 animate-ping'
                 }`} />
               </div>
