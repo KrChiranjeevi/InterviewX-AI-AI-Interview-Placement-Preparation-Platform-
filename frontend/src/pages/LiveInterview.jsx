@@ -925,40 +925,6 @@ const LiveInterview = () => {
     finalTranscriptRef.current = '';
   }, []);
 
-  /* ─── Typing mode toggling (Isolated modes) ─────────────────────────── */
-  const switchToTyping = useCallback(() => {
-    isListeningRef.current = false;
-    setIsRecording(false);
-    clearAutoSubmitTimers();
-    if (recognitionRef.current) {
-      try { recognitionRef.current.abort(); } catch {}
-    }
-    isRecognitionActiveRef.current = false;
-    isRecognitionStartingRef.current = false;
-    // Preserve spoken words into typedAnswer so candidate never loses their response
-    if (finalTranscriptRef.current && !typedAnswer.trim()) {
-      setTypedAnswer(finalTranscriptRef.current.trim());
-    }
-    setIsTypingMode(true);
-    isTypingModeRef.current = true;
-    setInterviewState('TYPING_MODE');
-    interviewStateRef.current = 'TYPING_MODE';
-  }, [clearAutoSubmitTimers, typedAnswer]);
-
-  const switchToSpeaking = useCallback(() => {
-    setIsTypingMode(false);
-    isTypingModeRef.current = false;
-    // If user typed something and switches back to speaking, preserve in finalTranscript
-    if (typedAnswer.trim() && !finalTranscriptRef.current.trim()) {
-      const trimmed = typedAnswer.trim();
-      setFinalTranscript(trimmed);
-      finalTranscriptRef.current = trimmed;
-    }
-    if (!isAiSpeakingRef.current && !isAIThinkingRef.current) {
-      startListening();
-    }
-  }, [typedAnswer, startListening]);
-
   /* ─── Speech Recognition Control with Acoustic Settling Buffer ───────── */
   const stopListening = useCallback(() => {
     if (settlingTimerRef.current) {
@@ -1039,6 +1005,40 @@ const LiveInterview = () => {
       }
     }, 400);
   }, [startSilenceCountdown]);
+
+  /* ─── Typing mode toggling (Isolated modes) ─────────────────────────── */
+  const switchToTyping = useCallback(() => {
+    isListeningRef.current = false;
+    setIsRecording(false);
+    clearAutoSubmitTimers();
+    if (recognitionRef.current) {
+      try { recognitionRef.current.abort(); } catch {}
+    }
+    isRecognitionActiveRef.current = false;
+    isRecognitionStartingRef.current = false;
+    // Preserve spoken words into typedAnswer so candidate never loses their response
+    if (finalTranscriptRef.current && !typedAnswer.trim()) {
+      setTypedAnswer(finalTranscriptRef.current.trim());
+    }
+    setIsTypingMode(true);
+    isTypingModeRef.current = true;
+    setInterviewState('TYPING_MODE');
+    interviewStateRef.current = 'TYPING_MODE';
+  }, [clearAutoSubmitTimers, typedAnswer]);
+
+  const switchToSpeaking = useCallback(() => {
+    setIsTypingMode(false);
+    isTypingModeRef.current = false;
+    // If user typed something and switches back to speaking, preserve in finalTranscript
+    if (typedAnswer.trim() && !finalTranscriptRef.current.trim()) {
+      const trimmed = typedAnswer.trim();
+      setFinalTranscript(trimmed);
+      finalTranscriptRef.current = trimmed;
+    }
+    if (!isAiSpeakingRef.current && !isAIThinkingRef.current) {
+      startListening();
+    }
+  }, [typedAnswer, startListening]);
 
   /* ─── AI Voice Mute Toggle ─────────────────────────────────────────────── */
   const toggleAiVoiceMute = useCallback(() => {
