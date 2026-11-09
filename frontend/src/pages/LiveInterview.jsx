@@ -876,6 +876,11 @@ const LiveInterview = () => {
     return () => { if (faceInterval.current) clearInterval(faceInterval.current); };
   }, [modelsLoaded, isCameraOn]);
 
+  /* ─── End Interview Trigger ───────────────────────────────────────────── */
+  const endInterview = useCallback(() => {
+    setShowEndConfirm(true);
+  }, []);
+
   /* ─── Auto-submit timer helpers ───────────────────────────────────────── */
   const clearAutoSubmitTimers = useCallback(() => {
     if (autoSubmitTimer.current)   clearTimeout(autoSubmitTimer.current);
@@ -2347,10 +2352,6 @@ const LiveInterview = () => {
   };
 
   /* ─── End Interview Sequence ────────────────────────────────────────── */
-  const endInterview = () => {
-    setShowEndConfirm(true);
-  };
-
   const confirmEndInterview = async () => {
     setShowEndConfirm(false);
     setIsEnding(true);
