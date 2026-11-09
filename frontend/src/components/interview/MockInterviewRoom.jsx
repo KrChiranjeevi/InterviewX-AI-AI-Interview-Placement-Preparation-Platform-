@@ -114,6 +114,22 @@ const MockInterviewRoom = ({
     setIsEditingTranscript(false);
   }, [currentQuestion]);
 
+  // Video feed hardware attachment & teardown sync
+  useEffect(() => {
+    if (videoRef?.current) {
+      if (isCameraOn && stream) {
+        if (videoRef.current.srcObject !== stream) {
+          videoRef.current.srcObject = stream;
+        }
+        videoRef.current.play().catch(() => {});
+      } else if (!isCameraOn) {
+        if (videoRef.current.srcObject) {
+          videoRef.current.srcObject = null;
+        }
+      }
+    }
+  }, [isCameraOn, stream, videoRef]);
+
   // Fullscreen support
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -355,12 +371,17 @@ const MockInterviewRoom = ({
           <div className="mt-6">
             <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1.5">Candidate Stream</span>
             <div className="aspect-[4/3] w-full rounded-2xl bg-slate-950 border border-white/10 overflow-hidden relative">
-              {isCameraOn ? (
-                <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover transform -scale-x-100" />
-              ) : (
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className={`w-full h-full object-cover transform -scale-x-100 ${!isCameraOn ? 'hidden' : 'block'}`}
+              />
+              {!isCameraOn && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-600 gap-1.5 bg-slate-900/40">
                   <User className="w-8 h-8 opacity-40" />
-                  <span className="text-[9px] uppercase font-bold tracking-widest">Camera Stream Blocked</span>
+                  <span className="text-[9px] uppercase font-bold tracking-widest">Camera Stream Off</span>
                 </div>
               )}
             </div>

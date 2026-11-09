@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Suspense, lazy, useEffect } from 'react';
 import ProtectedRoute from './routes/ProtectedRoute';
 import { Toaster } from 'react-hot-toast';
@@ -88,9 +88,44 @@ function App() {
     };
   }, []);
 
+// Global Hardware Guardian: ensures camera and mic are completely stopped outside active live chamber
+const GlobalMediaGuard = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    const isLiveChamber = location.pathname.startsWith('/interview/live/');
+    if (!isLiveChamber && typeof window !== 'undefined') {
+      if (typeof window.__cleanupInterviewMedia === 'function') {
+        try { window.__cleanupInterviewMedia(); } catch {}
+      }
+      if (window.__activeInterviewStream) {
+        try {
+          window.__activeInterviewStream.getTracks().forEach(t => {
+            t.enabled = false;
+            t.stop();
+          });
+        } catch {}
+        window.__activeInterviewStream = null;
+      }
+      if (window.__activeMediaTracks instanceof Set) {
+        window.__activeMediaTracks.forEach(t => {
+          try {
+            t.enabled = false;
+            t.stop();
+          } catch {}
+        });
+        window.__activeMediaTracks.clear();
+      }
+    }
+  }, [location.pathname]);
+
+  return null;
+};
+
   return (
     <ErrorBoundary>
       <Router>
+        <GlobalMediaGuard />
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white transition-colors duration-300">
           <Toaster position="top-right" toastOptions={{ style: { background: '#1e293b', color: '#fff', border: '1px solid #334155' } }} />
           <Suspense fallback={<LoadingFallback />}>
