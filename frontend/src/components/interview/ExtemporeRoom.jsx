@@ -154,6 +154,17 @@ const ExtemporeRoom = ({
     };
 
     recognitionRef.current = recognition;
+
+    return () => {
+      try {
+        recognition.onresult = null;
+        recognition.onend = null;
+        recognition.onerror = null;
+        recognition.abort();
+        recognition.stop();
+      } catch {}
+      recognitionRef.current = null;
+    };
   }, [arenaStep, candidateSpeechText]);
 
   const toggleMic = () => {
@@ -223,6 +234,13 @@ const ExtemporeRoom = ({
   // Complete Extempore Round
   const handleCompleteExtempore = async (finalFollowUps = followUpAnswers) => {
     setIsFinishing(true);
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+        recognitionRef.current.stop();
+      } catch {}
+      recognitionRef.current = null;
+    }
     try {
       window.speechSynthesis?.cancel();
       const fullSpeech = (candidateSpeechText + ' ' + typedInput).trim();

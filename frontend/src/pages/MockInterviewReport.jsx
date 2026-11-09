@@ -24,6 +24,29 @@ const MockInterviewReport = () => {
   ]);
   const [mentorLoading, setMentorLoading] = useState(false);
 
+  // Guaranteed hardware release when viewing report
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        if (window.__cleanupInterviewMedia) {
+          window.__cleanupInterviewMedia();
+        }
+        if (window.__activeInterviewStream) {
+          window.__activeInterviewStream.getTracks?.().forEach(track => {
+            track.enabled = false;
+            track.stop();
+          });
+          window.__activeInterviewStream = null;
+        }
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+        }
+      }
+    } catch (e) {
+      console.warn('Hardware teardown on report mount:', e);
+    }
+  }, []);
+
   useEffect(() => {
     const fetchReport = async () => {
       try {

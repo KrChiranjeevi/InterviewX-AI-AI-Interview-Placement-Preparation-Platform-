@@ -185,6 +185,17 @@ const LiveGDRoom = ({
     };
 
     recognitionRef.current = recognition;
+
+    return () => {
+      try {
+        recognition.onresult = null;
+        recognition.onend = null;
+        recognition.onerror = null;
+        recognition.abort();
+        recognition.stop();
+      } catch {}
+      recognitionRef.current = null;
+    };
   }, []);
 
   const toggleMic = () => {
@@ -271,6 +282,13 @@ const LiveGDRoom = ({
   // End GD and submit evaluation request
   const handleCompleteGD = async () => {
     setIsFinishing(true);
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+        recognitionRef.current.stop();
+      } catch {}
+      recognitionRef.current = null;
+    }
     try {
       window.speechSynthesis?.cancel();
       const { data } = await api.post(`/interviews/${interview._id}/gd-report`, {

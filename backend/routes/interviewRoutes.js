@@ -844,7 +844,7 @@ const processGDTurn = async (req, res) => {
 const getGDReport = async (req, res) => {
   try {
     const { id } = req.params;
-    const { transcript } = req.body;
+    const { transcript } = req.body || {};
     const interview = await Interview.findById(id);
     if (!interview) {
       return res.status(404).json({ message: 'Interview not found' });
@@ -909,7 +909,7 @@ const processExtemporeFollowup = async (req, res) => {
 const getExtemporeReport = async (req, res) => {
   try {
     const { id } = req.params;
-    const { speechText, followUpQAs } = req.body;
+    const { speechText, followUpQAs } = req.body || {};
     const interview = await Interview.findById(id);
     if (!interview) {
       return res.status(404).json({ message: 'Interview not found' });

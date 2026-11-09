@@ -567,10 +567,12 @@ const LiveInterview = () => {
   const turnAbortControllerRef   = useRef(null);
   const confirmEndInterviewRef   = useRef(null);
   const typedAnswerRef           = useRef('');
+  const streamRef                = useRef(null);
   const isAiVoiceMutedRef        = useRef(false);
   const speechSpeedRef           = useRef(0.95);
 
   // Sync ref hooks
+  useEffect(() => { streamRef.current          = stream;          }, [stream]);
   useEffect(() => { currentQuestionRef.current = currentQuestion;  }, [currentQuestion]);
   useEffect(() => { isAIThinkingRef.current    = isAIThinking;    }, [isAIThinking]);
   useEffect(() => { finalTranscriptRef.current = finalTranscript; }, [finalTranscript]);
@@ -891,6 +893,95 @@ const LiveInterview = () => {
     silenceTimer.current      = null;
     setAutoSubmitCountdown(null);
   }, []);
+
+  /* ─── Hardware Release Guarantee (Mic, Camera, SpeechRecognition, AudioContext) ── */
+  const releaseAllHardware = useCallback(() => {
+    // 1. Immediately abort & stop speech recognition
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.onend = null;
+        recognitionRef.current.onerror = null;
+        recognitionRef.current.onresult = null;
+        recognitionRef.current.abort();
+      } catch {}
+      try {
+        recognitionRef.current.stop();
+      } catch {}
+      recognitionRef.current = null;
+    }
+    isRecognitionActiveRef.current = false;
+    isRecognitionStartingRef.current = false;
+    isListeningRef.current = false;
+    setIsRecording(false);
+
+    // 2. Stop and disable all media stream tracks from streamRef, state stream, videoRef, and window registry
+    const streamsToStop = [
+      streamRef.current,
+      stream,
+      videoRef.current?.srcObject,
+      (typeof window !== 'undefined' ? window.__activeInterviewStream : null)
+    ].filter(Boolean);
+
+    streamsToStop.forEach(s => {
+      try {
+        if (s && s.getTracks) {
+          s.getTracks().forEach(track => {
+            try {
+              track.enabled = false;
+              track.stop();
+            } catch (tErr) {
+              console.warn('Error stopping track:', tErr);
+            }
+          });
+        }
+      } catch (err) {
+        console.warn('Error accessing stream tracks:', err);
+      }
+    });
+
+    if (videoRef.current) {
+      try { videoRef.current.srcObject = null; } catch {}
+    }
+    streamRef.current = null;
+    if (typeof window !== 'undefined') {
+      window.__activeInterviewStream = null;
+    }
+    setStream(null);
+
+    // 3. Close Web AudioContext
+    if (audioCtxRef.current) {
+      try {
+        if (audioCtxRef.current.state !== 'closed') {
+          audioCtxRef.current.close();
+        }
+      } catch {}
+      audioCtxRef.current = null;
+    }
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    if (faceInterval.current) {
+      clearInterval(faceInterval.current);
+      faceInterval.current = null;
+    }
+
+    // 4. Cancel Speech Synthesis
+    try {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    } catch {}
+    if (ttsWatchdogRef.current) {
+      clearTimeout(ttsWatchdogRef.current);
+      ttsWatchdogRef.current = null;
+    }
+    if (settlingTimerRef.current) {
+      clearTimeout(settlingTimerRef.current);
+      settlingTimerRef.current = null;
+    }
+    clearAutoSubmitTimers();
+  }, [stream, clearAutoSubmitTimers]);
 
   const startSilenceCountdown = useCallback(() => {
     if (isTypingModeRef.current || isAIThinkingRef.current || isAiSpeakingRef.current) return;
@@ -1367,6 +1458,8 @@ const LiveInterview = () => {
           autoGainControl: true
         }
       });
+      streamRef.current = mediaStream;
+      if (typeof window !== 'undefined') window.__activeInterviewStream = mediaStream;
       setStream(mediaStream);
       if (videoRef.current) videoRef.current.srcObject = mediaStream;
       setIsCameraOn(mediaStream.getVideoTracks()[0]?.enabled ?? true);
@@ -1394,6 +1487,8 @@ const LiveInterview = () => {
             autoGainControl: true
           }
         });
+        streamRef.current = audioStream;
+        if (typeof window !== 'undefined') window.__activeInterviewStream = audioStream;
         setStream(audioStream);
         setFaceStatus('Camera access denied (Audio active)');
         setIsCameraOn(false);
@@ -1718,20 +1813,30 @@ const LiveInterview = () => {
       if (turnAbortControllerRef.current) {
         try { turnAbortControllerRef.current.abort(); } catch {}
       }
-      stream?.getTracks().forEach(t => t.stop());
-      try { synthRef.current.cancel(); } catch {}
-      if (ttsWatchdogRef.current) {
-        clearTimeout(ttsWatchdogRef.current);
-        ttsWatchdogRef.current = null;
-      }
-      if (settlingTimerRef.current) clearTimeout(settlingTimerRef.current);
-      if (recognitionRef.current) {
-        try { recognitionRef.current.abort(); } catch {}
-      }
-      clearAutoSubmitTimers();
+      releaseAllHardware();
       toastTimers.current.forEach(clearTimeout);
     };
-  }, [id, initCamera, companyKey]);
+  }, [id, initCamera, companyKey, releaseAllHardware]);
+
+  // Global window unmount & pagehide hardware release safety
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.__cleanupInterviewMedia = releaseAllHardware;
+    }
+    const handleWindowUnload = () => {
+      releaseAllHardware();
+    };
+    window.addEventListener('beforeunload', handleWindowUnload);
+    window.addEventListener('pagehide', handleWindowUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleWindowUnload);
+      window.removeEventListener('pagehide', handleWindowUnload);
+      releaseAllHardware();
+      if (typeof window !== 'undefined' && window.__cleanupInterviewMedia === releaseAllHardware) {
+        window.__cleanupInterviewMedia = null;
+      }
+    };
+  }, [releaseAllHardware]);
 
   /* ─── Ending step sequencer (PRESERVED) ───────────────────────────────── */
   useEffect(() => {
@@ -2231,6 +2336,8 @@ const LiveInterview = () => {
             const newTrack = newStream.getVideoTracks()[0];
             stream.removeTrack(videoTrack);
             stream.addTrack(newTrack);
+            streamRef.current = stream;
+            if (typeof window !== 'undefined') window.__activeInterviewStream = stream;
             if (videoRef.current) videoRef.current.srcObject = stream;
             setIsCameraOn(true);
           }).catch((err) => {
@@ -2362,26 +2469,9 @@ const LiveInterview = () => {
       try { turnAbortControllerRef.current.abort(); } catch {}
       turnAbortControllerRef.current = null;
     }
-    // Stop audio & speech synthesis immediately
-    try { synthRef.current.cancel(); } catch {}
-    if (ttsWatchdogRef.current) {
-      clearTimeout(ttsWatchdogRef.current);
-      ttsWatchdogRef.current = null;
-    }
-    if (recognitionRef.current) {
-      try { recognitionRef.current.abort(); } catch {}
-    }
-    stopListening();
-    if (stream) {
-      try {
-        stream.getTracks().forEach(t => {
-          t.stop();
-          t.enabled = false;
-        });
-      } catch (err) {
-        console.warn('Error releasing media tracks on interview end:', err);
-      }
-    }
+
+    // Critical: Release all microphone, camera, speech recognition, and audio context hardware immediately
+    releaseAllHardware();
     setAiSpeaking(false);
     isAiSpeakingRef.current = false;
     setIsAIThinking(false);
