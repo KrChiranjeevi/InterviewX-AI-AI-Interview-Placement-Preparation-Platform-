@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Clock, Shield, Send, Keyboard, Activity, CheckCircle2,
@@ -1185,4 +1185,4 @@ const MockInterviewRoom = ({
   );
 };
 
-export default MockInterviewRoom;
+export default memo(MockInterviewRoom);

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, memo } from 'react';
 
 /* ─────────────────────────────────────────────────────────────────────────────
    WaveformVisualizer
@@ -152,4 +152,4 @@ const WaveformVisualizer = ({ stream, isActive }) => {
   );
 };
 
-export default WaveformVisualizer;
+export default memo(WaveformVisualizer);

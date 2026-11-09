@@ -500,7 +500,7 @@ const LiveInterview = () => {
   const [currentQuestionId,          setCurrentQuestionId]          = useState('q-1');
   const [networkError,               setNetworkError]               = useState(null);
   const [isAiVoiceMuted,             setIsAiVoiceMuted]             = useState(false);
-  const [speechSpeed,                setSpeechSpeed]                = useState(0.95);
+  const [speechSpeed,                setSpeechSpeed]                = useState(1.0);
   const [lastTurnLatencyMs,          setLastTurnLatencyMs]          = useState(null);
 
   // Dynamic Workspaces States
@@ -569,7 +569,7 @@ const LiveInterview = () => {
   const typedAnswerRef           = useRef('');
   const streamRef                = useRef(null);
   const isAiVoiceMutedRef        = useRef(false);
-  const speechSpeedRef           = useRef(0.95);
+  const speechSpeedRef           = useRef(1.0);
 
   // Sync ref hooks
   useEffect(() => { streamRef.current          = stream;          }, [stream]);
@@ -668,46 +668,16 @@ const LiveInterview = () => {
     toastTimers.current.push(timer);
   };
 
-  /* ─── Web Audio Analyser Visualizer (PRESERVED) ─────────────────────────── */
+  /* ─── Web Audio Analyser (Visualizer handled inside WaveformVisualizer) ── */
   useEffect(() => {
-    if (!stream || !canvasRef.current) return;
-    try {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 64;
-      const source = audioContext.createMediaStreamSource(stream);
-      source.connect(analyser);
-      audioCtxRef.current  = audioContext;
-      analyserRef.current  = analyser;
-
-      const canvas = canvasRef.current;
-      const ctx    = canvas.getContext('2d');
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray    = new Uint8Array(bufferLength);
-
-      const draw = () => {
-        if (!canvasRef.current) return;
-        animationFrameRef.current = requestAnimationFrame(draw);
-        analyser.getByteFrequencyData(dataArray);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = 'rgba(15,23,42,0)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        const barWidth = (canvas.width / bufferLength) * 1.5;
-        let x = 0;
-        for (let i = 0; i < bufferLength; i++) {
-          const barHeight = (dataArray[i] / 255) * canvas.height * 0.9;
-          ctx.fillStyle = `rgb(${Math.floor(99+i*4)},${Math.floor(102-i)},${Math.floor(241-i)})`;
-          ctx.fillRect(x, (canvas.height - barHeight)/2, barWidth - 1, barHeight);
-          x += barWidth;
-        }
-      };
-      draw();
-    } catch (e) { console.warn('Analyser not initialized', e); }
     return () => {
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-      if (audioCtxRef.current) audioCtxRef.current.close();
+      if (audioCtxRef.current) {
+        try { audioCtxRef.current.close(); } catch {}
+        audioCtxRef.current = null;
+      }
     };
-  }, [stream]);
+  }, []);
 
   /* ─── Transcript Analysis for HUD (PRESERVED) ─────────────────────────── */
   useEffect(() => {
@@ -732,20 +702,18 @@ const LiveInterview = () => {
       const interval = setInterval(() => {
         if (isPausedRef.current) return;
         setHudEyeContact(prev => {
-          const delta = Math.floor(Math.random() * 7) - 3;
-          const next  = Math.min(100, Math.max(70, prev + delta));
-          if (next > 90) addToast('Great eye contact! Keep it up 👁️', 'success');
-          return next;
+          const delta = Math.floor(Math.random() * 5) - 2;
+          return Math.min(100, Math.max(75, prev + delta));
         });
         setHudClarity(prev => {
-          const delta = Math.floor(Math.random() * 5) - 2;
-          return Math.min(100, Math.max(80, prev + delta));
+          const delta = Math.floor(Math.random() * 3) - 1;
+          return Math.min(100, Math.max(85, prev + delta));
         });
         setHudConfidence(prev => {
-          const delta = Math.floor(Math.random() * 7) - 2;
-          return Math.min(100, Math.max(60, prev + delta));
+          const delta = Math.floor(Math.random() * 5) - 2;
+          return Math.min(100, Math.max(70, prev + delta));
         });
-      }, 3000);
+      }, 6000);
       return () => clearInterval(interval);
     }
   }, [faceStatus]);
@@ -853,27 +821,28 @@ const LiveInterview = () => {
   useEffect(() => {
     if (modelsLoaded && isCameraOn && videoRef.current) {
       faceInterval.current = setInterval(async () => {
-        if (isPausedRef.current) return;
+        if (isPausedRef.current || isAiSpeakingRef.current) return;
         if (videoRef.current?.readyState === 4 && !videoRef.current.paused) {
           try {
+            // Lightweight 160px input size prevents main-thread CPU stutters
             const det = await faceapi
-              .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions())
+              .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.5 }))
               .withFaceExpressions();
             if (det) {
-              setFaceStatus('Scanning active...');
+              setFaceStatus(prev => prev === 'Scanning active...' ? prev : 'Scanning active...');
               const e = det.expressions;
               const s = e.happy*100 + e.neutral*85 + e.surprised*50 + e.sad*10 + e.fearful*5 + e.angry*5;
               confidenceData.current.total += Math.min(100, Math.max(0, s));
               confidenceData.current.count += 1;
             } else {
-              setFaceStatus('No face detected');
+              setFaceStatus(prev => prev === 'No face detected' ? prev : 'No face detected');
             }
           } catch { /* silent */ }
         }
-      }, 1500);
+      }, 4500);
     } else {
       if (faceInterval.current) clearInterval(faceInterval.current);
-      if (!isCameraOn) setFaceStatus('Camera is off');
+      if (!isCameraOn) setFaceStatus(prev => prev === 'Camera is off' ? prev : 'Camera is off');
     }
     return () => { if (faceInterval.current) clearInterval(faceInterval.current); };
   }, [modelsLoaded, isCameraOn]);
@@ -1193,8 +1162,8 @@ const LiveInterview = () => {
 
     if (voiceRef.current) utt.voice = voiceRef.current;
     utt.lang   = 'en-US';
-    utt.rate   = (opts.rate ?? 0.90) * (speechSpeedRef.current || 1.0);
-    utt.pitch  = opts.pitch  ?? 1.08;
+    utt.rate   = (opts.rate ?? 1.0) * (speechSpeedRef.current || 1.0);
+    utt.pitch  = opts.pitch  ?? 1.06;
     utt.volume = opts.volume ?? 1.0;
 
     let finished = false;
@@ -1240,7 +1209,7 @@ const LiveInterview = () => {
     try {
       const fullSpeech = [ackText, transitionText, questionText].filter(Boolean).join(' ');
       if (fullSpeech) {
-        await speakChunk(fullSpeech, { rate: 0.92, pitch: 1.06 });
+        await speakChunk(fullSpeech, { rate: 1.0, pitch: 1.06 });
       }
     } catch (err) {
       console.warn('Conversational speech error, advancing cleanly:', err);
@@ -1285,8 +1254,8 @@ const LiveInterview = () => {
     activeUtteranceRef.current = utterance;
     if (voiceRef.current) utterance.voice = voiceRef.current;
     utterance.lang   = 'en-US';
-    utterance.rate   = 0.92 * (speechSpeedRef.current || 1.0);
-    utterance.pitch  = 1.08;
+    utterance.rate   = 1.0 * (speechSpeedRef.current || 1.0);
+    utterance.pitch  = 1.06;
     utterance.volume = 1.0;
 
     let finished = false;
@@ -1426,7 +1395,7 @@ const LiveInterview = () => {
     currentQuestionIdRef.current = initialQId;
 
     // Speak natural audio greeting
-    await speakChunk(spokenIntro, { rate: 0.88, pitch: 1.08 });
+    await speakChunk(spokenIntro, { rate: 1.0, pitch: 1.06 });
 
     // Log greeting in conversation history
     const aiLogEntry = { sender: 'ai', text: isCoding ? `[Presented Coding Challenge]: ${openingQuestion}` : openingQuestion, timestamp: Date.now() };

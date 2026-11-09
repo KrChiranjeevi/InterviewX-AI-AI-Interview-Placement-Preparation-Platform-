@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -447,4 +447,4 @@ const InterviewerAvatar = ({
   );
 };
 
-export default InterviewerAvatar;
+export default memo(InterviewerAvatar);
