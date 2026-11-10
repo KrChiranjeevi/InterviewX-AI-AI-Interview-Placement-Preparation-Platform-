@@ -768,14 +768,67 @@ const getMockReport = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to access this interview' });
     }
 
-    // Check if report already exists in DB
+    // Check if report already exists in DB (self-healing if report type mismatched interview.type)
+    const isActuallyExtempore = /extempore/i.test(interview.type || '');
+    const isActuallyGD = /group\s*discussion|\bgd\b/i.test(interview.type || '');
     let reportDoc = await Report.findOne({ interviewId: interview._id, userId: req.user._id });
     if (reportDoc && reportDoc.mockReport) {
       const mockData = reportDoc.mockReport.toObject ? reportDoc.mockReport.toObject() : reportDoc.mockReport;
-      return res.json({ ...mockData, _id: reportDoc._id, adaptiveState: interview.adaptiveState });
+      const mismatchedExtempore = Boolean(mockData.isExtempore) && !isActuallyExtempore;
+      const mismatchedGD = Boolean(mockData.isGD) && !isActuallyGD;
+      if (!mismatchedExtempore && !mismatchedGD) {
+        return res.json({ ...mockData, _id: reportDoc._id, adaptiveState: interview.adaptiveState });
+      }
     }
 
-    // If not, generate new report using AI
+    // Generate archetype-appropriate report when missing or self-healing
+    if (isActuallyExtempore) {
+      const extReport = await generateExtemporeReport(interview, '', []);
+      const overallScore = extReport.overallScore || 80;
+      const commScore = extReport.categoryScores?.communication?.score || overallScore;
+      const confScore = extReport.categoryScores?.confidence?.score || overallScore;
+      reportDoc = await Report.findOneAndUpdate(
+        { interviewId: interview._id, userId: req.user._id },
+        {
+          $set: {
+            overallScore,
+            technicalScore: extReport.categoryScores?.topicUnderstanding?.score || overallScore,
+            communicationScore: commScore,
+            confidenceScore: confScore,
+            problemSolvingScore: extReport.categoryScores?.logicalThinking?.score || overallScore,
+            hiringDecision: extReport.readiness || 'Recommended with Practice',
+            mockReport: { ...extReport, isExtempore: true }
+          }
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+      return res.json({ ...extReport, _id: reportDoc._id, isExtempore: true });
+    }
+
+    if (isActuallyGD) {
+      const gdEval = await generateGDEvaluationReport(interview, interview.questions || []);
+      const overallScore = gdEval.overallScore || 75;
+      const commScore = gdEval.categoryScores?.communication?.score || overallScore;
+      const confScore = gdEval.categoryScores?.confidence?.score || overallScore;
+      reportDoc = await Report.findOneAndUpdate(
+        { interviewId: interview._id, userId: req.user._id },
+        {
+          $set: {
+            overallScore,
+            technicalScore: gdEval.categoryScores?.logicalThinking?.score || overallScore,
+            communicationScore: commScore,
+            confidenceScore: confScore,
+            problemSolvingScore: gdEval.categoryScores?.leadership?.score || overallScore,
+            hiringDecision: gdEval.placementReadiness || 'Recommended with Training',
+            mockReport: { ...gdEval, isGD: true }
+          }
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+      return res.json({ ...gdEval, _id: reportDoc._id, isGD: true });
+    }
+
+    // Standard mock interview evidence report (HR, Technical, Coding, Resume, Behavioral, Project, System Design)
     const reportData = await generateMockEvidenceReport(interview);
 
     // Save report document to DB with upsert to prevent duplicate entries on retry
@@ -849,6 +902,12 @@ const getGDReport = async (req, res) => {
     if (!interview) {
       return res.status(404).json({ message: 'Interview not found' });
     }
+    if (interview.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to access this interview' });
+    }
+    if (!/group\s*discussion|\bgd\b/i.test(interview.type || '')) {
+      return res.status(400).json({ message: 'Session is not a Group Discussion interview' });
+    }
 
     let reportDoc = await Report.findOne({ interviewId: interview._id, userId: req.user._id });
     const gdEval = await generateGDEvaluationReport(interview, transcript || interview.questions || []);
@@ -913,6 +972,12 @@ const getExtemporeReport = async (req, res) => {
     const interview = await Interview.findById(id);
     if (!interview) {
       return res.status(404).json({ message: 'Interview not found' });
+    }
+    if (interview.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to access this interview' });
+    }
+    if (!/extempore/i.test(interview.type || '')) {
+      return res.status(400).json({ message: 'Session is not an Extempore interview' });
     }
 
     let reportDoc = await Report.findOne({ interviewId: interview._id, userId: req.user._id });

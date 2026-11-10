@@ -50,24 +50,6 @@ const MockInterviewReport = () => {
   useEffect(() => {
     const fetchReport = async () => {
       try {
-        const extRes = await api.post(`/interviews/${id}/extempore-report`);
-        if (extRes.data && extRes.data.isExtempore) {
-          setReport(extRes.data);
-          setLoading(false);
-          return;
-        }
-      } catch (e) {}
-
-      try {
-        const gdRes = await api.post(`/interviews/${id}/gd-report`);
-        if (gdRes.data && (gdRes.data.isGD || gdRes.data.categoryScores)) {
-          setReport(gdRes.data);
-          setLoading(false);
-          return;
-        }
-      } catch (e) {}
-
-      try {
         const { data } = await api.post(`/interviews/${id}/mock-report`);
         setReport(data);
         setLoading(false);

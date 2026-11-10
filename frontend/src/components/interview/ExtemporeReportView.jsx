@@ -5,7 +5,7 @@ import {
   FaPrint, FaShareAlt, FaArrowLeft, FaAward, FaCheckCircle, FaExclamationTriangle,
   FaBookOpen, FaVolumeUp, FaVolumeMute, FaLightbulb, FaCheck, FaExclamationCircle, FaMicrophone
 } from 'react-icons/fa';
-import { Users, Award, Shield, Zap, Sparkles, FileText, CheckCircle2, MessageSquare, Download, Target, Calendar, Activity } from 'lucide-react';
+import { Users, Award, Shield, Zap, Sparkles, FileText, CheckCircle2, MessageSquare, Download, Target, Calendar, Activity, Brain } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const ExtemporeReportView = ({ report, onBackToDashboard }) => {
