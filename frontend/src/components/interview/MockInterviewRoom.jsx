@@ -90,6 +90,8 @@ const MockInterviewRoom = ({
   toggleAiVoiceMute = () => {},
   speechSpeed = 0.95,
   setSpeechSpeed = () => {},
+  speechLang = 'en-IN',
+  changeSpeechLang = () => {},
   lastTurnLatencyMs = null,
 }) => {
 
@@ -101,8 +103,20 @@ const MockInterviewRoom = ({
   const [candidateNotes, setCandidateNotes] = useState('');
   const [isEditingTranscript, setIsEditingTranscript] = useState(false);
 
-  // Auto-scrolling transcript ref
+  // Auto-scrolling transcript refs
   const chatEndRef = useRef(null);
+  const transcriptBoxRef = useRef(null);
+
+  const liveCombinedTranscript = useMemo(
+    () => [finalTranscript, interimTranscript].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim(),
+    [finalTranscript, interimTranscript]
+  );
+
+  useEffect(() => {
+    if (transcriptBoxRef.current) {
+      transcriptBoxRef.current.scrollTop = transcriptBoxRef.current.scrollHeight;
+    }
+  }, [liveCombinedTranscript]);
 
   useEffect(() => {
     if (chatEndRef.current) {
@@ -517,7 +531,7 @@ const MockInterviewRoom = ({
                       </span>
                       <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex-shrink-0">Listening</span>
                       <span className="text-[11px] text-slate-300 truncate max-w-[300px] font-mono">
-                        {interimTranscript || finalTranscript || 'Speak your explanation…'}
+                        {liveCombinedTranscript ? (liveCombinedTranscript.length > 90 ? `...${liveCombinedTranscript.slice(-86)}` : liveCombinedTranscript) : 'Speak your explanation…'}
                       </span>
                     </>
                   ) : (
@@ -882,12 +896,12 @@ const MockInterviewRoom = ({
                 <div className="bg-emerald-950/30 border border-emerald-500/30 p-3 rounded-2xl flex gap-3 items-center">
                   <Mic className="w-4 h-4 text-emerald-400 animate-pulse shrink-0" />
                   <div className="flex-1 text-[11px] text-slate-300 italic leading-relaxed truncate">
-                    {(interimTranscript || finalTranscript) ? (
+                    {liveCombinedTranscript ? (
                       <span className="text-emerald-400 font-medium font-mono not-italic">
-                        "{interimTranscript || finalTranscript}"
+                        "{liveCombinedTranscript.length > 110 ? `...${liveCombinedTranscript.slice(-105)}` : liveCombinedTranscript}"
                       </span>
                     ) : (
-                      <span className="text-emerald-300">Listening to your response... Speak clearly into your microphone</span>
+                      <span className="text-emerald-300">Listening continuously... Speak naturally in your normal flow</span>
                     )}
                   </div>
                 </div>
@@ -895,14 +909,38 @@ const MockInterviewRoom = ({
 
               {/* Response Panel Container */}
               <div className="bg-slate-900/40 border border-white/10 rounded-3xl p-4">
-                <div className="flex justify-between items-center mb-3">
+                <div className="flex justify-between items-center mb-3 gap-2 flex-wrap">
                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Candidate Answer Area</span>
-                  <button
-                    onClick={isTypingMode ? switchToSpeaking : switchToTyping}
-                    className="px-3 py-1 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl text-[10px] font-bold text-slate-300 transition-all flex items-center gap-1.5"
-                  >
-                    {isTypingMode ? <><Mic className="w-3 h-3 text-indigo-400" /> Voice Mode</> : <><Keyboard className="w-3 h-3 text-indigo-400" /> Typing Mode</>}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {!isTypingMode && (
+                      <div className="flex items-center bg-white/5 border border-white/10 rounded-xl p-0.5 text-[10px] font-bold" title="Speech recognition accent">
+                        {[
+                          { code: 'en-IN', label: 'EN-IN' },
+                          { code: 'en-US', label: 'EN-US' },
+                          { code: 'en-GB', label: 'EN-GB' }
+                        ].map((opt) => (
+                          <button
+                            key={opt.code}
+                            type="button"
+                            onClick={() => changeSpeechLang(opt.code)}
+                            className={`px-2 py-0.5 rounded-lg transition-all cursor-pointer ${
+                              speechLang === opt.code
+                                ? 'bg-indigo-600 text-white'
+                                : 'text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <button
+                      onClick={isTypingMode ? switchToSpeaking : switchToTyping}
+                      className="px-3 py-1 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl text-[10px] font-bold text-slate-300 transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      {isTypingMode ? <><Mic className="w-3 h-3 text-indigo-400" /> Voice Mode</> : <><Keyboard className="w-3 h-3 text-indigo-400" /> Typing Mode</>}
+                    </button>
+                  </div>
                 </div>
 
                 <div>
@@ -1001,9 +1039,15 @@ const MockInterviewRoom = ({
                               className="w-full bg-slate-950 border border-indigo-500/40 rounded-xl p-3 text-xs md:text-sm text-white focus:outline-none focus:border-indigo-500 leading-relaxed resize-none font-normal"
                             />
                           ) : (
-                            <div className="min-h-[70px] text-xs md:text-sm text-slate-100 font-normal leading-relaxed bg-slate-900/60 p-3 rounded-xl border border-white/5 break-words">
+                            <div
+                              ref={transcriptBoxRef}
+                              className="min-h-[70px] max-h-40 overflow-y-auto text-xs md:text-sm text-slate-100 font-normal leading-relaxed bg-slate-900/60 p-3 rounded-xl border border-white/5 break-words"
+                            >
                               <span>{finalTranscript}</span>
-                              <span className="text-indigo-400 font-semibold animate-pulse">{interimTranscript ? ` ${interimTranscript}` : ''}</span>
+                              {interimTranscript && (
+                                <span className="text-indigo-300/90 font-medium">{finalTranscript ? ` ${interimTranscript}` : interimTranscript}</span>
+                              )}
+                              <span className="inline-block w-1.5 h-3.5 ml-1 align-middle bg-emerald-400/80 animate-pulse rounded-xs" />
                             </div>
                           )}
                           <p className="text-[10px] text-slate-500 italic">

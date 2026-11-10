@@ -499,6 +499,17 @@ const LiveInterview = () => {
   const [networkError,               setNetworkError]               = useState(null);
   const [isAiVoiceMuted,             setIsAiVoiceMuted]             = useState(false);
   const [speechSpeed,                setSpeechSpeed]                = useState(1.0);
+  const [speechLang,                 setSpeechLang]                 = useState(() => {
+    try {
+      const saved = localStorage.getItem('interviewSpeechLang');
+      if (saved) return saved;
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+      if (/Kolkata|Calcutta|Asia\/Dhaka|Asia\/Karachi|Asia\/Colombo|Asia\/Kathmandu/i.test(tz)) {
+        return 'en-IN';
+      }
+    } catch {}
+    return typeof window !== 'undefined' ? (window.navigator?.language || 'en-US') : 'en-US';
+  });
   const [lastTurnLatencyMs,          setLastTurnLatencyMs]          = useState(null);
 
   // Dynamic Workspaces States
@@ -579,11 +590,18 @@ const LiveInterview = () => {
   const companyKeyRef            = useRef('amazon');
   const isCameraOnRef            = useRef(true);
   const isEndingRef              = useRef(false);
+  const interimTranscriptRef     = useRef('');
+  const committedResultIndexesRef = useRef(new Set());
+  const recognitionRestartTimerRef = useRef(null);
+  const recentRecognitionEndsRef = useRef([]);
+  const speechLangRef            = useRef(speechLang);
 
   // Sync ref hooks
-  useEffect(() => { streamRef.current          = stream;          }, [stream]);
-  useEffect(() => { isCameraOnRef.current      = isCameraOn;      }, [isCameraOn]);
-  useEffect(() => { isEndingRef.current        = isEnding;        }, [isEnding]);
+  useEffect(() => { streamRef.current            = stream;            }, [stream]);
+  useEffect(() => { isCameraOnRef.current        = isCameraOn;        }, [isCameraOn]);
+  useEffect(() => { isEndingRef.current          = isEnding;          }, [isEnding]);
+  useEffect(() => { speechLangRef.current        = speechLang;        }, [speechLang]);
+  useEffect(() => { interimTranscriptRef.current = interimTranscript; }, [interimTranscript]);
   useEffect(() => { currentQuestionRef.current = currentQuestion;  }, [currentQuestion]);
   useEffect(() => { isAIThinkingRef.current    = isAIThinking;    }, [isAIThinking]);
   useEffect(() => { finalTranscriptRef.current = finalTranscript; }, [finalTranscript]);
@@ -955,6 +973,11 @@ const LiveInterview = () => {
       clearTimeout(settlingTimerRef.current);
       settlingTimerRef.current = null;
     }
+    if (recognitionRestartTimerRef.current) {
+      clearTimeout(recognitionRestartTimerRef.current);
+      recognitionRestartTimerRef.current = null;
+    }
+    committedResultIndexesRef.current.clear();
     clearAutoSubmitTimers();
   }, [clearAutoSubmitTimers]);
 
@@ -986,7 +1009,7 @@ const LiveInterview = () => {
 
   const handleUserSpeaking = useCallback(() => {
     clearAutoSubmitTimers();
-    silenceTimer.current = setTimeout(() => { startSilenceCountdown(); }, 2500);
+    silenceTimer.current = setTimeout(() => { startSilenceCountdown(); }, 4000);
   }, [clearAutoSubmitTimers, startSilenceCountdown]);
 
   /* ─── Clear Transcript Helper ─────────────────────────────────────────── */
@@ -994,6 +1017,8 @@ const LiveInterview = () => {
     setFinalTranscript('');
     setInterimTranscript('');
     finalTranscriptRef.current = '';
+    interimTranscriptRef.current = '';
+    committedResultIndexesRef.current.clear();
   }, []);
 
   /* ─── Speech Recognition Control with Acoustic Settling Buffer ───────── */
@@ -1001,6 +1026,10 @@ const LiveInterview = () => {
     if (settlingTimerRef.current) {
       clearTimeout(settlingTimerRef.current);
       settlingTimerRef.current = null;
+    }
+    if (recognitionRestartTimerRef.current) {
+      clearTimeout(recognitionRestartTimerRef.current);
+      recognitionRestartTimerRef.current = null;
     }
     isListeningRef.current = false;
     setIsRecording(false);
@@ -1012,6 +1041,7 @@ const LiveInterview = () => {
         try { recognitionRef.current.stop(); } catch {}
       }
     }
+    committedResultIndexesRef.current.clear();
     isRecognitionActiveRef.current = false;
     isRecognitionStartingRef.current = false;
   }, [clearAutoSubmitTimers]);
@@ -1062,6 +1092,8 @@ const LiveInterview = () => {
 
       if (recognitionRef.current && !isRecognitionActiveRef.current && !isRecognitionStartingRef.current) {
         isRecognitionStartingRef.current = true;
+        committedResultIndexesRef.current.clear();
+        recognitionRef.current.lang = speechLangRef.current || 'en-IN';
         try {
           recognitionRef.current.start();
           isRecognitionActiveRef.current = true;
@@ -1076,6 +1108,18 @@ const LiveInterview = () => {
       }
     }, 400);
   }, [startSilenceCountdown]);
+
+  const changeSpeechLang = useCallback((lang) => {
+    setSpeechLang(lang);
+    speechLangRef.current = lang;
+    try { localStorage.setItem('interviewSpeechLang', lang); } catch {}
+    if (recognitionRef.current) {
+      recognitionRef.current.lang = lang;
+      if (interviewStateRef.current === 'LISTENING' && isRecognitionActiveRef.current) {
+        try { recognitionRef.current.stop(); } catch {}
+      }
+    }
+  }, []);
 
   /* ─── Typing mode toggling (Isolated modes) ─────────────────────────── */
   const switchToTyping = useCallback(() => {
@@ -1724,10 +1768,53 @@ const LiveInterview = () => {
       const recognition = new SpeechRecognition();
       recognition.continuous      = true;
       recognition.interimResults  = true;
-      recognition.lang            = window.navigator?.language || 'en-IN';
+      recognition.lang            = speechLangRef.current || 'en-IN';
       recognition.maxAlternatives = 1;
 
+      const scheduleRecognitionRestart = () => {
+        if (!isActiveMount || isEndingRef.current) return;
+        if (recognitionRestartTimerRef.current) {
+          clearTimeout(recognitionRestartTimerRef.current);
+          recognitionRestartTimerRef.current = null;
+        }
+
+        // Track restart cadence to keep natural pauses instant (~25ms) while guarding rapid hardware faults
+        const now = Date.now();
+        recentRecognitionEndsRef.current = recentRecognitionEndsRef.current.filter(ts => now - ts < 1500);
+        recentRecognitionEndsRef.current.push(now);
+        const restartDelay = recentRecognitionEndsRef.current.length >= 5 ? 300 : 25;
+
+        recognitionRestartTimerRef.current = setTimeout(() => {
+          recognitionRestartTimerRef.current = null;
+          if (
+            isActiveMount &&
+            !isEndingRef.current &&
+            interviewStateRef.current === 'LISTENING' &&
+            !isAiSpeakingRef.current &&
+            !isAIThinkingRef.current &&
+            !isTypingModeRef.current &&
+            !isPausedRef.current &&
+            !isMutedRef.current &&
+            !isSubmittingRef.current &&
+            !isRecognitionActiveRef.current &&
+            !isRecognitionStartingRef.current
+          ) {
+            isRecognitionStartingRef.current = true;
+            committedResultIndexesRef.current.clear();
+            recognition.lang = speechLangRef.current || 'en-IN';
+            try {
+              recognition.start();
+              isRecognitionActiveRef.current = true;
+              isRecognitionStartingRef.current = false;
+            } catch {
+              isRecognitionStartingRef.current = false;
+            }
+          }
+        }, restartDelay);
+      };
+
       recognition.onstart = () => {
+        committedResultIndexesRef.current.clear();
         isRecognitionActiveRef.current = true;
         isRecognitionStartingRef.current = false;
         isListeningRef.current = true;
@@ -1736,7 +1823,6 @@ const LiveInterview = () => {
 
       recognition.onresult = (event) => {
         // STRICT ECHO PREVENTION & STATE GUARDS
-        // Do not process incoming audio if AI is speaking, interviewer is not listening, question changed, or user is typing/muted/submitting
         if (
           listeningQuestionIdRef.current !== currentQuestionIdRef.current ||
           interviewStateRef.current !== 'LISTENING' ||
@@ -1753,10 +1839,17 @@ const LiveInterview = () => {
         handleUserSpeaking();
         let newFinal = '';
         let interim  = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) { newFinal += transcript + ' '; }
-          else                           { interim  += transcript; }
+        for (let i = 0; i < event.results.length; i++) {
+          const res = event.results[i];
+          const transcript = res[0]?.transcript || '';
+          if (res.isFinal) {
+            if (!committedResultIndexesRef.current.has(i)) {
+              committedResultIndexesRef.current.add(i);
+              newFinal += transcript + ' ';
+            }
+          } else {
+            interim += transcript;
+          }
         }
 
         // Secondary state guard check before committing transcript to candidate response
@@ -1769,16 +1862,18 @@ const LiveInterview = () => {
           return;
         }
 
-        if (newFinal) {
+        if (newFinal.trim()) {
           setFinalTranscript(prev => {
             const updated = mergeTranscriptSegments(prev, newFinal);
             finalTranscriptRef.current = updated;
             return updated;
           });
-          setInterimTranscript('');
-        } else {
-          setInterimTranscript(interim);
         }
+
+        // ALWAYS sync live interim words so simultaneous final + interim results never vanish mid-flow
+        const cleanInterim = interim.trim();
+        interimTranscriptRef.current = cleanInterim;
+        setInterimTranscript(cleanInterim);
       };
 
       recognition.onsoundstart = () => {
@@ -1807,7 +1902,9 @@ const LiveInterview = () => {
           switchToTyping();
           return;
         }
-        if (e.error === 'no-speech' || e.error === 'aborted') {
+        if (e.error === 'no-speech' || e.error === 'aborted' || e.error === 'network') {
+          isRecognitionActiveRef.current = false;
+          isRecognitionStartingRef.current = false;
           if (
             interviewStateRef.current === 'LISTENING' &&
             !isAiSpeakingRef.current &&
@@ -1815,32 +1912,9 @@ const LiveInterview = () => {
             !isTypingModeRef.current &&
             !isPausedRef.current &&
             !isMutedRef.current &&
-            !isSubmittingRef.current &&
-            !isRecognitionActiveRef.current &&
-            !isRecognitionStartingRef.current
+            !isSubmittingRef.current
           ) {
-            setTimeout(() => {
-              if (
-                interviewStateRef.current === 'LISTENING' &&
-                !isAiSpeakingRef.current &&
-                !isAIThinkingRef.current &&
-                !isTypingModeRef.current &&
-                !isPausedRef.current &&
-                !isMutedRef.current &&
-                !isSubmittingRef.current &&
-                !isRecognitionActiveRef.current &&
-                !isRecognitionStartingRef.current
-              ) {
-                isRecognitionStartingRef.current = true;
-                try {
-                  recognition.start();
-                  isRecognitionActiveRef.current = true;
-                  isRecognitionStartingRef.current = false;
-                } catch {
-                  isRecognitionStartingRef.current = false;
-                }
-              }
-            }, 300);
+            scheduleRecognitionRestart();
           }
         }
       };
@@ -1848,7 +1922,11 @@ const LiveInterview = () => {
       recognition.onend = () => {
         isRecognitionActiveRef.current = false;
         isRecognitionStartingRef.current = false;
+        committedResultIndexesRef.current.clear();
+
         if (
+          isActiveMount &&
+          !isEndingRef.current &&
           interviewStateRef.current === 'LISTENING' &&
           !isAiSpeakingRef.current &&
           !isAIThinkingRef.current &&
@@ -1857,28 +1935,18 @@ const LiveInterview = () => {
           !isMutedRef.current &&
           !isSubmittingRef.current
         ) {
-          setTimeout(() => {
-            if (
-              interviewStateRef.current === 'LISTENING' &&
-              !isAiSpeakingRef.current &&
-              !isAIThinkingRef.current &&
-              !isTypingModeRef.current &&
-              !isPausedRef.current &&
-              !isMutedRef.current &&
-              !isSubmittingRef.current &&
-              !isRecognitionActiveRef.current &&
-              !isRecognitionStartingRef.current
-            ) {
-              isRecognitionStartingRef.current = true;
-              try {
-                recognition.start();
-                isRecognitionActiveRef.current = true;
-                isRecognitionStartingRef.current = false;
-              } catch {
-                isRecognitionStartingRef.current = false;
-              }
-            }
-          }, 300);
+          // Flush any trailing uncommitted spoken words before restarting stream so nothing gets cut mid-sentence
+          if (interimTranscriptRef.current && interimTranscriptRef.current.trim()) {
+            const trailing = interimTranscriptRef.current.trim();
+            interimTranscriptRef.current = '';
+            setInterimTranscript('');
+            setFinalTranscript(prev => {
+              const updated = mergeTranscriptSegments(prev, trailing);
+              finalTranscriptRef.current = updated;
+              return updated;
+            });
+          }
+          scheduleRecognitionRestart();
         }
       };
 
@@ -3177,6 +3245,8 @@ const LiveInterview = () => {
           toggleAiVoiceMute={toggleAiVoiceMute}
           speechSpeed={speechSpeed}
           setSpeechSpeed={setSpeechSpeed}
+          speechLang={speechLang}
+          changeSpeechLang={changeSpeechLang}
           lastTurnLatencyMs={lastTurnLatencyMs}
         />
       ) : (
