@@ -139,11 +139,17 @@ const InterviewerAvatar = ({
       {/* ── Office background ── */}
       <div className="absolute inset-0 bg-gradient-to-b from-white via-indigo-50/80 to-slate-100 dark:from-[#1a2240] dark:via-[#0f1628] dark:to-[#070b1a]" />
 
-      {/* Ambient window light */}
-      <div className="absolute -top-10 -left-10 w-48 h-48 bg-blue-400/6 rounded-full blur-3xl pointer-events-none" />
+      {/* Ambient window light (lightweight radial glow — zero blur-filter cost) */}
+      <div
+        className="absolute -top-10 -left-10 w-48 h-48 rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(circle, rgba(96,165,250,0.08) 0%, transparent 70%)' }}
+      />
 
       {/* Monitor glow */}
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-72 h-24 bg-indigo-500/8 blur-3xl rounded-full pointer-events-none" />
+      <div
+        className="absolute bottom-0 left-1/2 -translate-x-1/2 w-72 h-24 rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse, rgba(99,102,241,0.1) 0%, transparent 70%)' }}
+      />
 
       {/* Bookshelf silhouette */}
       <div className="absolute top-0 right-0 w-16 h-full opacity-5 dark:opacity-10">
@@ -153,18 +159,11 @@ const InterviewerAvatar = ({
         ))}
       </div>
 
-      {/* ── Animated state border ring ── */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={interviewerStatus}
-          className="absolute inset-0 pointer-events-none"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: [0.2, 0.6, 0.2] }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 1.8, repeat: Infinity }}
-          style={{ boxShadow: `inset 0 0 40px ${activeStatus.ring}` }}
-        />
-      </AnimatePresence>
+      {/* ── Lightweight state border ring (no continuous boxShadow GPU repaint) ── */}
+      <div
+        className="absolute inset-0 pointer-events-none transition-shadow duration-500"
+        style={{ boxShadow: `inset 0 0 32px ${activeStatus.ring}` }}
+      />
 
       {/* ── Avatar Body ── */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">

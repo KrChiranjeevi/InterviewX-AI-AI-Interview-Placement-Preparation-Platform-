@@ -568,9 +568,22 @@ const LiveInterview = () => {
   const streamRef                = useRef(null);
   const isAiVoiceMutedRef        = useRef(false);
   const speechSpeedRef           = useRef(1.0);
+  const mediaSessionEpochRef     = useRef(0);
+  const isTogglingCameraRef      = useRef(false);
+  const greetingTimerRef         = useRef(null);
+  const initCameraRef            = useRef(null);
+  const releaseAllHardwareRef    = useRef(null);
+  const triggerMockGreetingRef   = useRef(null);
+  const triggerRoundQuestionRef  = useRef(null);
+  const startListeningRef        = useRef(null);
+  const companyKeyRef            = useRef('amazon');
+  const isCameraOnRef            = useRef(true);
+  const isEndingRef              = useRef(false);
 
   // Sync ref hooks
   useEffect(() => { streamRef.current          = stream;          }, [stream]);
+  useEffect(() => { isCameraOnRef.current      = isCameraOn;      }, [isCameraOn]);
+  useEffect(() => { isEndingRef.current        = isEnding;        }, [isEnding]);
   useEffect(() => { currentQuestionRef.current = currentQuestion;  }, [currentQuestion]);
   useEffect(() => { isAIThinkingRef.current    = isAIThinking;    }, [isAIThinking]);
   useEffect(() => { finalTranscriptRef.current = finalTranscript; }, [finalTranscript]);
@@ -656,15 +669,15 @@ const LiveInterview = () => {
     }
   }, [currentRound, selectedLanguage]);
 
-  // Setup toast utility
-  const addToast = (message, type = 'info') => {
+  // Setup toast utility (memoized so child memoization holds across timer ticks)
+  const addToast = useCallback((message, type = 'info') => {
     const id = Date.now() + Math.random().toString();
     setToasts(prev => [...prev, { id, message, type }]);
     const timer = setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 4500);
     toastTimers.current.push(timer);
-  };
+  }, []);
 
   /* ─── Web Audio Analyser (Visualizer handled inside WaveformVisualizer) ── */
   useEffect(() => {
@@ -836,6 +849,14 @@ const LiveInterview = () => {
 
   /* ─── Hardware Release Guarantee (Mic, Camera, SpeechRecognition, AudioContext) ── */
   const releaseAllHardware = useCallback(() => {
+    // Invalidate any pending async getUserMedia calls
+    mediaSessionEpochRef.current += 1;
+
+    if (greetingTimerRef.current) {
+      clearTimeout(greetingTimerRef.current);
+      greetingTimerRef.current = null;
+    }
+
     // 1. Immediately abort & stop speech recognition
     if (recognitionRef.current) {
       try {
@@ -858,6 +879,7 @@ const LiveInterview = () => {
     if (typeof window !== 'undefined' && window.__activeMediaTracks instanceof Set) {
       window.__activeMediaTracks.forEach(track => {
         try {
+          track.onended = null;
           track.enabled = false;
           track.stop();
         } catch {}
@@ -867,7 +889,6 @@ const LiveInterview = () => {
 
     const streamsToStop = [
       streamRef.current,
-      stream,
       videoRef.current?.srcObject,
       (typeof window !== 'undefined' ? window.__activeInterviewStream : null)
     ].filter(Boolean);
@@ -877,6 +898,7 @@ const LiveInterview = () => {
         if (s && s.getTracks) {
           s.getTracks().forEach(track => {
             try {
+              track.onended = null;
               track.enabled = false;
               track.stop();
             } catch (tErr) {
@@ -898,6 +920,7 @@ const LiveInterview = () => {
     }
     setStream(null);
     setIsCameraOn(false);
+    isCameraOnRef.current = false;
     setFaceStatus('Camera is off');
 
     // 3. Close Web AudioContext
@@ -933,7 +956,7 @@ const LiveInterview = () => {
       settlingTimerRef.current = null;
     }
     clearAutoSubmitTimers();
-  }, [stream, clearAutoSubmitTimers]);
+  }, [clearAutoSubmitTimers]);
 
   const startSilenceCountdown = useCallback(() => {
     if (isTypingModeRef.current || isAIThinkingRef.current || isAiSpeakingRef.current) return;
@@ -1065,28 +1088,30 @@ const LiveInterview = () => {
     isRecognitionActiveRef.current = false;
     isRecognitionStartingRef.current = false;
     // Preserve spoken words into typedAnswer so candidate never loses their response
-    if (finalTranscriptRef.current && !typedAnswer.trim()) {
-      setTypedAnswer(finalTranscriptRef.current.trim());
+    if (finalTranscriptRef.current && !typedAnswerRef.current.trim()) {
+      const trimmed = finalTranscriptRef.current.trim();
+      setTypedAnswer(trimmed);
+      typedAnswerRef.current = trimmed;
     }
     setIsTypingMode(true);
     isTypingModeRef.current = true;
     setInterviewState('TYPING_MODE');
     interviewStateRef.current = 'TYPING_MODE';
-  }, [clearAutoSubmitTimers, typedAnswer]);
+  }, [clearAutoSubmitTimers]);
 
   const switchToSpeaking = useCallback(() => {
     setIsTypingMode(false);
     isTypingModeRef.current = false;
     // If user typed something and switches back to speaking, preserve in finalTranscript
-    if (typedAnswer.trim() && !finalTranscriptRef.current.trim()) {
-      const trimmed = typedAnswer.trim();
+    if (typedAnswerRef.current.trim() && !finalTranscriptRef.current.trim()) {
+      const trimmed = typedAnswerRef.current.trim();
       setFinalTranscript(trimmed);
       finalTranscriptRef.current = trimmed;
     }
     if (!isAiSpeakingRef.current && !isAIThinkingRef.current) {
       startListening();
     }
-  }, [typedAnswer, startListening]);
+  }, [startListening]);
 
   /* ─── AI Voice Mute Toggle ─────────────────────────────────────────────── */
   const toggleAiVoiceMute = useCallback(() => {
@@ -1401,12 +1426,26 @@ const LiveInterview = () => {
       return null;
     }
 
+    const runEpoch = ++mediaSessionEpochRef.current;
+
+    // Cleanly stop any stale stream before acquiring a fresh one
+    if (streamRef.current) {
+      try {
+        streamRef.current.getTracks().forEach(t => {
+          t.onended = null;
+          t.enabled = false;
+          t.stop();
+        });
+      } catch {}
+      streamRef.current = null;
+    }
+
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
-          width: { ideal: 640, max: 1280 },
-          height: { ideal: 480, max: 720 },
-          frameRate: { ideal: 24, max: 30 }
+          width: { ideal: 640, max: 960 },
+          height: { ideal: 480, max: 540 },
+          frameRate: { ideal: 20, max: 24 }
         },
         audio: {
           echoCancellation: true,
@@ -1414,6 +1453,17 @@ const LiveInterview = () => {
           autoGainControl: true
         }
       });
+
+      // StrictMode / unmount guard: discard if session was torn down while awaiting permission
+      if (runEpoch !== mediaSessionEpochRef.current || isEndingRef.current) {
+        mediaStream.getTracks().forEach(t => {
+          t.onended = null;
+          t.enabled = false;
+          t.stop();
+        });
+        return null;
+      }
+
       streamRef.current = mediaStream;
       if (typeof window !== 'undefined') {
         window.__activeInterviewStream = mediaStream;
@@ -1433,6 +1483,7 @@ const LiveInterview = () => {
       const videoTrack = mediaStream.getVideoTracks()[0];
       const hasActiveVideo = Boolean(videoTrack && videoTrack.enabled);
       setIsCameraOn(hasActiveVideo);
+      isCameraOnRef.current = hasActiveVideo;
       setFaceStatus(hasActiveVideo ? 'Camera active — Presence verified' : 'Camera is off');
       
       const audioTrack = mediaStream.getAudioTracks()[0];
@@ -1441,6 +1492,7 @@ const LiveInterview = () => {
         setMicPermissionStatus('granted');
         setActiveMicDeviceName(audioTrack.label || 'Default Microphone');
         audioTrack.onended = () => {
+          if (runEpoch !== mediaSessionEpochRef.current || isEndingRef.current) return;
           console.warn('Microphone track ended / disconnected');
           setMicPermissionStatus('denied');
           stopListening();
@@ -1449,6 +1501,7 @@ const LiveInterview = () => {
       }
       return mediaStream;
     } catch (err) {
+      if (runEpoch !== mediaSessionEpochRef.current || isEndingRef.current) return null;
       console.warn('Video + Audio access failed, attempting audio-only with echo cancellation...', err);
       try {
         const audioStream = await navigator.mediaDevices.getUserMedia({
@@ -1458,6 +1511,16 @@ const LiveInterview = () => {
             autoGainControl: true
           }
         });
+
+        if (runEpoch !== mediaSessionEpochRef.current || isEndingRef.current) {
+          audioStream.getTracks().forEach(t => {
+            t.onended = null;
+            t.enabled = false;
+            t.stop();
+          });
+          return null;
+        }
+
         streamRef.current = audioStream;
         if (typeof window !== 'undefined') {
           window.__activeInterviewStream = audioStream;
@@ -1472,6 +1535,7 @@ const LiveInterview = () => {
         setStream(audioStream);
         setFaceStatus('Camera access denied (Audio active)');
         setIsCameraOn(false);
+        isCameraOnRef.current = false;
 
         const audioTrack = audioStream.getAudioTracks()[0];
         if (audioTrack) {
@@ -1479,6 +1543,7 @@ const LiveInterview = () => {
           setMicPermissionStatus('granted');
           setActiveMicDeviceName(audioTrack.label || 'Default Microphone');
           audioTrack.onended = () => {
+            if (runEpoch !== mediaSessionEpochRef.current || isEndingRef.current) return;
             console.warn('Microphone track ended / disconnected');
             setMicPermissionStatus('denied');
             stopListening();
@@ -1487,9 +1552,11 @@ const LiveInterview = () => {
         }
         return audioStream;
       } catch (audioErr) {
+        if (runEpoch !== mediaSessionEpochRef.current || isEndingRef.current) return null;
         console.error('Microphone access denied', audioErr);
         setFaceStatus('Microphone & Camera access denied');
         setIsCameraOn(false);
+        isCameraOnRef.current = false;
         setIsMuted(true);
         if (audioErr.name === 'NotAllowedError' || audioErr.name === 'PermissionDeniedError') {
           setMicPermissionStatus('denied');
@@ -1532,10 +1599,30 @@ const LiveInterview = () => {
     setIsAIThinking(false);
   }, [speakText]);
 
+  // Keep stable refs synced for mount/unmount lifecycle effects
+  useEffect(() => { initCameraRef.current           = initCamera;           }, [initCamera]);
+  useEffect(() => { releaseAllHardwareRef.current   = releaseAllHardware;   }, [releaseAllHardware]);
+  useEffect(() => { triggerMockGreetingRef.current  = triggerMockGreeting;  }, [triggerMockGreeting]);
+  useEffect(() => { triggerRoundQuestionRef.current = triggerRoundQuestion; }, [triggerRoundQuestion]);
+  useEffect(() => { startListeningRef.current       = startListening;       }, [startListening]);
+  useEffect(() => { companyKeyRef.current           = companyKey;           }, [companyKey]);
+
   useEffect(() => {
+    let isActiveMount = true;
+
+    const resolveCompanyCfg = (data) => {
+      const ck = companyQuery && COMPANY_INTERVIEWS[companyQuery]
+        ? companyQuery
+        : data?.company && COMPANY_INTERVIEWS[data.company.toLowerCase()]
+          ? data.company.toLowerCase()
+          : companyKeyRef.current || 'amazon';
+      return COMPANY_INTERVIEWS[ck] || COMPANY_INTERVIEWS.amazon;
+    };
+
     const fetchInterviewAndStart = async () => {
       try {
         const res = await api.get(`/interviews/${id}`);
+        if (!isActiveMount) return;
         const interviewData = res.data;
         setInterview(interviewData);
 
@@ -1572,27 +1659,33 @@ const LiveInterview = () => {
             setGreetingDone(true);
 
             api.post(`/interviews/${id}/question`).then(qRes => {
+              if (!isActiveMount) return;
               const nextQ = qRes.data?.question || 'Please provide your answer to continue.';
               setCurrentQuestion(nextQ);
               currentQuestionRef.current = nextQ;
               setIsAIThinking(false);
               setInterviewerStatus('listening');
-              startListening();
+              startListeningRef.current?.();
             }).catch(() => {
+              if (!isActiveMount) return;
               setIsAIThinking(false);
               setInterviewerStatus('listening');
-              startListening();
+              startListeningRef.current?.();
             });
           } else {
             // Fresh new session: trigger type-specific greeting
-            setTimeout(() => triggerMockGreeting(interviewData), 1200);
+            if (greetingTimerRef.current) clearTimeout(greetingTimerRef.current);
+            greetingTimerRef.current = setTimeout(() => {
+              if (isActiveMount) triggerMockGreetingRef.current?.(interviewData);
+            }, 900);
           }
         } else {
           // Company interview — original round question trigger
-          const firstRound = companyConfig.rounds[0];
-          triggerRoundQuestion(firstRound);
+          const cfg = resolveCompanyCfg(interviewData);
+          triggerRoundQuestionRef.current?.(cfg.rounds[0]);
         }
       } catch {
+        if (!isActiveMount) return;
         // Fallback placeholder interview
         const fallbackInterview = {
           _id: id,
@@ -1606,15 +1699,18 @@ const LiveInterview = () => {
         const urlCompany = queryParams.get('company');
         const isCurrentlyMock = !urlCompany && !companyQuery;
         if (isCurrentlyMock) {
-          setTimeout(() => triggerMockGreeting(fallbackInterview), 1200);
+          if (greetingTimerRef.current) clearTimeout(greetingTimerRef.current);
+          greetingTimerRef.current = setTimeout(() => {
+            if (isActiveMount) triggerMockGreetingRef.current?.(fallbackInterview);
+          }, 900);
         } else {
-          const firstRound = companyConfig.rounds[0];
-          triggerRoundQuestion(firstRound);
+          const cfg = resolveCompanyCfg(fallbackInterview);
+          triggerRoundQuestionRef.current?.(cfg.rounds[0]);
         }
       }
     };
 
-    initCamera();
+    initCameraRef.current?.();
     fetchInterviewAndStart();
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1790,33 +1886,38 @@ const LiveInterview = () => {
     }
 
     return () => {
+      isActiveMount = false;
+      if (greetingTimerRef.current) {
+        clearTimeout(greetingTimerRef.current);
+        greetingTimerRef.current = null;
+      }
       if (turnAbortControllerRef.current) {
         try { turnAbortControllerRef.current.abort(); } catch {}
       }
-      releaseAllHardware();
+      releaseAllHardwareRef.current?.();
       toastTimers.current.forEach(clearTimeout);
     };
-  }, [id, initCamera, companyKey, releaseAllHardware]);
+  }, [id]);
 
   // Global window unmount & pagehide hardware release safety
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.__cleanupInterviewMedia = releaseAllHardware;
-    }
-    const handleWindowUnload = () => {
-      releaseAllHardware();
+    const cleanupFn = () => {
+      releaseAllHardwareRef.current?.();
     };
-    window.addEventListener('beforeunload', handleWindowUnload);
-    window.addEventListener('pagehide', handleWindowUnload);
+    if (typeof window !== 'undefined') {
+      window.__cleanupInterviewMedia = cleanupFn;
+    }
+    window.addEventListener('beforeunload', cleanupFn);
+    window.addEventListener('pagehide', cleanupFn);
     return () => {
-      window.removeEventListener('beforeunload', handleWindowUnload);
-      window.removeEventListener('pagehide', handleWindowUnload);
-      releaseAllHardware();
-      if (typeof window !== 'undefined' && window.__cleanupInterviewMedia === releaseAllHardware) {
+      window.removeEventListener('beforeunload', cleanupFn);
+      window.removeEventListener('pagehide', cleanupFn);
+      cleanupFn();
+      if (typeof window !== 'undefined' && window.__cleanupInterviewMedia === cleanupFn) {
         window.__cleanupInterviewMedia = null;
       }
     };
-  }, [releaseAllHardware]);
+  }, []);
 
   /* ─── Ending step sequencer (PRESERVED) ───────────────────────────────── */
   useEffect(() => {
@@ -2286,9 +2387,10 @@ const LiveInterview = () => {
   };
 
   /* ─── Mute, Camera, Pause controls ───────────────────────────────────── */
-  const toggleMute = () => {
-    if (stream) {
-      const audioTrack = stream.getAudioTracks()[0];
+  const toggleMute = useCallback(() => {
+    const activeStream = streamRef.current || stream;
+    if (activeStream) {
+      const audioTrack = activeStream.getAudioTracks()[0];
       if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled;
         setIsMuted(!audioTrack.enabled);
@@ -2300,45 +2402,54 @@ const LiveInterview = () => {
         }
       }
     }
-  };
+  }, [stream, stopListening, startListening]);
 
   const toggleCamera = useCallback(async () => {
-    if (isCameraOn) {
-      // User is turning camera OFF
-      if (streamRef.current) {
-        const videoTracks = streamRef.current.getVideoTracks();
-        videoTracks.forEach(track => {
-          track.enabled = false;
-          track.stop();
-          try { streamRef.current.removeTrack(track); } catch {}
-          if (typeof window !== 'undefined' && window.__activeMediaTracks) {
-            window.__activeMediaTracks.delete(track);
-          }
-        });
-      }
-      if (stream) {
-        const videoTracks = stream.getVideoTracks();
-        videoTracks.forEach(track => {
-          track.enabled = false;
-          track.stop();
-          try { stream.removeTrack(track); } catch {}
-        });
-      }
-      if (videoRef.current) {
-        try { videoRef.current.srcObject = null; } catch {}
-      }
-      setIsCameraOn(false);
-      setFaceStatus('Camera is off');
-    } else {
-      // User is turning camera ON
-      try {
+    if (isTogglingCameraRef.current) return;
+    isTogglingCameraRef.current = true;
+
+    try {
+      if (isCameraOnRef.current) {
+        // User is turning camera OFF
+        const activeStream = streamRef.current;
+        if (activeStream) {
+          activeStream.getVideoTracks().forEach(track => {
+            track.onended = null;
+            track.enabled = false;
+            track.stop();
+            try { activeStream.removeTrack(track); } catch {}
+            if (typeof window !== 'undefined' && window.__activeMediaTracks) {
+              window.__activeMediaTracks.delete(track);
+            }
+          });
+        }
+        if (videoRef.current) {
+          try { videoRef.current.srcObject = null; } catch {}
+        }
+        isCameraOnRef.current = false;
+        setIsCameraOn(false);
+        setFaceStatus('Camera is off');
+      } else {
+        // User is turning camera ON
+        const runEpoch = mediaSessionEpochRef.current;
         const videoStream = await navigator.mediaDevices.getUserMedia({
           video: {
-            width: { ideal: 640, max: 1280 },
-            height: { ideal: 480, max: 720 },
-            frameRate: { ideal: 24, max: 30 }
+            width: { ideal: 640, max: 960 },
+            height: { ideal: 480, max: 540 },
+            frameRate: { ideal: 20, max: 24 }
           }
         });
+
+        // Guard against session end or teardown during async permission prompt
+        if (runEpoch !== mediaSessionEpochRef.current || isEndingRef.current) {
+          videoStream.getTracks().forEach(t => {
+            t.onended = null;
+            t.enabled = false;
+            t.stop();
+          });
+          return;
+        }
+
         const newTrack = videoStream.getVideoTracks()[0];
         if (newTrack) {
           if (typeof window !== 'undefined') {
@@ -2349,35 +2460,39 @@ const LiveInterview = () => {
             };
           }
 
-          let currentStream = streamRef.current || stream;
+          let currentStream = streamRef.current;
           if (currentStream) {
             currentStream.getVideoTracks().forEach(t => {
-              try { t.stop(); } catch {}
+              try { t.onended = null; t.stop(); } catch {}
               try { currentStream.removeTrack(t); } catch {}
             });
             currentStream.addTrack(newTrack);
           } else {
             currentStream = videoStream;
+            setStream(currentStream);
           }
 
           streamRef.current = currentStream;
-          setStream(currentStream);
           if (typeof window !== 'undefined') window.__activeInterviewStream = currentStream;
           if (videoRef.current) {
             videoRef.current.srcObject = currentStream;
             videoRef.current.play().catch(() => {});
           }
+          isCameraOnRef.current = true;
           setIsCameraOn(true);
           setFaceStatus('Camera active — Presence verified');
         }
-      } catch (err) {
-        console.warn('Failed to restore camera feed:', err);
-        addToast('Camera could not be accessed.', 'error');
-        setIsCameraOn(false);
-        setFaceStatus('Camera access denied');
       }
+    } catch (err) {
+      console.warn('Failed to toggle camera feed:', err);
+      addToast('Camera could not be accessed.', 'error');
+      isCameraOnRef.current = false;
+      setIsCameraOn(false);
+      setFaceStatus('Camera access denied');
+    } finally {
+      isTogglingCameraRef.current = false;
     }
-  }, [isCameraOn, stream, addToast]);
+  }, [addToast]);
 
   const togglePause = () => {
     setIsPaused(prev => {

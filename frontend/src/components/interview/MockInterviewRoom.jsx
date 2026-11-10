@@ -228,7 +228,7 @@ const MockInterviewRoom = ({
       {/* ================================================== */}
       {/* 1. TOP BAR */}
       {/* ================================================== */}
-      <header className="flex-shrink-0 h-16 bg-slate-900/60 border-b border-white/[0.06] backdrop-blur-md px-6 flex items-center justify-between z-20">
+      <header className="flex-shrink-0 h-16 bg-slate-900/95 border-b border-white/[0.06] px-6 flex items-center justify-between z-20">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <span className={`w-2 h-2 rounded-full bg-indigo-500 animate-pulse`} />
@@ -761,8 +761,11 @@ const MockInterviewRoom = ({
               ) : (
                 /* DEFAULT TECHNICAL / HR / BEHAVIORAL QUESTIONS CARD */
                 <div className="flex-1 flex flex-col justify-center max-w-2xl mx-auto w-full my-auto py-2">
-                  <div className="bg-slate-900/90 border border-white/10 rounded-3xl p-5 md:p-6 backdrop-blur-xl relative shadow-2xl">
-                    <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
+                  <div className="bg-slate-900/95 border border-white/10 rounded-3xl p-5 md:p-6 relative shadow-2xl">
+                    <div
+                      className="absolute top-0 right-0 w-40 h-40 rounded-full pointer-events-none"
+                      style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)' }}
+                    />
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-ping" />

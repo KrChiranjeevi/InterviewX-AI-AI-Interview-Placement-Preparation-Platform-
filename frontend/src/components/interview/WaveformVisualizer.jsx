@@ -21,8 +21,9 @@ const WaveformVisualizer = ({ stream, isActive }) => {
     const ctx = canvas.getContext('2d');
     let analyser = null;
 
-    /* ── Setup audio context from stream ── */
-    if (stream && isActive) {
+    /* ── Setup audio context from stream (only if live audio tracks exist) ── */
+    const hasAudioTrack = Boolean(stream && stream.getAudioTracks && stream.getAudioTracks().some(t => t.readyState === 'live'));
+    if (hasAudioTrack && isActive) {
       try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const an = audioCtx.createAnalyser();
@@ -36,95 +37,87 @@ const WaveformVisualizer = ({ stream, isActive }) => {
       } catch { /* silent */ }
     }
 
+    const W = canvas.width;
+    const H = canvas.height;
+    const CY = H / 2;
     const bufferLength = analyser ? analyser.frequencyBinCount : 64;
     const dataArray    = analyser ? new Uint8Array(bufferLength) : null;
+    const barW   = (W / bufferLength) * 1.8;
+    const gap    = 1.5;
+    const totalW = (barW + gap) * bufferLength;
+    const startX = (W - totalW) / 2;
 
+    // Pre-allocate static gradients ONCE (eliminates 7,680 gradient allocations/sec)
+    const gradUp = ctx.createLinearGradient(0, 0, 0, CY);
+    gradUp.addColorStop(0,   'rgba(167,139,250,0.95)');
+    gradUp.addColorStop(0.5, 'rgba(99,102,241,0.85)');
+    gradUp.addColorStop(1,   'rgba(99,102,241,0.5)');
+
+    const gradDown = ctx.createLinearGradient(0, CY, 0, H);
+    gradDown.addColorStop(0, 'rgba(99,102,241,0.45)');
+    gradDown.addColorStop(1, 'rgba(217,70,239,0.08)');
+
+    const lineGrad = ctx.createLinearGradient(0, 0, W, 0);
+    lineGrad.addColorStop(0,   'rgba(99,102,241,0)');
+    lineGrad.addColorStop(0.3, 'rgba(99,102,241,0.25)');
+    lineGrad.addColorStop(0.7, 'rgba(139,92,246,0.25)');
+    lineGrad.addColorStop(1,   'rgba(99,102,241,0)');
+
+    let frameSkip = 0;
     const draw = () => {
       if (!canvasRef.current) return;
       animRef.current = requestAnimationFrame(draw);
 
-      const W = canvas.width;
-      const H = canvas.height;
-      const CY = H / 2;
+      if (typeof document !== 'undefined' && document.hidden) return;
+      // Throttle idle wave animation to ~30fps to save GPU cycles
+      if (!analyser) {
+        frameSkip = (frameSkip + 1) % 2;
+        if (frameSkip !== 0) return;
+      }
 
       ctx.clearRect(0, 0, W, H);
-
-      const barW   = (W / bufferLength) * 1.8;
-      const gap    = 1.5;
-      const totalW = (barW + gap) * bufferLength;
-      const startX = (W - totalW) / 2;
 
       if (analyser && dataArray) {
         /* ── Live audio data ── */
         analyser.getByteFrequencyData(dataArray);
 
+        ctx.fillStyle = gradUp;
         for (let i = 0; i < bufferLength; i++) {
           const v = dataArray[i] / 255;
           const barH = Math.max(2, v * CY * 0.85);
           const x = startX + i * (barW + gap);
+          ctx.fillRect(x, CY - barH, barW, barH);
+        }
 
-          /* Gradient per bar */
-          const gradUp = ctx.createLinearGradient(0, CY - barH, 0, CY);
-          gradUp.addColorStop(0,   'rgba(167,139,250,0.95)');  // violet-400
-          gradUp.addColorStop(0.4, 'rgba(99,102,241,0.85)');   // indigo-500
-          gradUp.addColorStop(1,   'rgba(99,102,241,0.5)');
-
-          /* Glow */
-          ctx.shadowBlur  = v > 0.4 ? 10 : 0;
-          ctx.shadowColor = 'rgba(139,92,246,0.6)';
-
-          ctx.fillStyle = gradUp;
-          /* Top bar */
-          ctx.beginPath();
-          ctx.roundRect
-            ? ctx.roundRect(x, CY - barH, barW, barH, [2, 2, 0, 0])
-            : ctx.rect(x, CY - barH, barW, barH);
-          ctx.fill();
-
-          /* Mirror bar (bottom, smaller) */
-          const gradDown = ctx.createLinearGradient(0, CY, 0, CY + barH * 0.45);
-          gradDown.addColorStop(0, 'rgba(99,102,241,0.45)');
-          gradDown.addColorStop(1, 'rgba(217,70,239,0.08)');
-          ctx.fillStyle = gradDown;
-          ctx.shadowBlur = 0;
-          ctx.beginPath();
-          ctx.roundRect
-            ? ctx.roundRect(x, CY, barW, barH * 0.42, [0, 0, 2, 2])
-            : ctx.rect(x, CY, barW, barH * 0.42);
-          ctx.fill();
+        ctx.fillStyle = gradDown;
+        for (let i = 0; i < bufferLength; i++) {
+          const v = dataArray[i] / 255;
+          const barH = Math.max(2, v * CY * 0.85);
+          const x = startX + i * (barW + gap);
+          ctx.fillRect(x, CY, barW, barH * 0.42);
         }
       } else {
         /* ── Idle sine wave animation ── */
-        idlePhase.current += 0.04;
+        idlePhase.current += 0.06;
         const phase = idlePhase.current;
+        ctx.fillStyle = 'rgba(99,102,241,0.18)';
         for (let i = 0; i < bufferLength; i++) {
           const norm   = i / bufferLength;
           const sineH  = Math.abs(Math.sin(norm * Math.PI * 3 + phase)) * CY * 0.18 + 2;
           const x      = startX + i * (barW + gap);
-
-          ctx.fillStyle = `rgba(99,102,241,${0.12 + norm * 0.08})`;
-          ctx.beginPath();
-          ctx.roundRect
-            ? ctx.roundRect(x, CY - sineH, barW, sineH, [2, 2, 0, 0])
-            : ctx.rect(x, CY - sineH, barW, sineH);
-          ctx.fill();
-
-          ctx.fillStyle = `rgba(99,102,241,${0.05 + norm * 0.04})`;
-          ctx.beginPath();
-          ctx.roundRect
-            ? ctx.roundRect(x, CY, barW, sineH * 0.4, [0, 0, 2, 2])
-            : ctx.rect(x, CY, barW, sineH * 0.4);
-          ctx.fill();
+          ctx.fillRect(x, CY - sineH, barW, sineH);
         }
-        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = 'rgba(99,102,241,0.08)';
+        for (let i = 0; i < bufferLength; i++) {
+          const norm   = i / bufferLength;
+          const sineH  = Math.abs(Math.sin(norm * Math.PI * 3 + phase)) * CY * 0.18 + 2;
+          const x      = startX + i * (barW + gap);
+          ctx.fillRect(x, CY, barW, sineH * 0.4);
+        }
       }
 
       /* Centre divider line */
-      const lineGrad = ctx.createLinearGradient(0, 0, W, 0);
-      lineGrad.addColorStop(0,   'rgba(99,102,241,0)');
-      lineGrad.addColorStop(0.3, 'rgba(99,102,241,0.25)');
-      lineGrad.addColorStop(0.7, 'rgba(139,92,246,0.25)');
-      lineGrad.addColorStop(1,   'rgba(99,102,241,0)');
       ctx.fillStyle = lineGrad;
       ctx.fillRect(0, CY - 0.5, W, 1);
     };
