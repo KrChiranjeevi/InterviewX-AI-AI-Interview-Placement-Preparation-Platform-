@@ -2109,9 +2109,11 @@ const LiveInterview = () => {
       isClosing,
       isFollowUp,
       questionCategory: respCategory,
-      nextPlannedCategory: respNextCategory,
+      nextPlannedCategory: respPlannedCategory,
+      nextCategory: respFallbackCategory,
       questionId: respQuestionId
     } = convData;
+    const respNextCategory = respPlannedCategory || respFallbackCategory;
 
     const nextQId = respQuestionId || `q-${nextQNum}-${Date.now()}`;
     setCurrentQuestionId(nextQId);
