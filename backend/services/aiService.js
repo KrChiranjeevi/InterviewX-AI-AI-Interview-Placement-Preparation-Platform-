@@ -2,6 +2,16 @@ const { OpenAI } = require('openai');
 const { GoogleGenAI } = require('@google/genai');
 const fs = require('fs');
 const { rolesDb, companiesDb } = require('./atsDb');
+const {
+  RESUME_CATEGORIES,
+  getCategoryLabel,
+  normalizeQuestionText,
+  isDuplicateQuestion,
+  pickNonDuplicateCandidate,
+  extractStructuredResumeProfile,
+  selectNextResumeQuestionFromPlan,
+  buildClarificationForQuestion
+} = require('../utils/resumeInterviewPlanner');
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'missing-key' });
 const gemini = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || 'missing-key' });
@@ -32,7 +42,7 @@ const withTimeout = (promise, ms, name = 'AI Call') => {
 const ai = {
   models: {
     generateContent: async ({ contents, timeoutMs = 3500 }) => {
-      // 1. Try Native Gemini (gemini-2.0-flash / gemini-1.5-flash)
+      // 1. Try Native Gemini (gemini-2.0-flash / gemini-2.5-flash)
       try {
         const response = await withTimeout(
           gemini.models.generateContent({
@@ -49,11 +59,11 @@ const ai = {
         try {
           const response = await withTimeout(
             gemini.models.generateContent({
-              model: 'gemini-1.5-flash',
+              model: 'gemini-2.5-flash',
               contents: contents,
             }),
             timeoutMs,
-            'Gemini 1.5 Flash'
+            'Gemini 2.5 Flash'
           );
           if (response && response.text) {
             return { text: response.text };
@@ -440,11 +450,16 @@ RULES:
 6. Do NOT repeat any previous questions.
 7. Output should be raw text only (no quotes around the final response).`;
 
+    const priorAsked = (history || []).map(h => h?.question).filter(Boolean);
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.0-flash',
       contents: prompt
     });
-    return response.text.trim().replace(/^["']|["']$/g, '');
+    const generatedText = response.text.trim().replace(/^["']|["']$/g, '');
+    if (generatedText && !isDuplicateQuestion(generatedText, priorAsked)) {
+      return generatedText;
+    }
+    throw new Error('Generated question duplicated session history');
   } catch (error) {
     console.error("❌ generateQuestion failed completely. Using static fallback questions:", error.message);
     const roleLower = role.toLowerCase();
@@ -452,6 +467,7 @@ RULES:
     const diffNorm = (difficulty || '').toLowerCase();
     const isEasy = diffNorm === 'easy' || diffNorm === 'beginner';
     const isHard = diffNorm === 'hard' || diffNorm === 'advanced' || diffNorm === 'expert';
+    const priorAsked = (history || []).map(h => h?.question).filter(Boolean);
     
     // HR Interview static fallbacks
     if (typeLower.includes('hr') || typeLower.includes('behavioral')) {
@@ -473,7 +489,7 @@ RULES:
         "How do you evaluate and handle underperforming team members when delivering against aggressive quarterly deadlines?"
       ];
       const hrPool = isEasy ? hrEasy : isHard ? hrHard : hrMedium;
-      return hrPool[Math.floor(Math.random() * hrPool.length)];
+      return pickNonDuplicateCandidate(hrPool, priorAsked) || hrPool[priorAsked.length % hrPool.length];
     }
 
     // Coding Interview static fallbacks
@@ -496,15 +512,35 @@ RULES:
       return `### Two Sum\n\nGiven an array of integers \`nums\` and an integer \`target\`, return indices of the two numbers such that they add up to \`target\`.\n\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.\n\n**Examples:**\nInput: nums = [2,7,11,15], target = 9\nOutput: [0,1]\nExplanation: Because nums[0] + nums[1] == 9, we return [0, 1].\n\n**Constraints:**\n• 2 <= nums.length <= 10^4\n• -10^9 <= nums[i] <= 10^9\n• -10^9 <= target <= 10^9`;
     }
 
-    // Resume Interview static fallbacks
+    // Resume Interview structured, non-repeating fallback
     if (typeLower.includes('resume')) {
-      if (isEasy) {
-        return `Welcome! I've reviewed your resume profile. Could you give me an overview of your primary technical skill set and background?`;
+      const profile = extractStructuredResumeProfile({
+        resumeText,
+        resumeSkills,
+        resumeProjects,
+        resumeExperience,
+        resumeEducation
+      });
+      if (priorAsked.length === 0) {
+        const firstProj = profile.projects?.[0]?.name;
+        const greetPrefix = profile.candidateName ? `Welcome ${profile.candidateName}! ` : 'Welcome! ';
+        if (firstProj) {
+          return `${greetPrefix}I've reviewed your resume and noticed your work on "${firstProj}". Could you introduce yourself briefly and walk me through "${firstProj}" and your personal role in building it?`;
+        }
+        if (profile.skills?.length > 0) {
+          return `${greetPrefix}I've reviewed your resume highlighting ${profile.skills.slice(0, 3).join(', ')}. Could you introduce yourself and share how you applied these technologies in your work?`;
+        }
       }
-      if (isHard) {
-        return `Welcome! Looking closely at your resume, what was the most complex architectural bottleneck or scaling trade-off you personally owned, and how did you measure and benchmark the impact?`;
-      }
-      return `Welcome! I've reviewed your resume profile. Could you walk me through the architecture and technical implementation of your most significant project?`;
+      const selected = selectNextResumeQuestionFromPlan({
+        profile,
+        role,
+        difficulty,
+        userAnswer: history?.[history.length - 1]?.userAnswer || '',
+        questionAsked: priorAsked[priorAsked.length - 1] || '',
+        allAskedQuestions: priorAsked,
+        adaptiveState: {}
+      });
+      return selected.nextQuestion;
     }
 
     // Project Discussion static fallbacks
@@ -726,6 +762,22 @@ const getArchetypeKey = (t) => {
   return 'technical';
 };
 
+/**
+ * Synchronizes askedFollowupQuestions onto mutable adaptiveState references monotonically.
+ */
+const syncAskedFollowupQuestions = (targetState, askedList = []) => {
+  if (!targetState || typeof targetState !== 'object') return;
+  if (Array.isArray(targetState.askedFollowupQuestions)) {
+    for (const q of askedList) {
+      if (q && !targetState.askedFollowupQuestions.includes(q)) {
+        targetState.askedFollowupQuestions.push(q);
+      }
+    }
+  } else {
+    targetState.askedFollowupQuestions = [...askedList.filter(Boolean)];
+  }
+};
+
 // ─── Conversational Response Engine (MOCK MODE ONLY) ─────────────────────────
 // Generates a natural human acknowledgement + smooth follow-up or next question.
 // This replaces the robotic "question → question → question" pattern.
@@ -733,6 +785,7 @@ const generateConversationalResponse = async ({
   userAnswer,
   questionAsked,
   conversationHistory = [],
+  askedQuestions = [],
   role,
   type,
   domain = '',
@@ -776,13 +829,36 @@ const generateConversationalResponse = async ({
     currentCompetency: activePlanCompetencies[0] || 'Fundamentals'
   };
 
+  // Accumulate EVERY asked question from all sources so duplicates never slip through
+  const historyAiQuestions = (Array.isArray(conversationHistory) ? conversationHistory : [])
+    .filter(h => h && h.sender === 'ai' && h.text)
+    .map(h => h.text);
+  const allAskedQuestions = Array.from(new Set([
+    ...(Array.isArray(adaptiveState?.askedFollowupQuestions) ? adaptiveState.askedFollowupQuestions : []),
+    ...(Array.isArray(askedQuestions) ? askedQuestions : []),
+    ...historyAiQuestions,
+    ...(questionAsked ? [questionAsked] : [])
+  ].map(q => String(q || '').trim()).filter(Boolean)));
+
+  // Extract enriched deterministic resume profile when in Resume Interview mode
+  const resumeProfile = archKey === 'resume'
+    ? extractStructuredResumeProfile({
+        resumeText,
+        resumeSkills,
+        resumeProjects,
+        resumeExperience,
+        resumeEducation,
+        resumeSnapshot
+      })
+    : null;
+
   try {
 
-    // Build conversation context from history
+    // Build concise conversation context (last 16 messages so LLM sees full arc)
     const historyContext = conversationHistory.length > 0
       ? conversationHistory
-          .slice(-4) // only last 4 turns for context
-          .map(h => `[${h.sender === 'ai' ? 'Sarah' : 'Candidate'}]: ${h.text}`)
+          .slice(-16)
+          .map(h => `[${h.sender === 'ai' ? 'Sarah' : 'Candidate'}]: ${String(h.text || '').slice(0, 400)}`)
           .join('\n')
       : 'This is the beginning of the interview.';
 
@@ -800,35 +876,42 @@ You MUST ONLY ask behavioral questions using STAR method (Situation, Task, Actio
 Topics: Leadership, Ownership, Adaptability, Decision Making, Conflict Resolution, Communication, Failure, Teamwork.
 FORBIDDEN: No coding questions, no technical theory questions.`;
     } else if (typeLower2.includes('resume')) {
-      const skillsList = resumeSkills && resumeSkills.length > 0 ? (Array.isArray(resumeSkills) ? resumeSkills.join(', ') : resumeSkills) : 'listed skills';
-      let projectsStr = '';
-      if (resumeProjects && resumeProjects.length > 0) {
-        projectsStr = `\nDocumented Projects: ${resumeProjects.map(p => typeof p === 'string' ? p : `${p.name || p.title || 'Project'}: ${p.description || p.details || (Array.isArray(p.tech) ? p.tech.join(', ') : '') || ''}`).join('; ')}`;
-      }
-      let expStr = '';
-      if (resumeExperience && resumeExperience.length > 0) {
-        expStr = `\nDocumented Experience: ${resumeExperience.map(e => typeof e === 'string' ? e : `${e.role || e.title || 'Role'} at ${e.company || e.organization || 'Company'}: ${e.responsibilities || e.description || ''}`).join('; ')}`;
-      }
-      let eduStr = '';
-      if (resumeEducation && resumeEducation.length > 0) {
-        eduStr = `\nDocumented Education: ${resumeEducation.map(ed => typeof ed === 'string' ? ed : `${ed.degree || ''} ${ed.institution ? `@ ${ed.institution}` : ''}`).join('; ')}`;
-      }
+      const p = resumeProfile || {};
+      const skillsList = p.skills?.length > 0 ? p.skills.join(', ') : 'listed skills';
+      const projectsStr = p.projects?.length > 0
+        ? `\nDocumented Projects: ${p.projects.map(pr => `${pr.name}${pr.description ? `: ${pr.description}` : ''}`).join('; ')}`
+        : '';
+      const expStr = p.experience?.length > 0
+        ? `\nDocumented Experience: ${p.experience.map(ex => `${ex.role}${ex.company ? ` at ${ex.company}` : ''}${ex.description ? `: ${ex.description}` : ''}`).join('; ')}`
+        : '';
+      const eduStr = p.education?.length > 0
+        ? `\nDocumented Education: ${p.education.join('; ')}`
+        : '';
+      const certStr = p.certifications?.length > 0
+        ? `\nDocumented Certifications: ${p.certifications.join('; ')}`
+        : '';
+
+      const coveredCats = adaptiveState?.resumePlan?.coveredCategories || ['overview_intro'];
+      const uncoveredCats = RESUME_CATEGORIES.filter(c => !coveredCats.includes(c.id)).map(c => c.label);
 
       domainContext = `STRICT RESUME INTERVIEW MODE:
 You are conducting an authentic Resume Interview strictly grounded in the candidate's actual uploaded resume.
-Resume Skills: ${skillsList}
-${projectsStr}
-${expStr}
-${eduStr}
+Candidate Name: ${p.candidateName || 'Candidate'}
+Resume Skills: ${skillsList}${projectsStr}${expStr}${eduStr}${certStr}
 Resume Text Content:
-${(resumeText || '').substring(0, 3000)}
+${(resumeText || '').substring(0, 3200)}
+
+RESUME CATEGORY PROGRESSION:
+Covered Categories: ${coveredCats.map(getCategoryLabel).join(', ') || 'Introduction'}
+Remaining Uncovered Categories (PRIORITIZE NEXT): ${uncoveredCats.join(' -> ') || 'Deepen uncovered project/experience angles'}
+Consecutive Follow-ups on Current Topic: ${adaptiveState?.resumePlan?.consecutiveFollowUpsCount || 0} (MAX 1 consecutive follow-up before switching category!)
 
 STRICT RESUME GROUNDING RULES:
 1. Every question and follow-up MUST be traceable to the uploaded resume or a direct follow-up to the candidate's previous response.
 2. DO NOT invent, hallucinate, or assume any companies, projects, job titles, achievements, technologies, or metrics not in the resume.
-3. If asking about a project, reference the actual project name from the resume and probe their architectural choices, database design, API design, tech stack decisions, challenges, trade-offs, and personal contribution.
-4. When a project topic has been thoroughly explored, transition naturally to another documented project, internship, or technical skill.
-5. FORBIDDEN: Do not ask leetcode coding challenges, generic DSA, or unrelated framework trivia. Keep all questions tied to their actual documented background.`;
+3. Ask about specific projects, tech choices, frontend/backend/APIs/DBs, AI/LLM/auth/deployment (when present in resume), debugging challenges, testing/scalability trade-offs, internships, teamwork, and role fit across turns — do NOT repeat the same topic or project twice in a row unless probing one brief detail.
+4. Once you have asked 1 follow-up on the current topic, move to a DIFFERENT uncovered category above.
+5. FORBIDDEN: Do not ask leetcode coding challenges, generic "where do you see yourself in 5 years" clichés, or any question already in QUESTIONS ALREADY ASKED.`;
     } else if (typeLower2.includes('technical')) {
       const topicsStr = selectedTopics.length > 0 ? selectedTopics.join(', ') : (technicalTrack || domain);
       domainContext = `STRICT TECHNICAL INTERVIEW MODE:
@@ -925,8 +1008,11 @@ ADAPTIVE ROADMAPS:
   * Java: Basics → OOP → Collections → Exception → Multithreading → JVM → Advanced Java.
 - Difficulty Engine scale: Easy → Medium → Hard → Scenario Based → Real World Problems → Optimization → Architecture. Only increase difficulty by 1 step at a time if the user is performing very well. If struggling (multiple weak answers), reduce difficulty slightly, give encouraging response, and ask easier conceptual questions.
 
+QUESTIONS ALREADY ASKED IN THIS SESSION (STRICTLY FORBIDDEN TO REPEAT OR PARAPHRASE ANY OF THESE):
+${allAskedQuestions.length > 0 ? allAskedQuestions.map((q, idx) => `  ${idx + 1}. "${q}"`).join('\n') : '  (None yet)'}
+
 CURRENT INTERNAL ADAPTIVE STATE:
-${JSON.stringify(adaptiveState, null, 2)}
+${JSON.stringify({ ...(adaptiveState || {}), askedFollowupQuestions: allAskedQuestions }, null, 2)}
 
 STAGE INSTRUCTION:
 ${stageInstructions[interviewStage] || stageInstructions.core}
@@ -942,7 +1028,7 @@ CODING INTERVIEW FLOW LIMITS:
     - Increment optimizationFollowupsCount when asking optimization (e.g. optimizing speed, complexity, scaling inputs, explaining lines).
     - Increment edgeCaseFollowupsCount when asking edge cases (e.g. duplicate values, empty/null bounds, overflows).
 - After code submission, review correctness, complexity, edge cases, optimization, or coding style without repeating old conceptual questions.
-- Never repeat any sentence listed in askedFollowupQuestions. Avoid duplicates and generic prompts.
+- NEVER repeat or paraphrase ANY sentence listed in QUESTIONS ALREADY ASKED IN THIS SESSION.
 
 YOUR TASK:
 1. Evaluate the candidate's answer strictly against the ACTIVE EVALUATION RUBRIC (${activeRubric.name}):
@@ -960,12 +1046,12 @@ YOUR TASK:
      * AVOID repetitive robotic affirmations (do NOT repeat "Great answer!", "Awesome!", or "That's correct" after every question).
    - TRANSITION (optional, 0-1 short sentence): Smooth bridge to the question.
    - NEXT QUESTION (1-2 clear, focused sentences):
-     * If the candidate's answer was incomplete or vague, ask ONE focused clarification (set isFollowUp: true).
-     * If their answer was solid, or if the topic is thoroughly covered or candidate did not know, move forward to the next planned competency (set isFollowUp: false).
+     * If the candidate's answer was incomplete or introduces a key technical choice needing 1 focused probe, ask ONE clarification (set isFollowUp: true).
+     * If their answer was solid, or if 1 follow-up was already asked on this topic, or they did not know, move forward to a DIFFERENT uncovered competency/category (set isFollowUp: false).
      * For Coding: probe algorithm choice, O(time), O(space), edge cases, or alternative approaches.
-     * For Resume/Project: probe authentic personal contributions and decisions from the uploaded resume/project.
+     * For Resume/Project: probe authentic personal contributions and decisions across uncovered categories of the uploaded resume.
      * For HR/Behavioral: probe actions, outcomes, ownership, and lessons learned using STAR.
-     * Check askedFollowupQuestions: Never repeat any question that was already asked.
+     * Check QUESTIONS ALREADY ASKED: Never repeat or closely paraphrase any previously asked question.
      * If closing stage, do not ask a question; deliver a warm closing statement summarizing the conversation.
      * Monitor remaining time based on questionNumber vs total duration. If near the end, prioritize important questions and close naturally.
 
@@ -974,6 +1060,7 @@ OUTPUT FORMAT (STRICT — return ONLY valid JSON, no markdown wrapper):
   "acknowledgement": "<1 short natural acknowledgement sentence>",
   "transition": "<0-1 sentence transition or empty string>",
   "nextQuestion": "<1-2 sentence next question or closing statement>",
+  "questionCategory": "<short label for topic/category of nextQuestion>",
   "isFollowUp": <true if probing same answer, false if progressing to next planned competency>,
   "isClosing": <true if this is the final closing message>,
   "evaluation": {
@@ -1005,33 +1092,125 @@ OUTPUT FORMAT (STRICT — return ONLY valid JSON, no markdown wrapper):
     "difficultyLevel": "current difficulty level in Easy/Medium/Hard/Scenario Based/Real World Problems/Optimization/Architecture",
     "knowledgeGraph": { "topic_name": "Strong" | "Average" | "Weak" },
     "mistakes": ["list of concepts candidate misunderstood or failed to answer correctly"],
-    "notes": ["list of silent live notes on candidate's behavior, e.g., 'Strong Java.', 'Weak SQL JOIN.'"],
-    "historyTopics": ["list of sub-topics already asked to avoid repetition"],
+    "notes": ["list of silent live notes on candidate's behavior"],
+    "historyTopics": ["list of sub-topics already asked"],
     "conceptualFollowupsCount": number,
     "optimizationFollowupsCount": number,
     "edgeCaseFollowupsCount": number,
-    "askedFollowupQuestions": ["list of sentences/questions you have already asked in this session"]
+    "askedFollowupQuestions": ["keep all previously asked questions"]
   }
 }`;
 
-    const response = await ai.models.generateContent({ contents: prompt });
-    let raw = response.text.trim();
+    const response = await ai.models.generateContent({ contents: prompt, timeoutMs: 4500 });
+    const parsed = parseAIResponse(response.text);
 
-    // Strip markdown code blocks if present
-    raw = raw.replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim();
+    // Preserve monotonic session state — never allow LLM response to drop prior asked questions or plan progress
+    const llmState = parsed.adaptiveState && typeof parsed.adaptiveState === 'object' ? parsed.adaptiveState : {};
+    const updatedState = {
+      ...(adaptiveState || {}),
+      ...llmState
+    };
+    const mergedAsked = new Set([
+      ...allAskedQuestions,
+      ...(Array.isArray(llmState.askedFollowupQuestions) ? llmState.askedFollowupQuestions : [])
+    ].filter(Boolean));
 
-    const parsed = JSON.parse(raw);
+    const prevCoveredComp = Array.isArray(currentPlan.coveredCompetencies) ? currentPlan.coveredCompetencies : [];
+    const llmCoveredComp = Array.isArray(llmState.interviewPlan?.coveredCompetencies) ? llmState.interviewPlan.coveredCompetencies : [];
+    const updatedPlan = {
+      ...currentPlan,
+      ...(llmState.interviewPlan || {}),
+      totalPlannedQuestions: currentPlan.totalPlannedQuestions,
+      targetCompetencies: activePlanCompetencies,
+      coveredCompetencies: Array.from(new Set([...prevCoveredComp, ...llmCoveredComp]))
+    };
 
-    // Keep track of the newly generated question in the asked list
-    const updatedState = parsed.adaptiveState || { ...adaptiveState };
-    if (parsed.nextQuestion && (!updatedState.askedFollowupQuestions || !updatedState.askedFollowupQuestions.includes(parsed.nextQuestion))) {
-      if (!updatedState.askedFollowupQuestions) updatedState.askedFollowupQuestions = [];
-      updatedState.askedFollowupQuestions.push(parsed.nextQuestion);
+    let finalNextQuestion = String(parsed.nextQuestion || '').trim();
+    let finalIsFollowUp = Boolean(parsed.isFollowUp);
+    let questionCategory = parsed.questionCategory || updatedPlan.currentCompetency || 'General';
+    let nextCategory = '';
+
+    // Server-side anti-repetition & follow-up cap verification
+    if (!parsed.isClosing) {
+      const isBadOrDuplicate = !finalNextQuestion || finalNextQuestion.length < 15 || isDuplicateQuestion(finalNextQuestion, Array.from(mergedAsked));
+
+      if (archKey === 'resume' && resumeProfile) {
+        const prevConsecFollowUps = adaptiveState?.resumePlan?.consecutiveFollowUpsCount || 0;
+        const tooManyFollowUps = finalIsFollowUp && prevConsecFollowUps >= 1;
+        const isGenericForbidden = /where do you see yourself in (?:5|five) years/i.test(finalNextQuestion);
+
+        if (isBadOrDuplicate || tooManyFollowUps || isGenericForbidden) {
+          const isSkippedAns = !userAnswer || /skip|skipped/i.test(userAnswer);
+          const isDontKnowAns = !isSkippedAns && Boolean(userAnswer && /i don't know|not sure|no idea|cannot remember|haven't used|never worked/i.test(userAnswer));
+          const plannedNext = selectNextResumeQuestionFromPlan({
+            profile: resumeProfile,
+            role,
+            difficulty,
+            userAnswer,
+            questionAsked,
+            allAskedQuestions: Array.from(mergedAsked),
+            adaptiveState,
+            isSkipped: isSkippedAns,
+            isDontKnow: isDontKnowAns
+          });
+          finalNextQuestion = plannedNext.nextQuestion;
+          finalIsFollowUp = plannedNext.isFollowUp;
+          questionCategory = plannedNext.categoryLabel;
+          nextCategory = plannedNext.nextCategoryLabel;
+          updatedState.resumePlan = plannedNext.resumePlan;
+        } else {
+          // Track category/project/skill progress from valid LLM resume question
+          const prevResumePlan = adaptiveState?.resumePlan || {
+            coveredCategories: ['overview_intro'],
+            coveredProjects: [],
+            coveredSkills: [],
+            consecutiveFollowUpsCount: 0,
+            lastCategory: 'overview_intro'
+          };
+          const nextResumePlan = {
+            coveredCategories: [...(prevResumePlan.coveredCategories || ['overview_intro'])],
+            coveredProjects: [...(prevResumePlan.coveredProjects || [])],
+            coveredSkills: [...(prevResumePlan.coveredSkills || [])],
+            consecutiveFollowUpsCount: finalIsFollowUp ? (prevResumePlan.consecutiveFollowUpsCount || 0) + 1 : 0,
+            lastCategory: prevResumePlan.lastCategory || 'overview_intro'
+          };
+          for (const proj of (resumeProfile.projects || [])) {
+            if (finalNextQuestion.toLowerCase().includes(proj.name.toLowerCase()) && !nextResumePlan.coveredProjects.includes(proj.name)) {
+              nextResumePlan.coveredProjects.push(proj.name);
+            }
+          }
+          for (const sk of (resumeProfile.skills || [])) {
+            if (finalNextQuestion.toLowerCase().includes(sk.toLowerCase()) && !nextResumePlan.coveredSkills.includes(sk)) {
+              nextResumePlan.coveredSkills.push(sk);
+            }
+          }
+          // Advance uncovered resume category heuristic when not a follow-up
+          if (!finalIsFollowUp) {
+            const matchedCat = RESUME_CATEGORIES.find(c => !nextResumePlan.coveredCategories.includes(c.id));
+            if (matchedCat) {
+              nextResumePlan.coveredCategories.push(matchedCat.id);
+              nextResumePlan.lastCategory = matchedCat.id;
+              questionCategory = parsed.questionCategory || matchedCat.label;
+            }
+          }
+          const remainingCat = RESUME_CATEGORIES.find(c => !nextResumePlan.coveredCategories.includes(c.id));
+          nextCategory = remainingCat ? remainingCat.label : 'Interview Wrap-up & Fit';
+          updatedState.resumePlan = nextResumePlan;
+        }
+      } else if (isBadOrDuplicate) {
+        // Trigger deterministic non-repeating fallback for non-resume archetypes if LLM repeated
+        throw new Error('LLM returned duplicate or empty question; routing to deterministic non-duplicate planner');
+      }
     }
 
+    if (finalNextQuestion && !parsed.isClosing) {
+      mergedAsked.add(finalNextQuestion);
+    }
+    updatedState.askedFollowupQuestions = Array.from(mergedAsked);
+    syncAskedFollowupQuestions(adaptiveState, updatedState.askedFollowupQuestions);
+
     // Phase 3: Structured Interview Plan Competency Tracking
-    const updatedPlan = updatedState.interviewPlan ? { ...updatedState.interviewPlan } : { ...currentPlan };
-    if (!parsed.isFollowUp) {
+    if (!finalIsFollowUp) {
       if (updatedPlan.currentCompetency && !updatedPlan.coveredCompetencies.includes(updatedPlan.currentCompetency)) {
         updatedPlan.coveredCompetencies.push(updatedPlan.currentCompetency);
       }
@@ -1060,25 +1239,27 @@ OUTPUT FORMAT (STRICT — return ONLY valid JSON, no markdown wrapper):
       }
     };
 
+    const finalAck = parsed.acknowledgement || 'I see. Thank you for walking through that.';
+    const finalTrans = parsed.transition || '';
+
     return {
-      acknowledgement: parsed.acknowledgement || 'I see. Thank you for that.',
-      transition: parsed.transition || '',
-      nextQuestion: parsed.nextQuestion || 'Could you tell me more about your experience?',
-      isFollowUp: parsed.isFollowUp || false,
-      isClosing: parsed.isClosing || false,
+      acknowledgement: finalAck,
+      transition: finalTrans,
+      nextQuestion: finalNextQuestion || 'Could you walk me through your experience?',
+      questionCategory,
+      nextCategory: nextCategory || updatedPlan.uncoveredCompetencies?.[0] || 'Closing Summary',
+      isFollowUp: finalIsFollowUp,
+      isClosing: Boolean(parsed.isClosing),
       evaluation: parsed.evaluation || defaultEval,
       adaptiveState: updatedState,
-      // Combined full text for TTS
-      fullSpeech: [
-        parsed.acknowledgement,
-        parsed.transition,
-        parsed.nextQuestion
-      ].filter(Boolean).join(' ').trim()
+      fullSpeech: [finalAck, finalTrans, finalNextQuestion].filter(Boolean).join(' ').trim()
     };
   } catch (error) {
     console.error('❌ generateConversationalResponse failed:', error.message);
-    const updatedState = { ...adaptiveState };
-    if (!updatedState.askedFollowupQuestions) updatedState.askedFollowupQuestions = [];
+    const updatedState = {
+      ...(adaptiveState || {}),
+      askedFollowupQuestions: [...allAskedQuestions]
+    };
 
     const isSkipped = !userAnswer || /skip|skipped/i.test(userAnswer);
     const isDontKnow = !isSkipped && Boolean(userAnswer && /i don't know|not sure|no idea|cannot remember|haven't used|never worked/i.test(userAnswer));
@@ -1106,7 +1287,10 @@ OUTPUT FORMAT (STRICT — return ONLY valid JSON, no markdown wrapper):
     const isEasy = (difficulty || '').toLowerCase().includes('easy') || (difficulty || '').toLowerCase().includes('beginner');
     const isHard = (difficulty || '').toLowerCase().includes('hard') || (difficulty || '').toLowerCase().includes('advanced') || (difficulty || '').toLowerCase().includes('expert');
     let fallbackQuestion = '';
-    
+    let isFollowUp = !isSkipped && !isDontKnow && isShortAnswer;
+    let questionCategory = currentPlan.currentCompetency || 'General';
+    let nextCategory = currentPlan.uncoveredCompetencies?.[1] || 'Next Topic';
+
     if (typeLower3.includes('hr')) {
       const hrFallbacks = isEasy
         ? [
@@ -1130,7 +1314,7 @@ OUTPUT FORMAT (STRICT — return ONLY valid JSON, no markdown wrapper):
             "Tell me about a time you received constructive criticism or feedback that was difficult to hear. How did you respond and improve?",
             "What kind of team environment and culture brings out your best performance and motivation?"
           ];
-      fallbackQuestion = hrFallbacks.find(q => !updatedState.askedFollowupQuestions.includes(q)) || hrFallbacks[0];
+      fallbackQuestion = pickNonDuplicateCandidate(hrFallbacks, allAskedQuestions) || hrFallbacks[allAskedQuestions.length % hrFallbacks.length];
     } else if (typeLower3.includes('behavioral')) {
       const behavFallbacks = isEasy
         ? [
@@ -1151,36 +1335,24 @@ OUTPUT FORMAT (STRICT — return ONLY valid JSON, no markdown wrapper):
             "Give an example of a difficult technical or product decision you had to make with ambiguous or incomplete data. What was your process?",
             "Describe a time you resolved a disagreement within your team regarding technical direction or project architecture."
           ];
-      fallbackQuestion = behavFallbacks.find(q => !updatedState.askedFollowupQuestions.includes(q)) || behavFallbacks[0];
+      fallbackQuestion = pickNonDuplicateCandidate(behavFallbacks, allAskedQuestions) || behavFallbacks[allAskedQuestions.length % behavFallbacks.length];
     } else if (typeLower3.includes('resume')) {
-      const unaskedProj = resumeProjects && resumeProjects.find(p => {
-        const title = typeof p === 'string' ? p : (p.name || p.title || '');
-        return title && (!updatedState.askedFollowupQuestions || !updatedState.askedFollowupQuestions.some(q => q.includes(title)));
+      const plannedResume = selectNextResumeQuestionFromPlan({
+        profile: resumeProfile || extractStructuredResumeProfile({ resumeText, resumeSkills, resumeProjects, resumeExperience, resumeEducation, resumeSnapshot }),
+        role,
+        difficulty,
+        userAnswer,
+        questionAsked,
+        allAskedQuestions,
+        adaptiveState: updatedState,
+        isSkipped,
+        isDontKnow
       });
-
-      if (unaskedProj) {
-        const pName = typeof unaskedProj === 'string' ? unaskedProj : (unaskedProj.name || unaskedProj.title || 'your project');
-        fallbackQuestion = isEasy
-          ? `Could you explain the purpose of "${pName}" and your main responsibilities while working on it?`
-          : isHard
-          ? `In "${pName}", what was the most difficult architectural trade-off or performance bottleneck you resolved, and how did you benchmark the improvement?`
-          : `Could you walk me through the architecture of "${pName}", your individual contribution, and the main technical trade-offs you made?`;
-      } else if (resumeSkills && resumeSkills.length > 0) {
-        const unaskedSkill = (Array.isArray(resumeSkills) ? resumeSkills : [resumeSkills]).find(s => 
-          !updatedState.askedFollowupQuestions || !updatedState.askedFollowupQuestions.some(q => q.includes(s))
-        ) || (Array.isArray(resumeSkills) ? resumeSkills[0] : resumeSkills);
-        fallbackQuestion = isEasy
-          ? `Your resume mentions ${unaskedSkill}. How did you first get started with it, and what basic features did you use?`
-          : isHard
-          ? `Your resume highlights deep experience with ${unaskedSkill}. What are its internal concurrency or memory constraints when running under heavy production load?`
-          : `Your resume highlights hands-on experience with ${unaskedSkill}. Could you describe a challenging technical problem you solved using ${unaskedSkill}?`;
-      } else {
-        fallbackQuestion = isEasy
-          ? "Could you give a high-level overview of the most interesting project on your resume?"
-          : isHard
-          ? "Looking at your resume projects, what was the most complex scalability constraint you tackled and how did you measure success?"
-          : "Could you walk me through the technical decisions you made in your most significant project from your resume?";
-      }
+      fallbackQuestion = plannedResume.nextQuestion;
+      isFollowUp = plannedResume.isFollowUp;
+      questionCategory = plannedResume.categoryLabel;
+      nextCategory = plannedResume.nextCategoryLabel;
+      updatedState.resumePlan = plannedResume.resumePlan;
     } else if (typeLower3.includes('coding')) {
       const codingFallbacks = isEasy
         ? [
@@ -1200,7 +1372,7 @@ OUTPUT FORMAT (STRICT — return ONLY valid JSON, no markdown wrapper):
             "If the input dataset were too massive to fit into system RAM, how would you adapt your algorithm using external memory or streaming?",
             "Can you walk me through your code line by line for an example input and explain the invariant maintained by your data structure?"
           ];
-      fallbackQuestion = codingFallbacks.find(q => !updatedState.askedFollowupQuestions.includes(q)) || codingFallbacks[0];
+      fallbackQuestion = pickNonDuplicateCandidate(codingFallbacks, allAskedQuestions) || codingFallbacks[allAskedQuestions.length % codingFallbacks.length];
     } else if (typeLower3.includes('system design')) {
       const sdFallbacks = isEasy
         ? [
@@ -1222,7 +1394,7 @@ OUTPUT FORMAT (STRICT — return ONLY valid JSON, no markdown wrapper):
             "How would you ensure high availability, fault tolerance, and data durability in the event of a datacenter or node failure?",
             "What are the key trade-offs in your design regarding the CAP theorem, consistency models, and operational complexity?"
           ];
-      fallbackQuestion = sdFallbacks.find(q => !updatedState.askedFollowupQuestions.includes(q)) || sdFallbacks[0];
+      fallbackQuestion = pickNonDuplicateCandidate(sdFallbacks, allAskedQuestions) || sdFallbacks[allAskedQuestions.length % sdFallbacks.length];
     } else if (typeLower3.includes('project')) {
       const pName = projectName || 'your project';
       const projFallbacks = isEasy
@@ -1243,11 +1415,11 @@ OUTPUT FORMAT (STRICT — return ONLY valid JSON, no markdown wrapper):
             `If you had to scale "${pName}" to support a 50x increase in concurrent active users, what architectural changes would you prioritize?`,
             `How did you approach automated testing, continuous integration, and monitoring for "${pName}"?`
           ];
-      fallbackQuestion = projFallbacks.find(q => !updatedState.askedFollowupQuestions.includes(q)) || projFallbacks[0];
+      fallbackQuestion = pickNonDuplicateCandidate(projFallbacks, allAskedQuestions) || projFallbacks[allAskedQuestions.length % projFallbacks.length];
     } else {
       // Technical Interview fallbacks based on selected topics
       const topic = selectedTopics.length > 0
-        ? (selectedTopics.find(t => !updatedState.askedFollowupQuestions.some(q => q.includes(t))) || selectedTopics[0])
+        ? (selectedTopics.find(t => !allAskedQuestions.some(q => q.includes(t))) || selectedTopics[allAskedQuestions.length % selectedTopics.length])
         : (technicalTrack || domain || 'core engineering');
       const techFallbacks = isEasy
         ? [
@@ -1267,10 +1439,10 @@ OUTPUT FORMAT (STRICT — return ONLY valid JSON, no markdown wrapper):
             `How does ${topic} handle concurrency, state synchronization, or asynchronous task execution?`,
             `What trade-offs do you consider when choosing between alternative architectural patterns or design decisions in ${topic}?`
           ];
-      fallbackQuestion = techFallbacks.find(q => !updatedState.askedFollowupQuestions.includes(q)) || techFallbacks[0];
+      fallbackQuestion = pickNonDuplicateCandidate(techFallbacks, allAskedQuestions) || techFallbacks[allAskedQuestions.length % techFallbacks.length];
     }
 
-    if (!updatedState.askedFollowupQuestions.includes(fallbackQuestion)) {
+    if (fallbackQuestion && !updatedState.askedFollowupQuestions.includes(fallbackQuestion)) {
       updatedState.askedFollowupQuestions.push(fallbackQuestion);
     }
 
@@ -1314,7 +1486,13 @@ OUTPUT FORMAT (STRICT — return ONLY valid JSON, no markdown wrapper):
           metrics: { technicalKnowledge: 7, problemSolving: 7, communication: 7, confidence: 7, accuracy: 7, logicalThinking: 7 }
         };
 
-    const isFollowUp = !isSkipped && !isDontKnow && isShortAnswer;
+    // Record fallback question monotonically so subsequent turns never repeat it
+    const finalFallbackAsked = Array.from(new Set([
+      ...allAskedQuestions,
+      ...(fallbackQuestion ? [fallbackQuestion] : [])
+    ].filter(Boolean)));
+    updatedState.askedFollowupQuestions = finalFallbackAsked;
+    syncAskedFollowupQuestions(adaptiveState, finalFallbackAsked);
 
     // Structured interview plan tracking
     const updatedPlan = updatedState.interviewPlan ? { ...updatedState.interviewPlan } : { ...currentPlan };
@@ -1331,6 +1509,8 @@ OUTPUT FORMAT (STRICT — return ONLY valid JSON, no markdown wrapper):
       acknowledgement: ack,
       transition: '',
       nextQuestion: fallbackQuestion,
+      questionCategory,
+      nextCategory: nextCategory || updatedPlan.uncoveredCompetencies?.[0] || 'Closing Summary',
       isFollowUp,
       isClosing: false,
       evaluation,
@@ -1603,18 +1783,28 @@ Instructions for JSON evaluation logic:
 4. "missingSkills": Generate ONLY role-specific missing skills. Do not recommend AWS or Kubernetes for simple Frontend Developers unless required in the target role profile.
 5. "strengths" & "weaknesses": Dynamically extract real values from the resume. Do not invent weaknesses.`;
 
-    const response = await ai.models.generateContent({ contents: prompt });
+    const response = await ai.models.generateContent({ contents: prompt, timeoutMs: 8000 });
     return parseAIResponse(response.text);
   } catch (error) {
     console.error('Gemini Error in analyzeResume:', error);
+    const fallbackProfile = extractStructuredResumeProfile({ resumeText });
     return {
-      personalInfo: { name: '', email: '', phone: '', linkedin: '', github: '', portfolio: '' },
-      education: [],
-      experience: [],
-      projects: [],
+      personalInfo: { name: fallbackProfile.candidateName || '', email: '', phone: '', linkedin: '', github: '', portfolio: '' },
+      education: fallbackProfile.education || [],
+      experience: fallbackProfile.experience || [],
+      projects: fallbackProfile.projects || [],
       internships: [],
-      skills: { programmingLanguages: [], frameworks: [], libraries: [], databases: [], cloud: [], devopsTools: [], softSkills: [], tools: [] },
-      certificates: [],
+      skills: {
+        programmingLanguages: fallbackProfile.skills || [],
+        frameworks: [],
+        libraries: [],
+        databases: [],
+        cloud: [],
+        devopsTools: [],
+        softSkills: [],
+        tools: []
+      },
+      certificates: fallbackProfile.certifications || [],
       achievements: [],
       training: [],
       score: 50,
@@ -1622,14 +1812,14 @@ Instructions for JSON evaluation logic:
         roleSkillMatch: 50, projectRelevance: 50, internship: 50, experience: 50, keywordMatch: 50,
         education: 50, resumeFormatting: 50, achievements: 50, certifications: 50
       },
-      matchedKeywords: [],
+      matchedKeywords: fallbackProfile.skills || [],
       missingSkills: [],
       priorityKeywords: [],
       skillMatchLevel: 'Average',
       skillMatchPercentage: 50,
       strengths: [],
       weaknesses: [],
-      aiSuggestions: ['Error analyzing resume. Please check your API key.'],
+      aiSuggestions: ['Resume extracted using deterministic text parser; verify API configuration for deeper semantic ATS insights.'],
       formattingAnalysis: {
         spacing: 'Unknown', bulletConsistency: 'Unknown', readability: 'Unknown', atsCompatibility: 'Unknown',
         length: 'Unknown', actionVerbUsage: 'Unknown'
@@ -1654,8 +1844,8 @@ Instructions for JSON evaluation logic:
         { "company": "Capgemini", "matchPercent": 60 },
         { "company": "JPMorgan Chase", "matchPercent": 60 }
       ],
-      resumeSummary: 'Raw parse fallback summary.',
-      skillsFound: [],
+      resumeSummary: 'Structured resume entities extracted directly from uploaded document.',
+      skillsFound: fallbackProfile.skills || [],
       recommendedSkills: [],
       resumeStructure: 'Format analysis unavailable',
       projectQuality: 'Project analysis unavailable',
@@ -3084,7 +3274,10 @@ module.exports = {
   generateGDEvaluationReport,
   generateExtemporeTopic,
   generateExtemporeCrossQuestions,
-  generateExtemporeReport
+  generateExtemporeReport,
+  buildClarificationForQuestion,
+  extractStructuredResumeProfile,
+  isDuplicateQuestion
 };
 
 

@@ -511,6 +511,8 @@ const LiveInterview = () => {
     return typeof window !== 'undefined' ? (window.navigator?.language || 'en-US') : 'en-US';
   });
   const [lastTurnLatencyMs,          setLastTurnLatencyMs]          = useState(null);
+  const [questionCategory,           setQuestionCategory]           = useState('Introduction & Overview');
+  const [nextPlannedCategory,        setNextPlannedCategory]        = useState('Projects & Technical Depth');
 
   // Dynamic Workspaces States
   const [selectedLanguage, setSelectedLanguage] = useState('python');
@@ -595,9 +597,15 @@ const LiveInterview = () => {
   const recognitionRestartTimerRef = useRef(null);
   const recentRecognitionEndsRef = useRef([]);
   const speechLangRef            = useRef(speechLang);
+  const conversationHistoryRef   = useRef([]);
+  const askedQuestionsRef        = useRef([]);
+  const turnRequestSeqRef        = useRef(0);
+  const interviewRef             = useRef(null);
 
   // Sync ref hooks
-  useEffect(() => { streamRef.current            = stream;            }, [stream]);
+  useEffect(() => { streamRef.current              = stream;              }, [stream]);
+  useEffect(() => { interviewRef.current           = interview;           }, [interview]);
+  useEffect(() => { conversationHistoryRef.current = conversationHistory; }, [conversationHistory]);
   useEffect(() => { isCameraOnRef.current        = isCameraOn;        }, [isCameraOn]);
   useEffect(() => { isEndingRef.current          = isEnding;          }, [isEnding]);
   useEffect(() => { speechLangRef.current        = speechLang;        }, [speechLang]);
@@ -852,6 +860,16 @@ const LiveInterview = () => {
   /* ─── End Interview Trigger ───────────────────────────────────────────── */
   const endInterview = useCallback(() => {
     setShowEndConfirm(true);
+  }, []);
+
+  const getClosingTurnThreshold = useCallback(() => {
+    const durMatch = String(interviewRef.current?.duration || '').match(/(\d+)/);
+    const mins = durMatch ? parseInt(durMatch[1], 10) : 30;
+    if (mins <= 10) return 5;
+    if (mins <= 20) return 7;
+    if (mins <= 30) return 11;
+    if (mins <= 45) return 13;
+    return 15;
   }, []);
 
   /* ─── Auto-submit timer helpers ───────────────────────────────────────── */
@@ -1367,6 +1385,27 @@ const LiveInterview = () => {
     speakText(qText);
   }, [speakText]);
 
+  /* ─── Request Clarification (Explains current question without advancing) ─ */
+  const requestClarification = useCallback(async () => {
+    if (isSubmittingRef.current || isAIThinkingRef.current) return;
+    const qText = currentQuestionRef.current;
+    if (!qText) return;
+
+    let clarificationText = '';
+    try {
+      const res = await api.post(`/interviews/${id}/clarify`, { currentQuestion: qText }, { timeout: 2500 });
+      clarificationText = res?.data?.clarification || '';
+    } catch {
+      // Fallback local clarification if offline or slow
+    }
+
+    if (!clarificationText) {
+      clarificationText = `To clarify: please share your specific personal role, the technical approach or tools you used, and a concrete example or outcome for this question.`;
+    }
+    addToast(clarificationText, 'info');
+    speakText(clarificationText);
+  }, [id, speakText, addToast]);
+
   /* ─── Mock Interview Greeting Flow ───────────────────────────────────── */
   const triggerMockGreeting = useCallback(async (interviewData) => {
     const typeLabel = interviewData?.type || 'Technical';
@@ -1380,25 +1419,37 @@ const LiveInterview = () => {
     if (typeLowerG.includes('hr')) {
       openingQuestion = `To start us off, could you give me a brief introduction — tell me about yourself, your background, and what brings you here today?`;
       spokenIntro = `Good morning. Welcome to today's mock HR interview. My name is Sarah, and I'll be your interviewer today. Let's start with a brief introduction. Could you tell me about yourself?`;
+      setQuestionCategory('Background & Motivation');
+      setNextPlannedCategory('Teamwork & Collaboration');
     } else if (typeLowerG.includes('behavioral')) {
       openingQuestion = `To begin, could you introduce yourself and share a real scenario where you took personal ownership of a challenging situation?`;
       spokenIntro = `Good morning. Welcome to your Behavioral interview. I'm Sarah, and today we'll explore real-world scenarios using the STAR method. Let's begin with your background and a time you took ownership.`;
+      setQuestionCategory('STAR: Ownership & Initiative');
+      setNextPlannedCategory('STAR: Adaptability & Change');
     } else if (typeLowerG.includes('resume')) {
       const candidateName = interviewData?.resumeSnapshot?.candidateName || '';
       const firstProject = interviewData?.resumeProjects?.[0];
       const projName = typeof firstProject === 'string' ? firstProject : (firstProject?.name || firstProject?.title || '');
       const skillsArr = interviewData?.resumeSkills || [];
       const topSkills = skillsArr.slice(0, 3).join(', ');
+      const eduItem = interviewData?.resumeEducation?.[0];
+      const eduLabel = typeof eduItem === 'string' ? eduItem : (eduItem?.degree || eduItem?.title || '');
 
       if (projName) {
-        openingQuestion = `Welcome${candidateName ? ` ${candidateName}` : ''}! I've thoroughly reviewed your resume and noticed your work on "${projName}". Could you walk me through the architecture of "${projName}", your specific personal contribution, and the key technical trade-offs you made?`;
-        spokenIntro = `Good morning${candidateName ? ` ${candidateName}` : ''}. Welcome to your Resume interview. I'm Sarah. I've examined your resume profile and noticed your project, "${projName}". Let's start with a walkthrough of that project and your contribution.`;
+        openingQuestion = `Welcome${candidateName ? ` ${candidateName}` : ''}! I've reviewed your resume${eduLabel ? ` (${eduLabel})` : ''} including "${projName}"${topSkills ? ` and skills in ${topSkills}` : ''}. To start off, could you briefly introduce yourself and give me an overview of your work on "${projName}"?`;
+        spokenIntro = `Good morning${candidateName ? ` ${candidateName}` : ''}. Welcome to your Resume interview. I'm Sarah. I've reviewed your resume, including your project "${projName}". Could you briefly introduce yourself and give me an overview of your background and that project?`;
+        setQuestionCategory('Self-Introduction & Resume Overview');
+        setNextPlannedCategory(`Project Overview: ${projName}`);
       } else if (topSkills) {
-        openingQuestion = `Welcome${candidateName ? ` ${candidateName}` : ''}! I've reviewed your resume background highlighting ${topSkills}. Could you describe a challenging technical problem you solved using these technologies in your recent experience?`;
-        spokenIntro = `Good morning${candidateName ? ` ${candidateName}` : ''}. Welcome to your Resume interview. I'm Sarah. I've examined your resume profile. Let's start with how you've applied ${topSkills} in your work.`;
+        openingQuestion = `Welcome${candidateName ? ` ${candidateName}` : ''}! I've reviewed your resume highlighting ${topSkills}${eduLabel ? ` and ${eduLabel}` : ''}. To begin, could you introduce yourself and share which project or experience best represents your strengths with these technologies?`;
+        spokenIntro = `Good morning${candidateName ? ` ${candidateName}` : ''}. Welcome to your Resume interview. I'm Sarah. I've reviewed your profile highlighting ${topSkills}. Could you briefly introduce yourself and share your strongest hands-on project or experience?`;
+        setQuestionCategory('Self-Introduction & Resume Overview');
+        setNextPlannedCategory('Education & Core Skills');
       } else {
-        openingQuestion = `Welcome${candidateName ? ` ${candidateName}` : ''}! I've reviewed your resume profile. Could you walk me through your technical background, your documented projects, and your key responsibilities?`;
-        spokenIntro = `Good morning${candidateName ? ` ${candidateName}` : ''}. Welcome to your Resume interview. I'm Sarah. Let's walk through your journey and documented projects.`;
+        openingQuestion = `Welcome${candidateName ? ` ${candidateName}` : ''}! I've reviewed your resume profile. To kick things off, could you briefly introduce yourself, share your academic or work background, and highlight the project you're most proud of?`;
+        spokenIntro = `Good morning${candidateName ? ` ${candidateName}` : ''}. Welcome to your Resume interview. I'm Sarah. To start, could you briefly introduce yourself and walk me through your resume highlights?`;
+        setQuestionCategory('Self-Introduction & Resume Overview');
+        setNextPlannedCategory('Skills & Documented Projects');
       }
     } else if (isCoding) {
       const isSql = interviewData?.codingTrack?.toLowerCase() === 'sql' || interviewData?.domain?.toLowerCase() === 'sql';
@@ -1409,6 +1460,8 @@ const LiveInterview = () => {
       const fullProblemFormatted = `### ${prob.title} (${prob.difficulty})\n\n${prob.description}\n\n**Examples:**\n${prob.examples.map(ex => `Input: ${ex.input}\nOutput: ${ex.output}${ex.explanation ? `\nExplanation: ${ex.explanation}` : ''}`).join('\n\n')}\n\n**Constraints:**\n${prob.constraints.map(c => `• ${c}`).join('\n')}`;
       openingQuestion = fullProblemFormatted;
       spokenIntro = `Welcome to your Coding Interview. I've placed your first coding problem on the left: "${prob.title}". Please examine the problem description, example cases, and constraints. When you're ready, write your solution in the code editor and submit so we can review your logic and time complexity.`;
+      setQuestionCategory('Algorithm Strategy & Implementation');
+      setNextPlannedCategory('Time & Space Complexity');
 
       // Preload starter code
       if (isSql) {
@@ -1420,15 +1473,21 @@ const LiveInterview = () => {
       const proj = interviewData?.projectName || 'your project';
       openingQuestion = `I'd love to start with a technical walkthrough — could you describe "${proj}" at an architectural level and explain what problem it was designed to solve?`;
       spokenIntro = `Good morning. Welcome to your Project Discussion round. I'm Sarah. Let's dive into the architecture and technical implementation of "${proj}".`;
+      setQuestionCategory('System Architecture & Overview');
+      setNextPlannedCategory('Database & API Design');
     } else if (typeLowerG.includes('system design')) {
       openingQuestion = `Before we jump into our architecture challenge, could you share your experience with distributed systems, high availability, and database scaling?`;
       spokenIntro = `Good morning. Welcome to your System Design interview. I'm Sarah. Today we'll tackle scalable architecture and design trade-offs.`;
+      setQuestionCategory('Requirements & Scoping');
+      setNextPlannedCategory('High-Level Architecture');
     } else {
       // Technical Interview
       const track = interviewData?.technicalTrack || interviewData?.domain || roleLabel;
       const topics = interviewData?.selectedTopics?.length > 0 ? interviewData.selectedTopics.join(', ') : track;
       openingQuestion = `Welcome! Today's session will focus on ${track} (${topics}). Could you start by introducing yourself and sharing your hands-on experience with these technologies?`;
       spokenIntro = `Good morning. Welcome to your Technical Interview. I'm Sarah. Today we'll cover key concepts in ${track}. Let's begin with your hands-on experience.`;
+      setQuestionCategory('Core Fundamentals');
+      setNextPlannedCategory('Practical Application');
     }
     
     stopListening();
@@ -1439,9 +1498,10 @@ const LiveInterview = () => {
     setAiSpeaking(true);
     setInterviewerStatus('speaking');
 
-    // Set full formatted question display in UI immediately
+    // Set full formatted question display in UI immediately & seed asked tracking
     setCurrentQuestion(openingQuestion);
     currentQuestionRef.current = openingQuestion;
+    askedQuestionsRef.current = [openingQuestion];
     const initialQId = `q-1-${Date.now()}`;
     setCurrentQuestionId(initialQId);
     currentQuestionIdRef.current = initialQId;
@@ -1451,6 +1511,7 @@ const LiveInterview = () => {
 
     // Log greeting in conversation history
     const aiLogEntry = { sender: 'ai', text: isCoding ? `[Presented Coding Challenge]: ${openingQuestion}` : openingQuestion, timestamp: Date.now() };
+    conversationHistoryRef.current = [aiLogEntry];
     setConversationHistory([aiLogEntry]);
     setDialogLogs([aiLogEntry]);
 
@@ -1684,7 +1745,9 @@ const LiveInterview = () => {
 
             const restoredHistory = [];
             const restoredLogs = [];
+            const restoredAsked = [];
             interviewData.questions.forEach((q, idx) => {
+              if (q.question) restoredAsked.push(q.question);
               restoredHistory.push({ sender: 'ai', text: q.question, timestamp: Date.now() - (answeredCount - idx) * 60000 });
               restoredLogs.push({ sender: 'ai', text: q.question });
               if (q.userAnswer) {
@@ -1692,11 +1755,19 @@ const LiveInterview = () => {
                 restoredLogs.push({ sender: 'user', text: q.userAnswer });
               }
             });
+            askedQuestionsRef.current = Array.from(new Set([
+              ...restoredAsked,
+              ...(Array.isArray(interviewData?.adaptiveState?.askedFollowupQuestions) ? interviewData.adaptiveState.askedFollowupQuestions : [])
+            ].filter(Boolean)));
+            conversationHistoryRef.current = restoredHistory;
             setConversationHistory(restoredHistory);
             setDialogLogs(restoredLogs);
 
+            const durMatch = String(interviewData?.duration || '').match(/(\d+)/);
+            const mins = durMatch ? parseInt(durMatch[1], 10) : 30;
+            const closingThreshold = mins <= 10 ? 5 : mins <= 20 ? 7 : mins <= 30 ? 11 : mins <= 45 ? 13 : 15;
             let stage = 'core';
-            if (nextQNum >= 9) stage = 'closing';
+            if (nextQNum >= closingThreshold) stage = 'closing';
             else if (nextQNum >= 5) stage = 'deepdive';
             setInterviewStage(stage);
             interviewStageRef.current = stage;
@@ -1705,6 +1776,9 @@ const LiveInterview = () => {
             api.post(`/interviews/${id}/question`).then(qRes => {
               if (!isActiveMount) return;
               const nextQ = qRes.data?.question || 'Please provide your answer to continue.';
+              if (!askedQuestionsRef.current.includes(nextQ)) {
+                askedQuestionsRef.current.push(nextQ);
+              }
               setCurrentQuestion(nextQ);
               currentQuestionRef.current = nextQ;
               setIsAIThinking(false);
@@ -2012,6 +2086,100 @@ const LiveInterview = () => {
     return () => document.removeEventListener('keydown', handleKeyboard);
   }, [stream, isMuted, isCameraOn, isEnding]);
 
+  /* ─── Apply conversational turn response (Shared by submit/retry/skip) ─ */
+  const applyConversationalTurnResponse = useCallback(async ({
+    convData,
+    userAnswerDisplay,
+    currentQNum,
+    currentStage,
+    spokenAckOverride = null,
+    celebrateExcellent = false
+  }) => {
+    if (!convData || isEndingRef.current) return;
+
+    setNetworkError(null);
+    const nextQNum = currentQNum + 1;
+    questionNumberRef.current = nextQNum;
+    setQuestionNumber(nextQNum);
+
+    const {
+      acknowledgement,
+      transition,
+      nextQuestion,
+      isClosing,
+      isFollowUp,
+      questionCategory: respCategory,
+      nextPlannedCategory: respNextCategory,
+      questionId: respQuestionId
+    } = convData;
+
+    const nextQId = respQuestionId || `q-${nextQNum}-${Date.now()}`;
+    setCurrentQuestionId(nextQId);
+    currentQuestionIdRef.current = nextQId;
+
+    setInterviewerStatus(isFollowUp ? 'preparing_followup' : 'moving_to_next');
+
+    if (respCategory) setQuestionCategory(respCategory);
+    if (respNextCategory) setNextPlannedCategory(respNextCategory);
+
+    const closingThreshold = getClosingTurnThreshold();
+    let nextStage = currentStage;
+    if (isClosing || nextQNum >= closingThreshold) {
+      nextStage = 'closing';
+    } else if (currentStage === 'greeting') {
+      nextStage = 'warmup';
+    } else if (currentStage === 'warmup' && nextQNum >= 2) {
+      nextStage = 'core';
+    } else if (currentStage === 'core' && nextQNum >= 5) {
+      nextStage = 'deepdive';
+    }
+    setInterviewStage(nextStage);
+    interviewStageRef.current = nextStage;
+
+    if (celebrateExcellent) {
+      const wordCount = userAnswerDisplay.split(/\s+/).length;
+      if (wordCount > 80) {
+        setOnExcellentAnswer(true);
+        setTimeout(() => setOnExcellentAnswer(false), 2200);
+      }
+    }
+
+    if (nextQuestion && !askedQuestionsRef.current.includes(nextQuestion)) {
+      askedQuestionsRef.current = [...askedQuestionsRef.current, nextQuestion];
+    }
+
+    const effectiveAck = spokenAckOverride !== null ? spokenAckOverride : acknowledgement;
+    const aiResponseText = [effectiveAck, transition, nextQuestion].filter(Boolean).join(' ');
+
+    const updatedHistory = [
+      ...conversationHistoryRef.current,
+      { sender: 'user', text: userAnswerDisplay, timestamp: Date.now() - 2 },
+      { sender: 'ai',   text: aiResponseText, question: nextQuestion, timestamp: Date.now() }
+    ];
+    conversationHistoryRef.current = updatedHistory;
+    setConversationHistory(updatedHistory);
+
+    const shouldConcludeNow = Boolean(isClosing || nextQNum > closingThreshold);
+    if (shouldConcludeNow) {
+      setCurrentQuestion(aiResponseText);
+      currentQuestionRef.current = aiResponseText;
+      setIsAIThinking(false);
+      isAIThinkingRef.current = false;
+      await speakTextConversational(effectiveAck, transition, nextQuestion);
+      setTimeout(() => {
+        if (confirmEndInterviewRef.current) confirmEndInterviewRef.current();
+        else endInterview();
+      }, 2000);
+      return;
+    }
+
+    setCurrentQuestion(nextQuestion);
+    currentQuestionRef.current = nextQuestion;
+    setIsAIThinking(false);
+    isAIThinkingRef.current = false;
+    await speakTextConversational(effectiveAck, transition, nextQuestion);
+  }, [getClosingTurnThreshold, speakTextConversational, endInterview]);
+
   /* ─── Submit answer ───────────────────────────────────────────────────── */
   const submitAnswer = async () => {
     if (isSubmittingRef.current || isAiSpeakingRef.current || isAIThinkingRef.current) return;
@@ -2084,10 +2252,14 @@ const LiveInterview = () => {
       if (isMock) {
         const currentStage = interviewStageRef.current;
         const currentQNum  = questionNumberRef.current;
+        const activeQText  = currentQuestionRef.current;
+        const activeQId    = currentQuestionIdRef.current;
 
         lastSubmissionRef.current = {
           userAnswerDisplay,
           answer,
+          questionAsked: activeQText,
+          activeQuestionId: activeQId,
           currentQNum,
           currentStage,
           wasBookmarked
@@ -2099,6 +2271,7 @@ const LiveInterview = () => {
         }
         const abortController = new AbortController();
         turnAbortControllerRef.current = abortController;
+        const requestSeq = ++turnRequestSeqRef.current;
 
         setInterviewerStatus('answer_received');
         setInterviewState('PROCESSING_ANSWER');
@@ -2106,9 +2279,11 @@ const LiveInterview = () => {
 
         // Brief visual status transition to processing
         setTimeout(() => {
-          setInterviewerStatus('processing');
-          setInterviewState('GENERATING_NEXT_QUESTION');
-          interviewStateRef.current = 'GENERATING_NEXT_QUESTION';
+          if (requestSeq === turnRequestSeqRef.current && !isEndingRef.current) {
+            setInterviewerStatus('processing');
+            setInterviewState('GENERATING_NEXT_QUESTION');
+            interviewStateRef.current = 'GENERATING_NEXT_QUESTION';
+          }
         }, 150);
 
         // Fire conversational response request immediately in a single pass with saveAnswer: true
@@ -2118,8 +2293,10 @@ const LiveInterview = () => {
           const convRes = await api.post(`/interviews/${id}/conversational-response`, {
             userAnswer: userAnswerDisplay,
             rawAnswer: answer,
-            questionAsked: currentQuestionRef.current,
-            conversationHistory: conversationHistory.slice(-6),
+            questionAsked: activeQText,
+            activeQuestionId: activeQId,
+            askedQuestions: askedQuestionsRef.current,
+            conversationHistory: conversationHistoryRef.current.slice(-16),
             questionNumber: currentQNum,
             interviewStage: currentStage,
             bookmarked: wasBookmarked,
@@ -2127,12 +2304,13 @@ const LiveInterview = () => {
           }, {
             signal: abortController.signal
           });
+          if (requestSeq !== turnRequestSeqRef.current || isEndingRef.current) return;
           convResponse = convRes ? convRes.data : null;
           if (convResponse) {
             setLastTurnLatencyMs(Math.round(performance.now() - turnStartTime));
           }
         } catch (err) {
-          if (err.name === 'CanceledError' || err.name === 'AbortError') {
+          if (err.name === 'CanceledError' || err.name === 'AbortError' || requestSeq !== turnRequestSeqRef.current || isEndingRef.current) {
             console.log('Turn request canceled.');
             return;
           }
@@ -2142,65 +2320,13 @@ const LiveInterview = () => {
         }
 
         if (convResponse) {
-          setNetworkError(null);
-          // Advance question counter and determine next stage
-          const nextQNum = currentQNum + 1;
-          questionNumberRef.current = nextQNum;
-          setQuestionNumber(nextQNum);
-
-          const nextQId = `q-${nextQNum}-${Date.now()}`;
-          setCurrentQuestionId(nextQId);
-          currentQuestionIdRef.current = nextQId;
-
-          // Indicate follow-up vs next question state
-          if (convResponse.isFollowUp) {
-            setInterviewerStatus('preparing_followup');
-          } else {
-            setInterviewerStatus('moving_to_next');
-          }
-
-          let nextStage = currentStage;
-          if (currentStage === 'greeting') nextStage = 'warmup';
-          else if (currentStage === 'warmup' && nextQNum >= 2) nextStage = 'core';
-          else if (currentStage === 'core' && nextQNum >= 5) nextStage = 'deepdive';
-          else if (nextQNum >= 9) nextStage = 'closing';
-          setInterviewStage(nextStage);
-          interviewStageRef.current = nextStage;
-
-          // Trigger smile for excellent answers (> 80 words)
-          const wordCount = userAnswerDisplay.split(/\s+/).length;
-          if (wordCount > 80) {
-            setOnExcellentAnswer(true);
-            setTimeout(() => setOnExcellentAnswer(false), 2200);
-          }
-
-          const { acknowledgement, transition, nextQuestion, isClosing } = convResponse;
-
-          // Append full exchange to conversation log
-          const aiResponseText = [acknowledgement, transition, nextQuestion].filter(Boolean).join(' ');
-          setConversationHistory(prev => [
-            ...prev,
-            { sender: 'user', text: userAnswerDisplay, timestamp: Date.now() - 2 },
-            { sender: 'ai',   text: aiResponseText,    timestamp: Date.now() }
-          ]);
-
-          if (isClosing || nextStage === 'closing') {
-            setCurrentQuestion(aiResponseText);
-            currentQuestionRef.current = aiResponseText;
-            setIsAIThinking(false);
-            isAIThinkingRef.current = false;
-            await speakTextConversational(acknowledgement, transition, nextQuestion);
-            setTimeout(() => confirmEndInterview(), 2000);
-            return;
-          }
-
-          setCurrentQuestion(nextQuestion);
-          currentQuestionRef.current = nextQuestion;
-          setIsAIThinking(false);
-          isAIThinkingRef.current = false;
-
-          // Speak conversationally: acknowledgement + transition + question
-          await speakTextConversational(acknowledgement, transition, nextQuestion);
+          await applyConversationalTurnResponse({
+            convData: convResponse,
+            userAnswerDisplay,
+            currentQNum,
+            currentStage,
+            celebrateExcellent: true
+          });
         } else {
           // Fallback for API failure
           setNetworkError('Connection error: Failed to receive next question from interviewer. Your response is saved.');
@@ -2237,7 +2363,15 @@ const LiveInterview = () => {
   const retryLastSubmission = useCallback(async () => {
     if (isSubmittingRef.current || isAiSpeakingRef.current) return;
     if (!lastSubmissionRef.current) return;
-    const { userAnswerDisplay, answer, currentQNum, currentStage, wasBookmarked } = lastSubmissionRef.current;
+    const {
+      userAnswerDisplay,
+      answer,
+      questionAsked,
+      activeQuestionId,
+      currentQNum,
+      currentStage,
+      wasBookmarked
+    } = lastSubmissionRef.current;
 
     setNetworkError(null);
     setIsAIThinking(true);
@@ -2251,14 +2385,17 @@ const LiveInterview = () => {
     }
     const abortController = new AbortController();
     turnAbortControllerRef.current = abortController;
+    const requestSeq = ++turnRequestSeqRef.current;
 
     const turnStartTime = performance.now();
     try {
       const convRes = await api.post(`/interviews/${id}/conversational-response`, {
         userAnswer: userAnswerDisplay,
         rawAnswer: answer,
-        questionAsked: currentQuestionRef.current,
-        conversationHistory: conversationHistory.slice(-6),
+        questionAsked: questionAsked || currentQuestionRef.current,
+        activeQuestionId: activeQuestionId || currentQuestionIdRef.current,
+        askedQuestions: askedQuestionsRef.current,
+        conversationHistory: conversationHistoryRef.current.slice(-16),
         questionNumber: currentQNum,
         interviewStage: currentStage,
         bookmarked: wasBookmarked,
@@ -2266,56 +2403,20 @@ const LiveInterview = () => {
       }, {
         signal: abortController.signal
       });
+      if (requestSeq !== turnRequestSeqRef.current || isEndingRef.current) return;
 
       if (convRes?.data) {
         setLastTurnLatencyMs(Math.round(performance.now() - turnStartTime));
-        setNetworkError(null);
-        const { acknowledgement, transition, nextQuestion, isClosing } = convRes.data;
-        const nextQNum = currentQNum + 1;
-        questionNumberRef.current = nextQNum;
-        setQuestionNumber(nextQNum);
-
-        const nextQId = `q-${nextQNum}-${Date.now()}`;
-        setCurrentQuestionId(nextQId);
-        currentQuestionIdRef.current = nextQId;
-
-        let nextStage = currentStage;
-        if (currentStage === 'greeting') nextStage = 'warmup';
-        else if (currentStage === 'warmup' && nextQNum >= 2) nextStage = 'core';
-        else if (currentStage === 'core' && nextQNum >= 5) nextStage = 'deepdive';
-        else if (nextQNum >= 9) nextStage = 'closing';
-        setInterviewStage(nextStage);
-        interviewStageRef.current = nextStage;
-
-        const aiResponseText = [acknowledgement, transition, nextQuestion].filter(Boolean).join(' ');
-        setConversationHistory(prev => [
-          ...prev,
-          { sender: 'user', text: userAnswerDisplay, timestamp: Date.now() - 2 },
-          { sender: 'ai',   text: aiResponseText,    timestamp: Date.now() }
-        ]);
-
-        if (isClosing || nextStage === 'closing') {
-          setCurrentQuestion(aiResponseText);
-          currentQuestionRef.current = aiResponseText;
-          setIsAIThinking(false);
-          isAIThinkingRef.current = false;
-          await speakTextConversational(acknowledgement, transition, nextQuestion);
-          setTimeout(() => {
-            if (confirmEndInterviewRef.current) confirmEndInterviewRef.current();
-            else endInterview();
-          }, 2000);
-          return;
-        }
-
-        setCurrentQuestion(nextQuestion);
-        currentQuestionRef.current = nextQuestion;
-        setIsAIThinking(false);
-        isAIThinkingRef.current = false;
-        await speakTextConversational(acknowledgement, transition, nextQuestion);
+        await applyConversationalTurnResponse({
+          convData: convRes.data,
+          userAnswerDisplay,
+          currentQNum,
+          currentStage
+        });
         return;
       }
     } catch (err) {
-      if (err.name === 'CanceledError' || err.name === 'AbortError') return;
+      if (err.name === 'CanceledError' || err.name === 'AbortError' || requestSeq !== turnRequestSeqRef.current || isEndingRef.current) return;
       console.warn('Retry conversational response failed', err);
       setNetworkError('Connection retry failed. Please click retry or check your network connection.');
     }
@@ -2323,7 +2424,7 @@ const LiveInterview = () => {
     isAIThinkingRef.current = false;
     setInterviewerStatus('listening');
     startListening();
-  }, [id, conversationHistory, speakTextConversational, endInterview, startListening]);
+  }, [id, applyConversationalTurnResponse, startListening]);
 
   /* ─── Skip question ───────────────────────────────────────────────────── */
   const skipQuestion = async () => {
@@ -2365,17 +2466,8 @@ const LiveInterview = () => {
       if (isMock) {
         const currentStage = interviewStageRef.current;
         const currentQNum  = questionNumberRef.current;
-        const nextQNum = currentQNum + 1;
-        questionNumberRef.current = nextQNum;
-        setQuestionNumber(nextQNum);
-
-        let nextStage = currentStage;
-        if (currentStage === 'greeting') nextStage = 'warmup';
-        else if (currentStage === 'warmup' && nextQNum >= 2) nextStage = 'core';
-        else if (currentStage === 'core' && nextQNum >= 5) nextStage = 'deepdive';
-        else if (nextQNum >= 9) nextStage = 'closing';
-        setInterviewStage(nextStage);
-        interviewStageRef.current = nextStage;
+        const activeQText  = currentQuestionRef.current;
+        const activeQId    = currentQuestionIdRef.current;
 
         setInterviewerStatus('processing');
         setInterviewState('GENERATING_NEXT_QUESTION');
@@ -2386,34 +2478,35 @@ const LiveInterview = () => {
         }
         const abortController = new AbortController();
         turnAbortControllerRef.current = abortController;
+        const requestSeq = ++turnRequestSeqRef.current;
 
         try {
           const convRes = await api.post(`/interviews/${id}/conversational-response`, {
             userAnswer: 'I would like to skip this question and move on to the next topic.',
             rawAnswer: 'Skipped',
-            questionAsked: currentQuestionRef.current,
-            conversationHistory: conversationHistory.slice(-6),
+            questionAsked: activeQText,
+            activeQuestionId: activeQId,
+            askedQuestions: askedQuestionsRef.current,
+            conversationHistory: conversationHistoryRef.current.slice(-16),
             questionNumber: currentQNum,
             interviewStage: currentStage,
             saveAnswer: true
           }, {
             signal: abortController.signal
           });
+          if (requestSeq !== turnRequestSeqRef.current || isEndingRef.current) return;
           if (convRes?.data) {
-            const { acknowledgement, transition, nextQuestion } = convRes.data;
-            const nextQId = `q-${nextQNum}-${Date.now()}`;
-            setCurrentQuestionId(nextQId);
-            currentQuestionIdRef.current = nextQId;
-            const spokenAck = acknowledgement || "No problem at all, let's move forward.";
-            setCurrentQuestion(nextQuestion);
-            currentQuestionRef.current = nextQuestion;
-            setIsAIThinking(false);
-            isAIThinkingRef.current = false;
-            await speakTextConversational(spokenAck, transition, nextQuestion);
+            await applyConversationalTurnResponse({
+              convData: convRes.data,
+              userAnswerDisplay: 'Skipped question',
+              currentQNum,
+              currentStage,
+              spokenAckOverride: convRes.data.acknowledgement || "No problem at all, let's move forward."
+            });
             return;
           }
         } catch (err) {
-          if (err.name === 'CanceledError' || err.name === 'AbortError') return;
+          if (err.name === 'CanceledError' || err.name === 'AbortError' || requestSeq !== turnRequestSeqRef.current || isEndingRef.current) return;
           console.warn('Skip response failed:', err);
         }
         setIsAIThinking(false);
@@ -3248,6 +3341,10 @@ const LiveInterview = () => {
           speechLang={speechLang}
           changeSpeechLang={changeSpeechLang}
           lastTurnLatencyMs={lastTurnLatencyMs}
+          questionNumber={questionNumber}
+          questionCategory={questionCategory}
+          nextPlannedCategory={nextPlannedCategory}
+          requestClarification={requestClarification}
         />
       ) : (
         <div className="flex-1 flex gap-3 p-3 overflow-hidden min-h-0 relative">

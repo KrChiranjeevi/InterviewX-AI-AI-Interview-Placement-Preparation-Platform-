@@ -93,6 +93,10 @@ const MockInterviewRoom = ({
   speechLang = 'en-IN',
   changeSpeechLang = () => {},
   lastTurnLatencyMs = null,
+  questionNumber = 1,
+  questionCategory = '',
+  nextPlannedCategory = '',
+  requestClarification = null,
 }) => {
 
   const [activeHighlightSection, setActiveHighlightSection] = useState('projects');
@@ -204,13 +208,17 @@ const MockInterviewRoom = ({
     }
   }, [archetype]);
 
-  // Dynamic Expected topics based on archetype
+  // Dynamic Expected topics based on live turn categories with archetype fallback
   const getFlowTopics = () => {
-    if (archetype === 'coding') return { current: 'DSA Algorithms', next: 'Complexity Trade-offs' };
-    if (archetype === 'system_design') return { current: 'Scalability / Caching', next: 'Database Partitioning' };
-    if (archetype === 'hr') return { current: 'STAR Behavioral Case', next: 'Career Trajectory' };
-    if (archetype === 'resume') return { current: 'Project Infrastructure', next: 'Skill Verification' };
-    return { current: 'OOP / DBMS Basics', next: 'Framework Lifecycle' };
+    const fallback = archetype === 'coding' ? { current: 'DSA Algorithms', next: 'Complexity Trade-offs' }
+      : archetype === 'system_design' ? { current: 'Scalability / Caching', next: 'Database Partitioning' }
+      : archetype === 'hr' ? { current: 'STAR Behavioral Case', next: 'Career Trajectory' }
+      : archetype === 'resume' ? { current: 'Resume Overview', next: 'Projects & Technical Depth' }
+      : { current: 'OOP / DBMS Basics', next: 'Framework Lifecycle' };
+    return {
+      current: questionCategory || fallback.current,
+      next: nextPlannedCategory || fallback.next
+    };
   };
 
   // Highlights resume section when AI asks about it
@@ -1089,7 +1097,11 @@ const MockInterviewRoom = ({
               </button>
               <button
                 onClick={() => {
-                  const msg = `Could you please clarify: ${currentQuestion}`;
+                  if (requestClarification) {
+                    requestClarification();
+                    return;
+                  }
+                  const msg = 'To clarify this question, please focus on your direct contribution, architecture or tools used, and any measurable result.';
                   if (speakText) { speakText(msg); } else if (window.speechSynthesis) { window.speechSynthesis.cancel(); const utt = new SpeechSynthesisUtterance(msg); utt.lang = 'en-US'; window.speechSynthesis.speak(utt); }
                 }}
                 className="bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 text-[10px] font-bold px-3 py-1.5 rounded-xl transition-all"
@@ -1129,7 +1141,7 @@ const MockInterviewRoom = ({
               <div className="bg-slate-950 p-4 border border-white/5 rounded-2xl space-y-4">
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-slate-500">Question</span>
-                  <span className="text-white font-bold font-mono">Q{interview?.questions?.length + 1 || 1}</span>
+                  <span className="text-white font-bold font-mono">Q{questionNumber || (interview?.questions?.length + 1) || 1}</span>
                 </div>
 
                 <div className="flex justify-between items-center text-xs">

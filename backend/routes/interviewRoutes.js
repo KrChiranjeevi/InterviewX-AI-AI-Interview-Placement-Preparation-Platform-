@@ -3,7 +3,7 @@ const router = express.Router();
 const { protect } = require('../middleware/authMiddleware');
 const Interview = require('../models/Interview');
 const Report = require('../models/Report');
-const { generateQuestion, analyzeAnswer, generateAIReport, generateConversationalResponse, generateMockEvidenceReport, generateGDTopic, generateGDParticipants, generateGDTurn, generateGDEvaluationReport, generateExtemporeTopic, generateExtemporeCrossQuestions, generateExtemporeReport } = require('../services/aiService');
+const { generateQuestion, analyzeAnswer, generateAIReport, generateConversationalResponse, generateMockEvidenceReport, generateGDTopic, generateGDParticipants, generateGDTurn, generateGDEvaluationReport, generateExtemporeTopic, generateExtemporeCrossQuestions, generateExtemporeReport, buildClarificationForQuestion } = require('../services/aiService');
 
 const VALID_ARCHETYPES = [
   'Technical Interview',
@@ -512,6 +512,7 @@ const getConversationalResponse = async (req, res) => {
       userAnswer,
       questionAsked,
       conversationHistory,
+      askedQuestions,
       questionNumber,
       interviewStage
     } = req.body;
@@ -546,10 +547,20 @@ const getConversationalResponse = async (req, res) => {
       askedFollowupQuestions: []
     };
 
+    const dbAskedQuestions = (interview.questions || []).map(q => q?.question).filter(Boolean);
+    const mergedAskedQuestions = Array.from(new Set([
+      ...(Array.isArray(adaptiveState.askedFollowupQuestions) ? adaptiveState.askedFollowupQuestions : []),
+      ...(Array.isArray(askedQuestions) ? askedQuestions : []),
+      ...dbAskedQuestions,
+      ...(questionAsked ? [questionAsked] : [])
+    ].filter(Boolean)));
+    adaptiveState = { ...adaptiveState, askedFollowupQuestions: mergedAskedQuestions };
+
     const result = await generateConversationalResponse({
       userAnswer,
       questionAsked,
       conversationHistory: conversationHistory || [],
+      askedQuestions: mergedAskedQuestions,
       role: interview.role,
       type: interview.type,
       domain: interview.domain || '',
@@ -574,53 +585,63 @@ const getConversationalResponse = async (req, res) => {
       resumeSnapshot: interview.resumeSnapshot || null,
     });
 
-    // Unified turn saving: If saveAnswer is requested or userAnswer provided, persist immediately
+    // Unified turn saving with idempotent duplicate submission protection
     if (req.body.saveAnswer !== false && userAnswer && questionAsked) {
-      const isSkippedAnswer = req.body.rawAnswer === 'Skipped' || /^(skipped|skip|i would like to skip)/i.test((userAnswer || '').trim());
-      const evalObj = isSkippedAnswer
-        ? {
-            score: 0,
-            feedback: 'Question was skipped by candidate.',
-            metrics: { technicalKnowledge: 0, problemSolving: 0, communication: 0, confidence: 0, accuracy: 0, logicalThinking: 0 }
-          }
-        : (result.evaluation || {
-            score: Math.min(10, Math.max(0, Math.round((result.adaptiveState?.overallScore || 70) / 10))),
-            feedback: result.acknowledgement || 'Response evaluated.',
-            metrics: {
-              technicalKnowledge: Math.round((result.adaptiveState?.technicalScore || 70) / 10),
-              problemSolving: Math.round((result.adaptiveState?.overallScore || 70) / 10),
-              communication: Math.round((result.adaptiveState?.communicationScore || 75) / 10),
-              confidence: Math.round((result.adaptiveState?.confidenceScore || 75) / 10),
-              accuracy: Math.round((result.adaptiveState?.knowledgeScore || 70) / 10),
-              logicalThinking: Math.round((result.adaptiveState?.technicalScore || 70) / 10)
+      const lastSavedQ = interview.questions?.[interview.questions.length - 1];
+      const isDuplicateTurnPush = lastSavedQ &&
+        lastSavedQ.question === questionAsked &&
+        lastSavedQ.userAnswer === (req.body.rawAnswer || userAnswer) &&
+        lastSavedQ.createdAt &&
+        (Date.now() - new Date(lastSavedQ.createdAt).getTime()) < 5000;
+
+      if (!isDuplicateTurnPush) {
+        const isSkippedAnswer = req.body.rawAnswer === 'Skipped' || /^(skipped|skip|i would like to skip)/i.test((userAnswer || '').trim());
+        const evalObj = isSkippedAnswer
+          ? {
+              score: 0,
+              feedback: 'Question was skipped by candidate.',
+              metrics: { technicalKnowledge: 0, problemSolving: 0, communication: 0, confidence: 0, accuracy: 0, logicalThinking: 0 }
             }
-          });
+          : (result.evaluation || {
+              score: Math.min(10, Math.max(0, Math.round((result.adaptiveState?.overallScore || 70) / 10))),
+              feedback: result.acknowledgement || 'Response evaluated.',
+              metrics: {
+                technicalKnowledge: Math.round((result.adaptiveState?.technicalScore || 70) / 10),
+                problemSolving: Math.round((result.adaptiveState?.overallScore || 70) / 10),
+                communication: Math.round((result.adaptiveState?.communicationScore || 75) / 10),
+                confidence: Math.round((result.adaptiveState?.confidenceScore || 75) / 10),
+                accuracy: Math.round((result.adaptiveState?.knowledgeScore || 70) / 10),
+                logicalThinking: Math.round((result.adaptiveState?.technicalScore || 70) / 10)
+              }
+            });
 
-      interview.questions.push({
-        question: questionAsked,
-        userAnswer: req.body.rawAnswer || userAnswer,
-        aiFeedback: evalObj.feedback,
-        score: evalObj.score,
-        metrics: evalObj.metrics,
-        speechStats: {
-          speakingSpeed: isSkippedAnswer ? 0 : 120,
-          fillerWordsCount: 0,
-          eyeContactScore: isSkippedAnswer ? 0 : 85,
-          voiceClarity: isSkippedAnswer ? 0 : 90,
-          grammarScore: isSkippedAnswer ? 0 : 90
-        },
-        bookmarked: req.body.bookmarked || false
-      });
+        interview.questions.push({
+          question: questionAsked,
+          userAnswer: req.body.rawAnswer || userAnswer,
+          aiFeedback: evalObj.feedback,
+          score: evalObj.score,
+          metrics: evalObj.metrics,
+          speechStats: {
+            speakingSpeed: isSkippedAnswer ? 0 : 120,
+            fillerWordsCount: 0,
+            eyeContactScore: isSkippedAnswer ? 0 : 85,
+            voiceClarity: isSkippedAnswer ? 0 : 90,
+            grammarScore: isSkippedAnswer ? 0 : 90
+          },
+          bookmarked: req.body.bookmarked || false
+        });
 
-      const totalScore = interview.questions.reduce((acc, curr) => acc + (curr.score || 0), 0);
-      interview.score = Math.round((totalScore / interview.questions.length) * 10);
-      if (result.adaptiveState?.difficultyLevel) {
-        interview.difficulty = result.adaptiveState.difficultyLevel;
+        const totalScore = interview.questions.reduce((acc, curr) => acc + (curr.score || 0), 0);
+        interview.score = Math.round((totalScore / interview.questions.length) * 10);
+        if (result.adaptiveState?.difficultyLevel) {
+          interview.difficulty = result.adaptiveState.difficultyLevel;
+        }
       }
     }
 
-    // Save updated adaptive state back to the interview document
+    // Save updated adaptive state back to MongoDB (markModified required for Schema.Types.Mixed)
     interview.adaptiveState = result.adaptiveState || adaptiveState;
+    interview.markModified('adaptiveState');
     await interview.save();
 
     res.json({
@@ -650,6 +671,7 @@ const streamConversationalResponse = async (req, res) => {
       userAnswer,
       questionAsked,
       conversationHistory,
+      askedQuestions,
       questionNumber,
       interviewStage
     } = req.body;
@@ -682,10 +704,20 @@ const streamConversationalResponse = async (req, res) => {
       askedFollowupQuestions: []
     };
 
+    const dbAskedQuestions = (interview.questions || []).map(q => q?.question).filter(Boolean);
+    const mergedAskedQuestions = Array.from(new Set([
+      ...(Array.isArray(adaptiveState.askedFollowupQuestions) ? adaptiveState.askedFollowupQuestions : []),
+      ...(Array.isArray(askedQuestions) ? askedQuestions : []),
+      ...dbAskedQuestions,
+      ...(questionAsked ? [questionAsked] : [])
+    ].filter(Boolean)));
+    adaptiveState = { ...adaptiveState, askedFollowupQuestions: mergedAskedQuestions };
+
     const result = await generateConversationalResponse({
       userAnswer,
       questionAsked,
       conversationHistory: conversationHistory || [],
+      askedQuestions: mergedAskedQuestions,
       role: interview.role,
       type: interview.type,
       domain: interview.domain || '',
@@ -711,41 +743,51 @@ const streamConversationalResponse = async (req, res) => {
     });
 
     res.write(`data: ${JSON.stringify({ type: 'ack', acknowledgement: result.acknowledgement, transition: result.transition })}\n\n`);
-    res.write(`data: ${JSON.stringify({ type: 'question', nextQuestion: result.nextQuestion, isFollowUp: result.isFollowUp, isClosing: result.isClosing })}\n\n`);
+    res.write(`data: ${JSON.stringify({ type: 'question', nextQuestion: result.nextQuestion, questionCategory: result.questionCategory, nextCategory: result.nextCategory, isFollowUp: result.isFollowUp, isClosing: result.isClosing })}\n\n`);
 
     if (req.body.saveAnswer !== false && userAnswer && questionAsked) {
-      const evalObj = result.evaluation || {
-        score: Math.min(10, Math.max(1, Math.round((result.adaptiveState?.overallScore || 70) / 10))),
-        feedback: result.acknowledgement || 'Response evaluated.',
-        metrics: {
-          technicalKnowledge: 7, problemSolving: 7, communication: 7, confidence: 7, accuracy: 7, logicalThinking: 7
+      const lastSavedQ = interview.questions?.[interview.questions.length - 1];
+      const isDuplicateTurnPush = lastSavedQ &&
+        lastSavedQ.question === questionAsked &&
+        lastSavedQ.userAnswer === (req.body.rawAnswer || userAnswer) &&
+        lastSavedQ.createdAt &&
+        (Date.now() - new Date(lastSavedQ.createdAt).getTime()) < 5000;
+
+      if (!isDuplicateTurnPush) {
+        const evalObj = result.evaluation || {
+          score: Math.min(10, Math.max(1, Math.round((result.adaptiveState?.overallScore || 70) / 10))),
+          feedback: result.acknowledgement || 'Response evaluated.',
+          metrics: {
+            technicalKnowledge: 7, problemSolving: 7, communication: 7, confidence: 7, accuracy: 7, logicalThinking: 7
+          }
+        };
+
+        interview.questions.push({
+          question: questionAsked,
+          userAnswer: req.body.rawAnswer || userAnswer,
+          aiFeedback: evalObj.feedback,
+          score: evalObj.score,
+          metrics: evalObj.metrics,
+          speechStats: {
+            speakingSpeed: 120,
+            fillerWordsCount: 0,
+            eyeContactScore: 85,
+            voiceClarity: 90,
+            grammarScore: 90
+          },
+          bookmarked: req.body.bookmarked || false
+        });
+
+        const totalScore = interview.questions.reduce((acc, curr) => acc + (curr.score || 0), 0);
+        interview.score = Math.round((totalScore / interview.questions.length) * 10);
+        if (result.adaptiveState?.difficultyLevel) {
+          interview.difficulty = result.adaptiveState.difficultyLevel;
         }
-      };
-
-      interview.questions.push({
-        question: questionAsked,
-        userAnswer: req.body.rawAnswer || userAnswer,
-        aiFeedback: evalObj.feedback,
-        score: evalObj.score,
-        metrics: evalObj.metrics,
-        speechStats: {
-          speakingSpeed: 120,
-          fillerWordsCount: 0,
-          eyeContactScore: 85,
-          voiceClarity: 90,
-          grammarScore: 90
-        },
-        bookmarked: req.body.bookmarked || false
-      });
-
-      const totalScore = interview.questions.reduce((acc, curr) => acc + (curr.score || 0), 0);
-      interview.score = Math.round((totalScore / interview.questions.length) * 10);
-      if (result.adaptiveState?.difficultyLevel) {
-        interview.difficulty = result.adaptiveState.difficultyLevel;
       }
     }
 
     interview.adaptiveState = result.adaptiveState || adaptiveState;
+    interview.markModified('adaptiveState');
     await interview.save();
 
     res.write(`data: ${JSON.stringify({ type: 'complete', result, overallScore: interview.score })}\n\n`);
@@ -1014,11 +1056,30 @@ const getExtemporeReport = async (req, res) => {
   }
 };
 
+const clarifyQuestion = async (req, res) => {
+  try {
+    const interview = await Interview.findById(req.params.id);
+    if (!interview) return res.status(404).json({ message: 'Interview not found' });
+    if (interview.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to access this interview' });
+    }
+    const { currentQuestion } = req.body || {};
+    const clarification = buildClarificationForQuestion({
+      currentQuestion: currentQuestion || '',
+      role: interview.role || 'Software Engineer'
+    });
+    return res.json({ clarification });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to clarify question', error: error.message });
+  }
+};
+
 router.post('/create', protect, createInterview);
 router.get('/recent', protect, getRecentInterviews);
 router.get('/:id', protect, getInterviewById);
 router.post('/:id/question', protect, getNextQuestion);
 router.post('/:id/answer', protect, submitAnswer);
+router.post('/:id/clarify', protect, clarifyQuestion);
 router.post('/:id/conversational-response', protect, getConversationalResponse);
 router.post('/:id/conversational-response-stream', protect, streamConversationalResponse);
 router.post('/:id/mock-report', protect, getMockReport);
